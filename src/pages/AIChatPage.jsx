@@ -1173,7 +1173,7 @@ export default function AIChatPage() {
           data: a.dataUrl.split(',')[1], // strip base64 prefix
         })),
       } : {}),
-      max_tokens: 2000, temperature: 0.7, user_name: currentUser?.name || null,
+      max_tokens: 2000, temperature: 0.7, user_name: getUserData()?.name || null,
     };
 
     const ctrl = new AbortController();
