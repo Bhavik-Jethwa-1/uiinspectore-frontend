@@ -363,7 +363,7 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
         )}
       </div>
 
-      <div className={`flex flex-col gap-1 max-w-[78%] ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'} w-full`}>
         {message.imageUrl && (
           <div className="rounded-xl overflow-hidden cursor-pointer group/image relative"
             style={{ maxWidth: 320, background: '#18181b', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -381,7 +381,7 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
 
         {isUser ? (
           <div>
-            <div className="px-4 py-3 rounded-2xl text-sm"
+            <div className="px-4 py-3 rounded-2xl text-sm max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] xl:max-w-[60%]"
               style={{
                 background: 'linear-gradient(135deg, #7c5cff 0%, #9d7aff 100%)',
                 color: '#fff',
@@ -422,7 +422,7 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
             )}
           </div>
         ) : (
-          <div className="group rounded-2xl px-4 py-3"
+          <div className="group rounded-2xl px-4 py-3 max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] xl:max-w-[60%]"
             style={{
               background: '#18181b',
               border: '1px solid rgba(255,255,255,0.08)',
@@ -1629,7 +1629,7 @@ export default function AIChatPage() {
 
         {/* Messages */}
         <div ref={scrollerRef} className="flex-1 overflow-y-auto" style={{ background: 'transparent' }}>
-          <div className="max-w-3xl mx-auto px-3 md:px-5 py-4 md:py-6 space-y-4 md:space-y-6" style={{ background: 'transparent' }}>
+          <div className="max-w-[680px] lg:max-w-[900px] xl:max-w-[1100px] mx-auto px-3 md:px-5 py-4 md:py-6 space-y-4 md:space-y-6" style={{ background: 'transparent' }}>
 
             {/* Empty state */}
             {messages.length === 0 && (
@@ -1721,7 +1721,7 @@ export default function AIChatPage() {
             backdropFilter: 'blur(16px)',
             paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
           }}>
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-[680px] lg:max-w-[900px] xl:max-w-[1100px] mx-auto">
             {/* Mode toggle */}
             <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <button onClick={() => setImageMode(false)}
