@@ -10,6 +10,7 @@ import {
   Download, Sparkles, Zap, ImagePlus, Image, ExternalLink,
   Paperclip, FileText, ZoomIn, ZoomOut, Maximize2, Clock, Trash2,
   Plus, Search, Calendar, Hash, PanelLeftClose, PanelRightOpen,
+  Mail,
   ChevronDown, Shield, Edit3, CheckCircle, Globe, Star, StarOff,
   Palette, Accessibility, BarChart3, Code2,
   Volume2, Mic,
@@ -652,8 +653,9 @@ function SettingsPanel({ onClose }) {
 }
 
 // ─── HISTORY SIDEBAR ─────────────────────────────────────────────────────────
-function HistorySidebarInner({ history, activeId, onSelect, onNew, onDelete, onClearAll, collapsed, onToggle }) {
+function HistorySidebarInner({ history, activeId, onSelect, onNew, onDelete, onClearAll, collapsed, onToggle, currentUser }) {
   const [search, setSearch] = useState('');
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const filtered = search.trim()
     ? history.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
@@ -769,6 +771,66 @@ function HistorySidebarInner({ history, activeId, onSelect, onNew, onDelete, onC
           </div>
         ))}
       </div>
+
+      {/* User profile card */}
+      {currentUser && (
+        <div className="shrink-0" style={{ borderTop: '1px solid #1e1e2a' }}>
+          {/* Profile toggle button */}
+          <button
+            onClick={() => setProfileOpen(o => !o)}
+            className="w-full flex items-center gap-2.5 px-3 py-3 transition-all hover:opacity-80"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
+              style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)', color: '#fff' }}>
+              {currentUser.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs font-semibold truncate" style={{ color: '#e0e0f0' }}>{currentUser.name}</p>
+              <p className="text-[10px] truncate" style={{ color: '#6b6b7b' }}>{currentUser.email}</p>
+            </div>
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(124,92,255,0.15)', color: '#9d7aff' }}>
+                {currentUser.role || 'user'}
+              </span>
+              {currentUser.plan && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                  {currentUser.plan}
+                </span>
+              )}
+            </div>
+          </button>
+
+          {/* Expanded profile details */}
+          {profileOpen && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: '#1a1a26' }}>
+                <User size={11} style={{ color: '#6b6b7b' }} />
+                <span className="text-[11px]" style={{ color: '#9090a8' }}>{currentUser.name}</span>
+              </div>
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: '#1a1a26' }}>
+                <Mail size={11} style={{ color: '#6b6b7b' }} />
+                <span className="text-[11px] truncate" style={{ color: '#9090a8' }}>{currentUser.email}</span>
+              </div>
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: '#1a1a26' }}>
+                <Shield size={11} style={{ color: '#6b6b7b' }} />
+                <span className="text-[11px]" style={{ color: '#9090a8' }}>Role: <span style={{ color: '#9d7aff' }}>{currentUser.role || 'user'}</span></span>
+              </div>
+              {currentUser.plan && (
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: '#1a1a26' }}>
+                  <Zap size={11} style={{ color: '#6b6b7b' }} />
+                  <span className="text-[11px]" style={{ color: '#9090a8' }}>Plan: <span style={{ color: '#10b981' }}>{currentUser.plan}</span></span>
+                </div>
+              )}
+              {currentUser.id && (
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: '#1a1a26' }}>
+                  <Hash size={11} style={{ color: '#6b6b7b' }} />
+                  <span className="text-[11px]" style={{ color: '#9090a8' }}>ID: <span style={{ color: '#71717a' }}>{currentUser.id}</span></span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {history.length > 0 && (
         <div className="p-3" style={{ borderTop: '1px solid #1e1e2a' }}>
@@ -887,6 +949,7 @@ export default function AIChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [robotState, setRobotState] = useState('idle'); // 'idle' | 'thinking' | 'responding' | 'completed'
   const [showSettings, setShowSettings] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [lightboxPrompt, setLightboxPrompt] = useState(null);
   const [imageMode, setImageMode] = useState(false);
@@ -1383,7 +1446,8 @@ export default function AIChatPage() {
           onSelect={loadConversation} onNew={startNewChat}
           onDelete={requestDelete}
           onClearAll={requestClearHistory}
-          collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+          collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)}
+          currentUser={currentUser} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -1395,7 +1459,8 @@ export default function AIChatPage() {
               onNew={() => { startNewChat(); setSidebarCollapsed(true); }}
               onDelete={requestDelete}
               onClearAll={requestClearHistory}
-              collapsed={false} onToggle={() => setSidebarCollapsed(true)} />
+              collapsed={false} onToggle={() => setSidebarCollapsed(true)}
+              currentUser={currentUser} />
           </div>
         </div>
       )}
@@ -1410,7 +1475,10 @@ export default function AIChatPage() {
         </button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <RobotAvatar state={isStreaming ? 'thinking' : 'idle'} size={28} />
-          <p className="text-xs font-semibold truncate" style={{ color: '#f0f0fa' }}>{conv.title}</p>
+          <div className="flex flex-col min-w-0">
+            <p className="text-xs font-semibold truncate" style={{ color: '#f0f0fa' }}>{currentUser?.name || 'AI Chat'}</p>
+            <p className="text-[10px] truncate" style={{ color: '#6b6b7b' }}>{conv.title}</p>
+          </div>
         </div>
         {isStreaming && (
           <button onClick={stopGeneration}
@@ -1486,16 +1554,68 @@ export default function AIChatPage() {
             </button>
 
             {currentUser && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-                style={{ background: 'rgba(124,92,255,0.08)', color: '#9D7AFF', border: '1px solid rgba(124,92,255,0.15)' }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)' }}>
-                  <User size={12} color="#fff" />
-                </div>
-                <div className="hidden md:flex flex-col">
-                  <span className="font-semibold text-[11px]" style={{ color: '#c0b0ff' }}>{currentUser.name}</span>
-                  <span className="text-[10px]" style={{ color: '#7c5cff' }}>{currentUser.email}</span>
-                </div>
-                <span className="md:hidden font-semibold text-[11px]" style={{ color: '#c0b0ff' }}>{currentUser.name?.split(' ')[0]}</span>
+              <div className="relative">
+                <button
+                  onClick={() => setProfileMenuOpen(o => !o)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-all hover:opacity-80"
+                  style={{ background: profileMenuOpen ? 'rgba(124,92,255,0.15)' : 'rgba(124,92,255,0.08)', color: '#9D7AFF', border: '1px solid rgba(124,92,255,0.15)' }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)', color: '#fff' }}>
+                    {currentUser.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="hidden md:flex flex-col items-start">
+                    <span className="font-semibold text-[11px]" style={{ color: '#c0b0ff' }}>{currentUser.name}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {currentUser.role && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(124,92,255,0.15)', color: '#9d7aff' }}>
+                          {currentUser.role}
+                        </span>
+                      )}
+                      {currentUser.plan && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                          {currentUser.plan}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronDown size={11} className="hidden md:inline" style={{ color: '#7c5cff', transform: profileMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+
+                {/* Profile dropdown */}
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl overflow-hidden z-50"
+                    style={{ background: '#18181b', border: '1px solid rgba(124,92,255,0.2)', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)', color: '#fff' }}>
+                        {currentUser.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: '#f0f0fa' }}>{currentUser.name}</p>
+                        <p className="text-[11px] truncate" style={{ color: '#6b6b7b' }}>{currentUser.email}</p>
+                      </div>
+                    </div>
+                    {/* Details */}
+                    <div className="p-2 space-y-1">
+                      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <Shield size={13} style={{ color: '#7c5cff' }} />
+                        <span className="text-xs" style={{ color: '#9090a8' }}>Role</span>
+                        <span className="ml-auto text-xs font-semibold" style={{ color: '#9d7aff' }}>{currentUser.role || 'user'}</span>
+                      </div>
+                      {currentUser.plan && (
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                          <Zap size={13} style={{ color: '#10b981' }} />
+                          <span className="text-xs" style={{ color: '#9090a8' }}>Plan</span>
+                          <span className="ml-auto text-xs font-semibold capitalize" style={{ color: '#10b981' }}>{currentUser.plan}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <Hash size={13} style={{ color: '#71717a' }} />
+                        <span className="text-xs" style={{ color: '#9090a8' }}>User ID</span>
+                        <span className="ml-auto text-xs font-mono" style={{ color: '#71717a' }}>{currentUser.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1525,7 +1645,7 @@ export default function AIChatPage() {
                 {/* Welcome text */}
                 <div className="flex items-center gap-2 mb-2">
                   <h2 className="text-xl font-bold" style={{ color: '#f4f4f5' }}>
-                    Hello{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋</h2>
+                    Hi{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋</h2>
                 </div>
                 <p className="text-sm mb-1" style={{ color: '#a1a1aa' }}>Your AI coding assistant is ready</p>
                 <p className="text-xs mb-8 max-w-md" style={{ color: '#71717a' }}>
