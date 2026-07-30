@@ -12,6 +12,7 @@ import {
   Plus, Search, Calendar, Hash, PanelLeftClose,
   ChevronDown, Shield, Edit3, CheckCircle, Globe, Star, StarOff,
   Palette, Accessibility, BarChart3, Code2,
+  Volume2, Mic,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -153,6 +154,116 @@ function formatMsgTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// ─── ROBOT AVATAR ─────────────────────────────────────────────────────────────
+// States: idle | thinking | responding | completed
+// Uses inline SVG that mirrors the 3D robot character — no external image dependency
+function RobotAvatar({ state = 'idle', size = 32 }) {
+  const glowColor = state === 'thinking' ? '#22d3ee' : '#7c5cff';
+  const eyeGlow = state === 'thinking' ? 'filter: drop-shadow(0 0 6px #22d3ee);' : '';
+  const antennaSpin = state === 'thinking' ? 'animation: antennaPulse 1.2s ease-in-out infinite;' : '';
+  const floatAnim = state === 'idle' ? 'animation: robotFloat 3s ease-in-out infinite;' : '';
+  const breatheAnim = state === 'idle' ? 'animation: robotBreathe 4s ease-in-out infinite;' : '';
+
+  return (
+    <div style={{
+      width: size, height: size,
+      position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      ...(floatAnim || breatheAnim ? {} : {}),
+    }}>
+      <svg
+        viewBox="0 0 64 68"
+        width={size}
+        height={size}
+        style={{ overflow: 'visible', ...(floatAnim ? { animation: 'robotFloat 3s ease-in-out infinite' } : {}), filter: state === 'thinking' ? 'drop-shadow(0 0 8px rgba(34,211,238,0.5))' : 'none' }}
+      >
+        <defs>
+          <radialGradient id="eyeGlowGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={state === 'thinking' ? '#22d3ee' : '#22d3ee'} stopOpacity="1" />
+            <stop offset="100%" stopColor={state === 'thinking' ? '#22d3ee' : '#7c5cff'} stopOpacity="0.6" />
+          </radialGradient>
+          <radialGradient id="chestGrad" cx="50%" cy="30%" r="60%">
+            <stop offset="0%" stopColor="#3a5a6a" />
+            <stop offset="100%" stopColor="#1a2a3a" />
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+
+        {/* Body */}
+        <rect x="18" y="38" width="28" height="22" rx="6" fill="url(#chestGrad)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.5" />
+        {/* Chest logo — triangle "A" */}
+        <path d="M32 44 L27 52 H37 Z" fill="none" stroke="#22d3ee" strokeWidth="1.2" strokeLinejoin="round" opacity="0.8" />
+
+        {/* Head */}
+        <rect x="10" y="14" width="44" height="28" rx="10" fill="#e8f4f8" stroke="rgba(34,211,238,0.4)" strokeWidth="0.5" />
+
+        {/* Headphone band */}
+        <path d="M10 28 Q10 12 32 12 Q54 12 54 28" fill="none" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" opacity="0.85" />
+        {/* Headphone ear cups */}
+        <rect x="5" y="22" width="8" height="14" rx="4" fill="#22d3ee" opacity="0.85" />
+        <rect x="51" y="22" width="8" height="14" rx="4" fill="#22d3ee" opacity="0.85" />
+
+        {/* Screen / face area */}
+        <rect x="13" y="17" width="38" height="22" rx="6" fill="#0d1825" opacity="0.9" />
+
+        {/* Eyes — oval with glow */}
+        <ellipse cx="24" cy="27" rx="5" ry="5.5" fill="#0d1825" />
+        <ellipse cx="40" cy="27" rx="5" ry="5.5" fill="#0d1825" />
+        <ellipse cx="24" cy="27" rx="3.5" ry="4" fill="#22d3ee" style={eyeGlow ? { filter: 'drop-shadow(0 0 4px #22d3ee)' } : {}}>
+          {state === 'thinking' && <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite" />}
+          {state === 'idle' && <animate attributeName="ry" values="4;0.3;4" dur="4s" repeatCount="indefinite" begin="1s" />}
+        </ellipse>
+        <ellipse cx="40" cy="27" rx="3.5" ry="4" fill="#22d3ee" style={eyeGlow ? { filter: 'drop-shadow(0 0 4px #22d3ee)' } : {}}>
+          {state === 'thinking' && <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite" />}
+          {state === 'idle' && <animate attributeName="ry" values="4;0.3;4" dur="4s" repeatCount="indefinite" begin="1.2s" />}
+        </ellipse>
+        {/* Eye shine */}
+        <circle cx="22.5" cy="25.5" r="1" fill="white" opacity="0.6" />
+        <circle cx="38.5" cy="25.5" r="1" fill="white" opacity="0.6" />
+
+        {/* Mouth — curved smile (responds with talking) */}
+        {state === 'responding' ? (
+          <path d="M27 34 Q32 38 37 34" fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round">
+            <animate attributeName="d" values="M27 34 Q32 36 37 34;M27 34 Q32 38 37 34;M27 34 Q32 36 37 34" dur="0.4s" repeatCount="indefinite" />
+          </path>
+        ) : state === 'completed' ? (
+          <path d="M27 34 Q32 38 37 34" fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round" />
+        ) : (
+          <path d="M27 34 Q32 37 37 34" fill="none" stroke="rgba(34,211,238,0.6)" strokeWidth="1.5" strokeLinecap="round" />
+        )}
+
+        {/* Antenna */}
+        <line x1="32" y1="14" x2="32" y2="7" stroke="#5a8a9a" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="32" cy="5.5" r="2.5" fill="#22d3ee" opacity="0.9">
+          {state === 'thinking' ? (
+            <animate attributeName="r" values="2.5;3.5;2.5" dur="0.8s" repeatCount="indefinite" />
+          ) : (
+            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2.5s" repeatCount="indefinite" />
+          )}
+        </circle>
+
+        {/* Thinking particles */}
+        {state === 'thinking' && [0, 72, 144, 216, 288].map((angle, i) => {
+          const rad = (angle * Math.PI) / 180;
+          const cx = 32 + Math.cos(rad) * 18;
+          const cy = 28 + Math.sin(rad) * 14;
+          return (
+            <circle key={i} cx={cx} cy={cy} r="1.2" fill="#22d3ee" opacity="0.7">
+              <animateTransform attributeName="transform" type="rotate"
+                from={`${angle} 32 28`} to={`${angle + 360} 32 28`}
+                dur={`${1.2 + i * 0.15}s`} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.7;0;0.7" dur={`${0.8 + i * 0.1}s`} repeatCount="indefinite" />
+            </circle>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 // ─── CODE BLOCK ──────────────────────────────────────────────────────────────
 function CodeBlock({ children, className, ...props }) {
   const ref = useRef(null);
@@ -230,9 +341,10 @@ function MessageActions({ message, onRegenerate, onCopy, copied, onImageClick })
 }
 
 // ─── CHAT MESSAGE ─────────────────────────────────────────────────────────────
-function ChatMessage({ message, onRegenerate, index, onImageClick }) {
+function ChatMessage({ message, onRegenerate, index, onImageClick, robotState }) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
 
   const copyText = () => {
     navigator.clipboard.writeText(message.text || message.content || '').then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
@@ -240,20 +352,35 @@ function ChatMessage({ message, onRegenerate, index, onImageClick }) {
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-        style={{ background: isUser ? 'linear-gradient(135deg, #7c5cff, #9d7aff)' : '#1a1a26', border: isUser ? 'none' : '1px solid #2a2a35' }}>
-        {isUser ? <User size={14} color="#fff" /> : <Bot size={14} style={{ color: '#7c5cff' }} />}
+      {/* Avatar */}
+      <div className="shrink-0"
+        style={{
+          width: isUser ? 32 : 36,
+          height: isUser ? 32 : 36,
+          marginTop: 2,
+        }}>
+        {isUser ? (
+          <div className="w-full h-full rounded-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)', boxShadow: '0 0 10px rgba(124,92,255,0.35)' }}>
+            <User size={13} color="#fff" />
+          </div>
+        ) : (
+          <div style={{ filter: robotState === 'thinking' ? 'drop-shadow(0 0 6px rgba(34,211,238,0.5))' : 'none', transition: 'filter 0.3s' }}>
+            <RobotAvatar state={robotState || 'idle'} size={36} />
+          </div>
+        )}
       </div>
 
       <div className={`flex flex-col gap-1 max-w-[78%] ${isUser ? 'items-end' : 'items-start'}`}>
         {message.imageUrl && (
           <div className="rounded-xl overflow-hidden cursor-pointer group/image relative"
-            style={{ maxWidth: 320, background: '#1a1a26', border: '1px solid #2a2a3a' }}
+            style={{ maxWidth: 320, background: '#18181b', border: '1px solid rgba(255,255,255,0.08)' }}
             onClick={() => onImageClick(resolveImgUrl(message.imageUrl))}>
             <img src={resolveImgUrl(message.imageUrl)} alt="Generated" className="w-full object-cover max-h-64" style={{ display: 'block' }} />
-            <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.35)' }}>
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'rgba(0,0,0,0.45)' }}>
               <div className="flex flex-col items-center gap-1">
-                <Maximize2 size={22} color="#fff" />
+                <Maximize2 size={20} color="#fff" />
                 <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>Click to expand</span>
               </div>
             </div>
@@ -263,7 +390,13 @@ function ChatMessage({ message, onRegenerate, index, onImageClick }) {
         {isUser ? (
           <div>
             <div className="px-4 py-3 rounded-2xl text-sm"
-              style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff)', color: '#fff', borderRadius: '16px 16px 4px 16px', lineHeight: 1.6 }}>
+              style={{
+                background: 'linear-gradient(135deg, #7c5cff 0%, #9d7aff 100%)',
+                color: '#fff',
+                borderRadius: '18px 18px 6px 18px',
+                lineHeight: 1.6,
+                boxShadow: '0 4px 14px rgba(124,92,255,0.25)',
+              }}>
               {message.text || message.content}
             </div>
             {/* Attachment display */}
@@ -274,7 +407,7 @@ function ChatMessage({ message, onRegenerate, index, onImageClick }) {
                   if (isImage && att.preview) {
                     return (
                       <div key={att.id || i} className="relative group rounded-xl overflow-hidden cursor-pointer"
-                        style={{ width: 72, height: 72, background: '#1a1a26', border: '1px solid rgba(255,255,255,0.1)' }}
+                        style={{ width: 72, height: 72, background: '#18181b', border: '1px solid rgba(255,255,255,0.08)' }}
                         onClick={() => onImageClick?.(att.preview)}>
                         <img src={att.preview} alt={att.name} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -287,8 +420,8 @@ function ChatMessage({ message, onRegenerate, index, onImageClick }) {
                   return (
                     <div key={att.id || i}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs"
-                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <FileText size={12} style={{ color: '#c4b5fd' }} />
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <FileText size={12} style={{ color: '#9d7aff' }} />
                       <span className="max-w-[80px] truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>{att.name}</span>
                     </div>
                   );
@@ -297,22 +430,69 @@ function ChatMessage({ message, onRegenerate, index, onImageClick }) {
             )}
           </div>
         ) : (
-          <div className="group rounded-2xl px-4 py-3" style={{ background: '#1a1a26', border: '1px solid #252535', borderRadius: '16px 16px 16px 4px' }}>
+          <div className="group rounded-2xl px-4 py-3"
+            style={{
+              background: '#18181b',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '18px 18px 18px 6px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            }}>
             {message.text || message.content ? (
-              <div className="text-sm leading-relaxed" style={{ lineHeight: 1.7 }}><Markdown content={message.text || message.content} /></div>
+              <div className="text-sm leading-relaxed" style={{ lineHeight: 1.7, color: '#f4f4f5' }}><Markdown content={message.text || message.content} /></div>
             ) : message.error ? (
               <div className="flex items-start gap-2 text-red-400 text-sm"><AlertCircle size={14} className="mt-0.5 shrink-0" /><span>{message.error}</span></div>
             ) : null}
-            <MessageActions message={message} onRegenerate={() => onRegenerate(index)}
-              onCopy={copyText} copied={copied} onImageClick={() => onImageClick(resolveImgUrl(message.imageUrl))} />
+
+            {/* AI reaction bar */}
+            <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 8, marginTop: 8 }}>
+              {/* Volume / Play */}
+              <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#71717a' }} title="Listen">
+                <Volume2 size={11} />
+              </button>
+              {/* Copy */}
+              <button onClick={copyText}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                style={{ background: 'rgba(255,255,255,0.04)', color: copied ? '#10b981' : '#71717a' }} title="Copy">
+                {copied ? <CheckCheck size={11} /> : <Copy size={11} />} {copied ? 'Copied!' : 'Copy'}
+              </button>
+              {/* Regenerate */}
+              <button onClick={() => onRegenerate(index)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#71717a' }} title="Regenerate">
+                <RefreshCw size={11} />
+              </button>
+              {/* View image */}
+              {message.imageUrl && (
+                <button onClick={() => onImageClick(resolveImgUrl(message.imageUrl))}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                  style={{ background: 'rgba(255,255,255,0.04)', color: '#71717a' }} title="View fullscreen">
+                  <Eye size={11} />
+                </button>
+              )}
+              {/* Thumbs down */}
+              <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#71717a' }} title="Dislike">
+                <span style={{ fontSize: 11 }}>👎</span>
+              </button>
+              {/* Thumbs up */}
+              <button onClick={() => setLiked(l => !l)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-all hover:opacity-80"
+                style={{ background: liked ? 'rgba(34,211,238,0.1)' : 'rgba(255,255,255,0.04)', color: liked ? '#22d3ee' : '#71717a' }} title="Like">
+                <span style={{ fontSize: 11 }}>👍</span>
+              </button>
+            </div>
           </div>
         )}
 
         <div className={`flex items-center gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
           {!isUser && (message.model || message.provider) && (
-            <span className="text-[10px] px-1" style={{ color: '#5a5a6b' }}>{message.provider} · {message.model}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(124,92,255,0.1)', color: '#9d7aff' }}>
+              {message.provider} · {message.model}
+            </span>
           )}
-          <span className="text-[10px]" style={{ color: '#4a4a5b' }}>{formatMsgTime(message.ts)}</span>
+          <span className="text-[10px]" style={{ color: '#71717a' }}>{formatMsgTime(message.ts)}</span>
         </div>
       </div>
     </div>
@@ -671,6 +851,7 @@ export default function AIChatPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [robotState, setRobotState] = useState('idle'); // 'idle' | 'thinking' | 'responding' | 'completed'
   const [showSettings, setShowSettings] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [lightboxPrompt, setLightboxPrompt] = useState(null);
@@ -781,7 +962,7 @@ export default function AIChatPage() {
     });
   }, []);
 
-  const stopGeneration = () => { abortRef.current?.abort(); setIsStreaming(false); };
+  const stopGeneration = () => { abortRef.current?.abort(); setIsStreaming(false); setRobotState('idle'); };
 
   // ─── ATTACHMENTS ───────────────────────────────────────────────────────────
   const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5MB per file
@@ -871,6 +1052,7 @@ export default function AIChatPage() {
     updateConv({ messages: [...baseMsgs, userMsg], title: newTitle });
     setInput('');
     setIsStreaming(true);
+    setRobotState('thinking');
     scrollToBottom();
 
     // Detect if selected model is a user agent
@@ -941,9 +1123,11 @@ export default function AIChatPage() {
       }
     } finally {
       setIsStreaming(false);
+      setRobotState('completed');
       abortRef.current = null;
       scrollToBottom();
       if (hasAttachments) setAttachments([]); // Clear attachments after send
+      setTimeout(() => setRobotState('idle'), 2500);
     }
   }, [token, scrollToBottom, updateConv, attachments]);
 
@@ -1135,15 +1319,15 @@ export default function AIChatPage() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, #7c5cff, #ff6b9d, #7c5cff)', backgroundSize: '200% auto', animation: 'shimmer 3s linear infinite' }} />
+        <div style={{ height: '2px', background: 'linear-gradient(90deg, #7c5cff, #22d3ee, #7c5cff)', backgroundSize: '200% auto', animation: 'shimmer 3s linear infinite' }} />
 
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-5 py-3"
-          style={{ borderBottom: '1px solid #1e1e2a', background: '#13131C' }}>
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(9,9,11,0.8)', backdropFilter: 'blur(12px)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #7c5cff, #ff6b9d)' }}>
-              <Sparkles size={16} color="#fff" />
+            {/* Robot avatar in header */}
+            <div style={{ filter: 'drop-shadow(0 0 6px rgba(34,211,238,0.3))' }}>
+              <RobotAvatar state={isStreaming ? 'thinking' : 'idle'} size={34} />
             </div>
             <div>
               <h1 className="text-sm font-semibold" style={{ color: '#f0f0fa' }}>{conv.title}</h1>
@@ -1220,34 +1404,45 @@ export default function AIChatPage() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto p-5 space-y-6">
+        <div ref={scrollerRef} className="flex-1 overflow-y-auto" style={{ background: 'transparent' }}>
+          <div className="max-w-3xl mx-auto p-5 space-y-6" style={{ background: 'transparent' }}>
 
             {/* Empty state */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #7c5cff, #9d7aff, #ff6b9d)', backgroundSize: '200% 200%',
-                      animation: 'gradientShift 3s ease infinite',
-                      boxShadow: '0 0 40px rgba(124,92,255,0.3), 0 0 80px rgba(124,92,255,0.1)' }}>
-                    <MessageSquare size={32} color="#fff" />
+                {/* Robot + glow */}
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,255,0.15) 0%, transparent 70%)' }} />
+                  <div style={{ animation: 'robotFloat 3s ease-in-out infinite', filter: 'drop-shadow(0 0 12px rgba(34,211,238,0.3))' }}>
+                    <RobotAvatar state="idle" size={80} />
                   </div>
-                  <div className="absolute inset-0 rounded-full" style={{ background: 'rgba(124,92,255,0.12)', animation: 'ping 2.5s ease-out infinite' }} />
                 </div>
-                <h2 className="text-lg font-bold mb-1" style={{ color: '#f0f0fa' }}>Welcome{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋</h2>
-                <p className="text-xs max-w-sm mb-6" style={{ color: '#6b6b7b' }}>
-                  Ask anything — code reviews, security audits, architecture, performance, or generate AI images.
+
+                {/* Welcome text */}
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-xl font-bold" style={{ color: '#f4f4f5' }}>
+                    Hello{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋</h2>
+                </div>
+                <p className="text-sm mb-1" style={{ color: '#a1a1aa' }}>Your AI coding assistant is ready</p>
+                <p className="text-xs mb-8 max-w-md" style={{ color: '#71717a' }}>
+                  Ask me anything — code reviews, architecture, security audits, performance, or AI image generation.
                 </p>
+
+                {/* Suggested prompts */}
                 <div className="w-full max-w-lg">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#5a5a6b' }}>Try asking about</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#71717a' }}>Try asking about</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {QUICK_ACTIONS.map(a => (
                       <button key={a.label}
                         onClick={() => sendMessage(a.prompt)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all hover:opacity-80 hover:scale-105"
-                        style={{ background: '#1a1a26', border: '1px solid #2a2a35', color: '#9090a8', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-                        <Zap size={10} style={{ color: '#9d7aff' }} />
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-medium transition-all hover:opacity-80 hover:scale-105"
+                        style={{
+                          background: '#18181b',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: '#a1a1aa',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        }}>
+                        <Zap size={10} style={{ color: '#7c5cff' }} />
                         {a.label}
                       </button>
                     ))}
@@ -1258,6 +1453,7 @@ export default function AIChatPage() {
 
             {messages.map((msg, i) => (
               <ChatMessage key={msg.id} message={msg} index={i}
+                robotState={msg.role === 'ai' ? robotState : undefined}
                 onRegenerate={regenerateMessage}
                 onImageClick={(url) => {
                   const found = messages.find(m => m.imageUrl === url);
@@ -1269,20 +1465,23 @@ export default function AIChatPage() {
 
             {isStreaming && (
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: '#1a1a26', border: '1px solid #2a2a35' }}>
-                  <Bot size={14} style={{ color: '#7c5cff' }} />
+                <div className="shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 8px rgba(34,211,238,0.5))' }}>
+                  <RobotAvatar state="thinking" size={36} />
                 </div>
                 <div className="px-4 py-3 rounded-2xl"
-                  style={{ background: '#1a1a26', border: '1px solid #252535', borderRadius: '16px 16px 16px 4px' }}>
-                  <div className="flex flex-col gap-2">
+                  style={{ background: '#18181b', border: '1px solid rgba(34,211,238,0.15)', borderRadius: '18px 18px 18px 6px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={11} style={{ color: '#22d3ee' }} />
+                    <span className="text-[11px] font-medium" style={{ color: '#22d3ee' }}>Analyzing your request...</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
                     <div className="flex gap-2">
-                      <div className="h-2 w-20 rounded-full animate-pulse" style={{ background: '#2a2a3a', animationDelay: '0ms' }} />
-                      <div className="h-2 w-16 rounded-full animate-pulse" style={{ background: '#2a2a3a', animationDelay: '150ms' }} />
-                      <div className="h-2 w-12 rounded-full animate-pulse" style={{ background: '#2a2a3a', animationDelay: '300ms' }} />
+                      <div className="h-1.5 w-16 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '0ms' }} />
+                      <div className="h-1.5 w-12 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '120ms' }} />
+                      <div className="h-1.5 w-10 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '240ms' }} />
                     </div>
-                    <div className="h-2 w-28 rounded-full animate-pulse" style={{ background: '#2a2a3a', animationDelay: '100ms' }} />
-                    <div className="h-2 w-20 rounded-full animate-pulse" style={{ background: '#2a2a3a', animationDelay: '250ms' }} />
+                    <div className="h-1.5 w-24 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.2)', animationDelay: '80ms' }} />
+                    <div className="h-1.5 w-18 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.15)', animationDelay: '200ms' }} />
                   </div>
                 </div>
               </div>
@@ -1291,7 +1490,12 @@ export default function AIChatPage() {
         </div>
 
         {/* Input */}
-        <div className="shrink-0 p-4" style={{ borderTop: '1px solid #1e1e2a', background: imageMode ? '#0a1a12' : '#13131C' }}>
+        <div className="shrink-0 p-4"
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: imageMode ? 'rgba(9,140,100,0.05)' : 'rgba(9,9,11,0.8)',
+            backdropFilter: 'blur(16px)',
+          }}>
           <div className="max-w-3xl mx-auto">
             {/* Mode toggle */}
             <div className="flex items-center gap-3 mb-3">
@@ -1381,35 +1585,60 @@ export default function AIChatPage() {
                 }
                 placeholder={imageMode ? 'Describe the image you want to generate…' : 'Ask anything…'}
                 rows={1}
-                className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none"
-                style={{ background: '#1a1a26', border: `2px solid ${imageMode ? '#10a37f' : '#7C3AED'}`, color: '#e0e0f0', maxHeight: 140, overflowY: 'auto' }}
+                className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none"
+                style={{
+                  background: '#18181b',
+                  border: `2px solid ${imageMode ? 'rgba(16,163,127,0.4)' : 'rgba(124,92,255,0.3)'}`,
+                  color: '#f4f4f5',
+                  maxHeight: 140,
+                  overflowY: 'auto',
+                  borderRadius: '16px',
+                  transition: 'border-color 0.2s',
+                }}
               />
-              {/* Attachment button — only in chat mode */}
+              {/* Left action buttons — paperclip + mic */}
               {!imageMode && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
-                  style={{ background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.2)', color: '#9D7AFF' }}
-                  title="Attach files"
-                >
-                  <Paperclip size={18} />
-                </button>
+                <>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(161,161,170,0.8)' }}
+                    title="Attach files"
+                  >
+                    <Paperclip size={16} />
+                  </button>
+                  <button
+                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(161,161,170,0.8)' }}
+                    title="Voice input (coming soon)"
+                  >
+                    <Mic size={16} />
+                  </button>
+                </>
               )}
+              {/* Send / Generate button — sparkles gradient */}
               <button
                 onClick={() => {
                   if (imageMode) { if (!imageGenerating && input.trim()) generateImage(input.trim()); }
                   else { if (!isStreaming && (input.trim() || attachments.length > 0)) sendMessage(input.trim()); }
                 }}
                 disabled={(imageMode ? imageGenerating : isStreaming) || !(input.trim() || (!imageMode && attachments.length > 0))}
-                className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90"
-                style={{ background: imageMode ? 'linear-gradient(135deg, #10a37f, #0e8f6c)' : 'linear-gradient(135deg, #7C3AED, #9D7AFF)' }}>
+                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90"
+                style={{
+                  background: imageMode
+                    ? 'linear-gradient(135deg, #10a37f, #0e8f6c)'
+                    : 'linear-gradient(135deg, #7c5cff, #22d3ee)',
+                  boxShadow: imageMode
+                    ? '0 4px 14px rgba(16,163,127,0.3)'
+                    : '0 4px 14px rgba(124,92,255,0.3)',
+                }}>
                 {imageMode
-                  ? (imageGenerating ? <Loader2 size={18} className="animate-spin" color="#fff" /> : <Sparkles size={18} color="#fff" />)
-                  : (isStreaming ? <Loader2 size={18} className="animate-spin" color="#fff" /> : <Send size={18} color="#fff" />)
+                  ? (imageGenerating ? <Loader2 size={16} className="animate-spin" color="#fff" /> : <Sparkles size={16} color="#fff" />)
+                  : (isStreaming ? <Loader2 size={16} className="animate-spin" color="#fff" /> : <Sparkles size={16} color="#fff" />)
                 }
               </button>
             </div>
-            <p className="text-[11px] text-center mt-2" style={{ color: '#4a4a5a' }}>
+            <p className="text-[11px] text-center mt-2" style={{ color: '#71717a' }}>
               {imageMode ? `✨ ${imgGenLabel} · Native AI, no web search` : 'MiniMax-M3 · Free via gateway · responses may be inaccurate'}
             </p>
           </div>
