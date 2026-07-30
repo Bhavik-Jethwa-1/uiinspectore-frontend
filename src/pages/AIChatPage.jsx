@@ -169,7 +169,7 @@ function formatMsgTime(ts) {
 // Uses the premium cute robot image with animation overlay per state
 function RobotAvatar({ state = 'idle', size = 32 }) {
   const floatAnim = state === 'idle' ? 'robotFloat 3s ease-in-out infinite' : 'none';
-  const thinkingGlow = state === 'thinking' ? 'drop-shadow(0 0 14px rgba(124,92,255,0.8)) drop-shadow(0 0 4px rgba(168,85,247,0.6))' : 'none';
+  const thinkingGlow = state === 'thinking' ? 'drop-shadow(0 0 10px rgba(124,92,255,0.7))' : 'none';
   // Use animated GIF for calm states (idle/completed), static PNG for busy states
   const useGif = state === 'idle' || state === 'completed';
   const imgSrc = useGif ? '/assets/robot-cute.gif' : '/assets/robot-cute.png';
@@ -383,11 +383,11 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
           <div>
             <div className="px-4 py-3 rounded-2xl text-sm max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] xl:max-w-[60%]"
               style={{
-                background: 'linear-gradient(135deg, #7c5cff 0%, #a855f7 50%, #9d7aff 100%)',
+                background: 'linear-gradient(135deg, #7c5cff 0%, #9d7aff 100%)',
                 color: '#fff',
                 borderRadius: '18px 18px 6px 18px',
                 lineHeight: 1.6,
-                boxShadow: '0 4px 20px rgba(124,92,255,0.4), 0 0 0 1px rgba(168,85,247,0.2)',
+                boxShadow: '0 4px 14px rgba(124,92,255,0.25)',
               }}>
               {message.text || message.content}
             </div>
@@ -424,11 +424,10 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
         ) : (
           <div className="group rounded-2xl px-4 py-3 max-w-[90%] sm:max-w-[80%] lg:max-w-[70%] xl:max-w-[60%]"
             style={{
-              background: 'rgba(24,24,27,0.85)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: '#18181b',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '18px 18px 18px 6px',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}>
             {message.text || message.content ? (
               <div className="text-sm leading-relaxed" style={{ lineHeight: 1.7, color: '#f4f4f5' }}><Markdown content={message.text || message.content} /></div>
@@ -483,7 +482,7 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
           {!isUser && (message.model || message.provider) && (() => {
             const u = getUserData();
             return (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'linear-gradient(135deg, rgba(124,92,255,0.2), rgba(168,85,247,0.15))', color: '#c4b0ff', border: '1px solid rgba(124,92,255,0.25)' }}>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(124,92,255,0.1)', color: '#9d7aff' }}>
                 {u?.name ? `${u.name} · AI` : `${message.provider} · ${message.model}`}
               </span>
             );
@@ -1492,7 +1491,7 @@ export default function AIChatPage() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 pt-12 md:pt-0 overflow-hidden">
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, #7c5cff, #a855f7, #22d3ee, #7c5cff)', backgroundSize: '300% auto', animation: 'shimmer 4s linear infinite', boxShadow: '0 0 8px rgba(124,92,255,0.4)' }} />
+        <div style={{ height: '2px', background: 'linear-gradient(90deg, #7c5cff, #22d3ee, #7c5cff)', backgroundSize: '200% auto', animation: 'shimmer 3s linear infinite' }} />
 
         {/* Header — hidden on mobile, shown on desktop */}
         <div className="hidden md:flex shrink-0 items-center justify-between px-4 lg:px-5 py-2 lg:py-3"
@@ -1629,34 +1628,28 @@ export default function AIChatPage() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto"
-          style={{
-            background: 'radial-gradient(ellipse at 20% 0%, rgba(124,92,255,0.06) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(34,211,238,0.04) 0%, transparent 50%)',
-          }}>
+        <div ref={scrollerRef} className="flex-1 overflow-y-auto" style={{ background: 'transparent' }}>
           <div className="max-w-[680px] lg:max-w-[900px] xl:max-w-[1100px] mx-auto px-3 md:px-5 py-4 md:py-6 space-y-4 md:space-y-6" style={{ background: 'transparent' }}>
 
             {/* Empty state */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                {/* Robot + glow ring */}
+                {/* Robot + glow */}
                 <div className="relative mb-8">
-                  <div className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(124,92,255,0.08)' }} />
-                  <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,255,0.12) 0%, transparent 70%)' }} />
-                  <div style={{ animation: 'robotFloat 3s ease-in-out infinite', filter: 'drop-shadow(0 0 20px rgba(34,211,238,0.4))' }}>
-                    <RobotAvatar state="idle" size={88} />
+                  <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,255,0.15) 0%, transparent 70%)' }} />
+                  <div style={{ animation: 'robotFloat 3s ease-in-out infinite', filter: 'drop-shadow(0 0 12px rgba(34,211,238,0.3))' }}>
+                    <RobotAvatar state="idle" size={80} />
                   </div>
                 </div>
 
                 {/* Welcome text */}
-                <div className="mb-2">
-                  <h2 className="text-2xl md:text-3xl font-black mb-1"
-                    style={{ background: 'linear-gradient(135deg, #f4f4f5 0%, #9D7AFF 50%, #22d3ee 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                    Hi{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋
-                  </h2>
-                  <p className="text-sm" style={{ color: '#a1a1aa' }}>Your AI coding assistant is ready</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-xl font-bold" style={{ color: '#f4f4f5' }}>
+                    Hi{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''} 👋</h2>
                 </div>
+                <p className="text-sm mb-1" style={{ color: '#a1a1aa' }}>Your AI coding assistant is ready</p>
                 <p className="text-xs mb-8 max-w-md" style={{ color: '#71717a' }}>
-                  Code reviews, architecture, security audits, performance — or just chat.
+                  Ask me anything — code reviews, architecture, security audits, performance, or AI image generation.
                 </p>
 
                 {/* Suggested prompts */}
@@ -1666,12 +1659,12 @@ export default function AIChatPage() {
                     {QUICK_ACTIONS.map(a => (
                       <button key={a.label}
                         onClick={() => sendMessage(a.prompt)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-medium transition-all hover:opacity-90 hover:scale-105 active:scale-95"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-medium transition-all hover:opacity-80 hover:scale-105"
                         style={{
-                          background: 'rgba(124,92,255,0.06)',
-                          border: '1px solid rgba(124,92,255,0.15)',
-                          color: '#c0b0ff',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                          background: '#18181b',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: '#a1a1aa',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                         }}>
                         <Zap size={10} style={{ color: '#7c5cff' }} />
                         {a.label}
@@ -1707,12 +1700,12 @@ export default function AIChatPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <div className="flex gap-2">
-                      <div className="h-1.5 w-16 rounded-full animate-pulse" style={{ background: 'linear-gradient(90deg, #7c5cff, #9d7aff)', animationDelay: '0ms' }} />
-                      <div className="h-1.5 w-12 rounded-full animate-pulse" style={{ background: 'linear-gradient(90deg, #7c5cff, #9d7aff)', animationDelay: '120ms' }} />
-                      <div className="h-1.5 w-10 rounded-full animate-pulse" style={{ background: 'linear-gradient(90deg, #7c5cff, #9d7aff)', animationDelay: '240ms' }} />
+                      <div className="h-1.5 w-16 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '0ms' }} />
+                      <div className="h-1.5 w-12 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '120ms' }} />
+                      <div className="h-1.5 w-10 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.25)', animationDelay: '240ms' }} />
                     </div>
-                    <div className="h-1.5 w-24 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.3)', animationDelay: '80ms' }} />
-                    <div className="h-1.5 w-18 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.2)', animationDelay: '200ms' }} />
+                    <div className="h-1.5 w-24 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.2)', animationDelay: '80ms' }} />
+                    <div className="h-1.5 w-18 rounded-full animate-pulse" style={{ background: 'rgba(124,92,255,0.15)', animationDelay: '200ms' }} />
                   </div>
                 </div>
               </div>
@@ -1724,10 +1717,9 @@ export default function AIChatPage() {
         <div className="shrink-0 px-3 md:px-4 pt-3 md:pt-4 pb-4"
           style={{
             borderTop: '1px solid rgba(255,255,255,0.06)',
-            background: imageMode ? 'rgba(9,140,100,0.06)' : 'rgba(9,9,11,0.85)',
-            backdropFilter: 'blur(20px)',
+            background: imageMode ? 'rgba(9,140,100,0.05)' : 'rgba(9,9,11,0.8)',
+            backdropFilter: 'blur(16px)',
             paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.2)',
           }}>
           <div className="max-w-[680px] lg:max-w-[900px] xl:max-w-[1100px] mx-auto">
             {/* Mode toggle */}
@@ -1821,13 +1813,12 @@ export default function AIChatPage() {
                 className="flex-1 resize-none rounded-2xl px-3 md:px-4 py-2.5 md:py-3 text-sm outline-none"
                 style={{
                   background: '#18181b',
-                  border: `2px solid ${imageMode ? 'rgba(16,163,127,0.5)' : 'rgba(124,92,255,0.45)'}`,
+                  border: `2px solid ${imageMode ? 'rgba(16,163,127,0.4)' : 'rgba(124,92,255,0.3)'}`,
                   color: '#f4f4f5',
                   maxHeight: 140,
                   overflowY: 'auto',
                   borderRadius: '16px',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                  boxShadow: imageMode ? '0 0 0 3px rgba(16,163,127,0.08)' : '0 0 0 3px rgba(124,92,255,0.08)',
+                  transition: 'border-color 0.2s',
                 }}
               />
               {/* Left action buttons — paperclip + mic (hidden on small mobile) */}
@@ -1857,14 +1848,14 @@ export default function AIChatPage() {
                   else { if (!isStreaming && (input.trim() || attachments.length > 0)) sendMessage(input.trim()); }
                 }}
                 disabled={(imageMode ? imageGenerating : isStreaming) || !(input.trim() || (!imageMode && attachments.length > 0))}
-                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 hover:scale-105 active:scale-95"
+                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90"
                 style={{
                   background: imageMode
-                    ? 'linear-gradient(135deg, #10a37f, #14b8a6)'
+                    ? 'linear-gradient(135deg, #10a37f, #0e8f6c)'
                     : 'linear-gradient(135deg, #7c5cff, #22d3ee)',
                   boxShadow: imageMode
-                    ? '0 4px 16px rgba(16,163,127,0.45), 0 0 8px rgba(16,163,127,0.2)'
-                    : '0 4px 16px rgba(124,92,255,0.45), 0 0 8px rgba(124,92,255,0.2)',
+                    ? '0 4px 14px rgba(16,163,127,0.3)'
+                    : '0 4px 14px rgba(124,92,255,0.3)',
                 }}>
                 {imageMode
                   ? (imageGenerating ? <Loader2 size={16} className="animate-spin" color="#fff" /> : <Sparkles size={16} color="#fff" />)
