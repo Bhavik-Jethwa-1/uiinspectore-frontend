@@ -103,11 +103,11 @@ const api = {
   // Conversation management
   deleteConversation: (id) => {
     const token = localStorage.getItem('ui-inspectore_token');
-    return fetch(`/api/ai/conversations/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    return fetch(`/api/ai/studio/conversations/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
   },
   clearConversationHistory: () => {
     const token = localStorage.getItem('ui-inspectore_token');
-    return fetch('/api/ai/conversations/clear-history', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    return fetch('/api/ai/studio/conversations/clear-history', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
   },
 };
 
@@ -165,110 +165,68 @@ function formatMsgTime(ts) {
 
 // ─── ROBOT AVATAR ─────────────────────────────────────────────────────────────
 // States: idle | thinking | responding | completed
-// Uses inline SVG that mirrors the 3D robot character — no external image dependency
+// Uses the premium cute robot image with animation overlay per state
 function RobotAvatar({ state = 'idle', size = 32 }) {
-  const glowColor = state === 'thinking' ? '#22d3ee' : '#7c5cff';
-  const eyeGlow = state === 'thinking' ? 'filter: drop-shadow(0 0 6px #22d3ee);' : '';
-  const antennaSpin = state === 'thinking' ? 'animation: antennaPulse 1.2s ease-in-out infinite;' : '';
-  const floatAnim = state === 'idle' ? 'animation: robotFloat 3s ease-in-out infinite;' : '';
-  const breatheAnim = state === 'idle' ? 'animation: robotBreathe 4s ease-in-out infinite;' : '';
+  const floatAnim = state === 'idle' ? 'robotFloat 3s ease-in-out infinite' : 'none';
+  const thinkingGlow = state === 'thinking' ? 'drop-shadow(0 0 10px rgba(124,92,255,0.7))' : 'none';
 
   return (
     <div style={{
       width: size, height: size,
       position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      ...(floatAnim || breatheAnim ? {} : {}),
+      borderRadius: '50%',
+      overflow: 'visible',
+      animation: floatAnim,
+      filter: thinkingGlow,
+      transition: 'filter 0.3s ease',
     }}>
-      <svg
-        viewBox="0 0 64 68"
+      <img
+        src="/assets/robot-cute.png"
+        alt="AI Assistant"
         width={size}
         height={size}
-        style={{ overflow: 'visible', ...(floatAnim ? { animation: 'robotFloat 3s ease-in-out infinite' } : {}), filter: state === 'thinking' ? 'drop-shadow(0 0 8px rgba(34,211,238,0.5))' : 'none' }}
-      >
-        <defs>
-          <radialGradient id="eyeGlowGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={state === 'thinking' ? '#22d3ee' : '#22d3ee'} stopOpacity="1" />
-            <stop offset="100%" stopColor={state === 'thinking' ? '#22d3ee' : '#7c5cff'} stopOpacity="0.6" />
-          </radialGradient>
-          <radialGradient id="chestGrad" cx="50%" cy="30%" r="60%">
-            <stop offset="0%" stopColor="#3a5a6a" />
-            <stop offset="100%" stopColor="#1a2a3a" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-
-        {/* Body */}
-        <rect x="18" y="38" width="28" height="22" rx="6" fill="url(#chestGrad)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.5" />
-        {/* Chest logo — triangle "A" */}
-        <path d="M32 44 L27 52 H37 Z" fill="none" stroke="#22d3ee" strokeWidth="1.2" strokeLinejoin="round" opacity="0.8" />
-
-        {/* Head */}
-        <rect x="10" y="14" width="44" height="28" rx="10" fill="#e8f4f8" stroke="rgba(34,211,238,0.4)" strokeWidth="0.5" />
-
-        {/* Headphone band */}
-        <path d="M10 28 Q10 12 32 12 Q54 12 54 28" fill="none" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" opacity="0.85" />
-        {/* Headphone ear cups */}
-        <rect x="5" y="22" width="8" height="14" rx="4" fill="#22d3ee" opacity="0.85" />
-        <rect x="51" y="22" width="8" height="14" rx="4" fill="#22d3ee" opacity="0.85" />
-
-        {/* Screen / face area */}
-        <rect x="13" y="17" width="38" height="22" rx="6" fill="#0d1825" opacity="0.9" />
-
-        {/* Eyes — oval with glow */}
-        <ellipse cx="24" cy="27" rx="5" ry="5.5" fill="#0d1825" />
-        <ellipse cx="40" cy="27" rx="5" ry="5.5" fill="#0d1825" />
-        <ellipse cx="24" cy="27" rx="3.5" ry="4" fill="#22d3ee" style={eyeGlow ? { filter: 'drop-shadow(0 0 4px #22d3ee)' } : {}}>
-          {state === 'thinking' && <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite" />}
-          {state === 'idle' && <animate attributeName="ry" values="4;0.3;4" dur="4s" repeatCount="indefinite" begin="1s" />}
-        </ellipse>
-        <ellipse cx="40" cy="27" rx="3.5" ry="4" fill="#22d3ee" style={eyeGlow ? { filter: 'drop-shadow(0 0 4px #22d3ee)' } : {}}>
-          {state === 'thinking' && <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite" />}
-          {state === 'idle' && <animate attributeName="ry" values="4;0.3;4" dur="4s" repeatCount="indefinite" begin="1.2s" />}
-        </ellipse>
-        {/* Eye shine */}
-        <circle cx="22.5" cy="25.5" r="1" fill="white" opacity="0.6" />
-        <circle cx="38.5" cy="25.5" r="1" fill="white" opacity="0.6" />
-
-        {/* Mouth — curved smile (responds with talking) */}
-        {state === 'responding' ? (
-          <path d="M27 34 Q32 38 37 34" fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round">
-            <animate attributeName="d" values="M27 34 Q32 36 37 34;M27 34 Q32 38 37 34;M27 34 Q32 36 37 34" dur="0.4s" repeatCount="indefinite" />
-          </path>
-        ) : state === 'completed' ? (
-          <path d="M27 34 Q32 38 37 34" fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round" />
-        ) : (
-          <path d="M27 34 Q32 37 37 34" fill="none" stroke="rgba(34,211,238,0.6)" strokeWidth="1.5" strokeLinecap="round" />
-        )}
-
-        {/* Antenna */}
-        <line x1="32" y1="14" x2="32" y2="7" stroke="#5a8a9a" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="32" cy="5.5" r="2.5" fill="#22d3ee" opacity="0.9">
-          {state === 'thinking' ? (
-            <animate attributeName="r" values="2.5;3.5;2.5" dur="0.8s" repeatCount="indefinite" />
-          ) : (
-            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2.5s" repeatCount="indefinite" />
-          )}
-        </circle>
-
-        {/* Thinking particles */}
-        {state === 'thinking' && [0, 72, 144, 216, 288].map((angle, i) => {
-          const rad = (angle * Math.PI) / 180;
-          const cx = 32 + Math.cos(rad) * 18;
-          const cy = 28 + Math.sin(rad) * 14;
-          return (
-            <circle key={i} cx={cx} cy={cy} r="1.2" fill="#22d3ee" opacity="0.7">
-              <animateTransform attributeName="transform" type="rotate"
-                from={`${angle} 32 28`} to={`${angle + 360} 32 28`}
-                dur={`${1.2 + i * 0.15}s`} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.7;0;0.7" dur={`${0.8 + i * 0.1}s`} repeatCount="indefinite" />
-            </circle>
-          );
-        })}
-      </svg>
+        style={{
+          borderRadius: '50%',
+          objectFit: 'cover',
+          display: 'block',
+        }}
+      />
+      {/* Thinking ring overlay */}
+      {state === 'thinking' && (
+        <div style={{
+          position: 'absolute',
+          inset: '-4px',
+          borderRadius: '50%',
+          border: '2px solid transparent',
+          borderTop: '2px solid #7c5cff',
+          borderRight: '2px solid #22d3ee',
+          animation: 'spin 1s linear infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {/* Responding sound wave */}
+      {state === 'responding' && (
+        <div style={{
+          position: 'absolute',
+          inset: '-6px',
+          borderRadius: '50%',
+          border: '1.5px solid rgba(124,92,255,0.4)',
+          animation: 'ping 1s cubic-bezier(0,0,0.2,1) infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {/* Completed checkmark pulse */}
+      {state === 'completed' && (
+        <div style={{
+          position: 'absolute',
+          inset: '-2px',
+          borderRadius: '50%',
+          background: 'rgba(34,197,94,0.15)',
+          animation: 'robotBreathe 2s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
     </div>
   );
 }
