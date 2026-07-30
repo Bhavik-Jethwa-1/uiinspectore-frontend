@@ -279,7 +279,18 @@ function CodeBlock({ children, className, ...props }) {
       {match && (
         <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid #21262d' }}>
           <span className="text-[11px] font-medium" style={{ color: '#8b949e' }}>{match[1]}</span>
-          <button onClick={() => { navigator.clipboard.writeText(String(children)); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+          <button onClick={() => {
+            const text = String(children);
+            if (navigator.clipboard?.writeText) {
+              navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+              document.body.appendChild(ta); ta.select();
+              try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+              document.body.removeChild(ta);
+            }
+          }}
             className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md transition-all"
             style={{ color: copied ? '#3fb950' : '#8b949e', background: 'transparent' }}>
             {copied ? <CheckCheck size={12} /> : <Copy size={12} />} {copied ? 'Copied!' : 'Copy'}
@@ -347,7 +358,17 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
   const [liked, setLiked] = useState(false);
 
   const copyText = () => {
-    navigator.clipboard.writeText(message.text || message.content || '').then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    const text = message.text || message.content || '';
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    } else {
+      // Fallback for insecure origins or environments without Clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+      document.body.removeChild(ta);
+    }
   };
 
   return (
