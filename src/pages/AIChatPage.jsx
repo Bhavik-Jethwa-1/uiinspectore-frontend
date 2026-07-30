@@ -169,6 +169,9 @@ function formatMsgTime(ts) {
 function RobotAvatar({ state = 'idle', size = 32 }) {
   const floatAnim = state === 'idle' ? 'robotFloat 3s ease-in-out infinite' : 'none';
   const thinkingGlow = state === 'thinking' ? 'drop-shadow(0 0 10px rgba(124,92,255,0.7))' : 'none';
+  // Use animated GIF for calm states (idle/completed), static PNG for busy states
+  const useGif = state === 'idle' || state === 'completed';
+  const imgSrc = useGif ? '/assets/robot-cute.gif' : '/assets/robot-cute.png';
 
   return (
     <div style={{
@@ -177,12 +180,12 @@ function RobotAvatar({ state = 'idle', size = 32 }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       borderRadius: '50%',
       overflow: 'visible',
-      animation: floatAnim,
+      animation: useGif ? 'none' : floatAnim,
       filter: thinkingGlow,
       transition: 'filter 0.3s ease',
     }}>
       <img
-        src="/assets/robot-cute.png"
+        src={imgSrc}
         alt="AI Assistant"
         width={size}
         height={size}
