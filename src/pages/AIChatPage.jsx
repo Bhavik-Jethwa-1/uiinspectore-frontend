@@ -9,7 +9,7 @@ import {
   Settings, MessageSquare, Loader2, Cpu, X, Eye, EyeOff,
   Download, Sparkles, Zap, ImagePlus, Image, ExternalLink,
   Paperclip, FileText, ZoomIn, ZoomOut, Maximize2, Clock, Trash2,
-  Plus, Search, Calendar, Hash, PanelLeftClose,
+  Plus, Search, Calendar, Hash, PanelLeftClose, PanelRightOpen,
   ChevronDown, Shield, Edit3, CheckCircle, Globe, Star, StarOff,
   Palette, Accessibility, BarChart3, Code2,
   Volume2, Mic,
@@ -649,7 +649,7 @@ function SettingsPanel({ onClose }) {
 }
 
 // ─── HISTORY SIDEBAR ─────────────────────────────────────────────────────────
-function HistorySidebar({ history, activeId, onSelect, onNew, onDelete, onClearAll, collapsed, onToggle }) {
+function HistorySidebarInner({ history, activeId, onSelect, onNew, onDelete, onClearAll, collapsed, onToggle }) {
   const [search, setSearch] = useState('');
 
   const filtered = search.trim()
@@ -1371,20 +1371,59 @@ export default function AIChatPage() {
       {showNoProviderOverlay && (
         <NoProviderOverlay onGoToSettings={() => navigate('/admin/ai-providers')} />
       )}
-      <div className="flex" style={{ height: '100vh', background: '#0e0e16', pointerEvents: showNoProviderOverlay ? 'none' : 'auto', opacity: showNoProviderOverlay ? 0.3 : 1 }}>
-      {/* Sidebar */}
-      <HistorySidebar history={history} activeId={conv.id}
-        onSelect={loadConversation} onNew={startNewChat}
-        onDelete={requestDelete}
-        onClearAll={requestClearHistory}
-        collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+      <div className="flex relative" style={{ height: '100dvh', background: '#0e0e16', pointerEvents: showNoProviderOverlay ? 'none' : 'auto', opacity: showNoProviderOverlay ? 0.3 : 1 }}>
+
+      {/* Sidebar — fixed on desktop, slide-over drawer on mobile */}
+      <div className={`${sidebarCollapsed ? 'w-0' : 'w-64 md:w-60'} hidden md:flex shrink-0 flex-col transition-all duration-200 overflow-hidden`}
+        style={{ background: '#0e0e16', borderRight: sidebarCollapsed ? 'none' : '1px solid #1e1e2a' }}>
+        <HistorySidebarInner history={history} activeId={conv.id}
+          onSelect={loadConversation} onNew={startNewChat}
+          onDelete={requestDelete}
+          onClearAll={requestClearHistory}
+          collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      {!sidebarCollapsed && (
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => setSidebarCollapsed(true)}>
+          <div className="absolute left-0 top-0 bottom-0 w-64" onClick={e => e.stopPropagation()}>
+            <HistorySidebarInner history={history} activeId={conv.id}
+              onSelect={(id) => { loadConversation(id); setSidebarCollapsed(true); }}
+              onNew={() => { startNewChat(); setSidebarCollapsed(true); }}
+              onDelete={requestDelete}
+              onClearAll={requestClearHistory}
+              collapsed={false} onToggle={() => setSidebarCollapsed(true)} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile header bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-4 py-3"
+        style={{ background: 'rgba(9,9,11,0.98)', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: 'env(safe-area-inset-top)' }}>
+        <button onClick={() => setSidebarCollapsed(false)}
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-70"
+          style={{ background: '#1a1a26', color: '#9d7aff' }}>
+          <PanelRightOpen size={15} />
+        </button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <RobotAvatar state={isStreaming ? 'thinking' : 'idle'} size={28} />
+          <p className="text-xs font-semibold truncate" style={{ color: '#f0f0fa' }}>{conv.title}</p>
+        </div>
+        {isStreaming && (
+          <button onClick={stopGeneration}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+            style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+            <Square size={10} /> Stop
+          </button>
+        )}
+      </div>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-12 md:pt-0 overflow-hidden">
         <div style={{ height: '2px', background: 'linear-gradient(90deg, #7c5cff, #22d3ee, #7c5cff)', backgroundSize: '200% auto', animation: 'shimmer 3s linear infinite' }} />
 
-        {/* Header */}
-        <div className="shrink-0 flex items-center justify-between px-5 py-3"
+        {/* Header — hidden on mobile, shown on desktop */}
+        <div className="hidden md:flex shrink-0 items-center justify-between px-4 lg:px-5 py-2 lg:py-3"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(9,9,11,0.8)', backdropFilter: 'blur(12px)' }}>
           <div className="flex items-center gap-3">
             {/* Robot avatar in header */}
@@ -1467,7 +1506,7 @@ export default function AIChatPage() {
 
         {/* Messages */}
         <div ref={scrollerRef} className="flex-1 overflow-y-auto" style={{ background: 'transparent' }}>
-          <div className="max-w-3xl mx-auto p-5 space-y-6" style={{ background: 'transparent' }}>
+          <div className="max-w-3xl mx-auto px-3 md:px-5 py-4 md:py-6 space-y-4 md:space-y-6" style={{ background: 'transparent' }}>
 
             {/* Empty state */}
             {messages.length === 0 && (
@@ -1552,26 +1591,27 @@ export default function AIChatPage() {
         </div>
 
         {/* Input */}
-        <div className="shrink-0 p-4"
+        <div className="shrink-0 px-3 md:px-4 pt-3 md:pt-4 pb-4"
           style={{
             borderTop: '1px solid rgba(255,255,255,0.06)',
             background: imageMode ? 'rgba(9,140,100,0.05)' : 'rgba(9,9,11,0.8)',
             backdropFilter: 'blur(16px)',
+            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
           }}>
           <div className="max-w-3xl mx-auto">
             {/* Mode toggle */}
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <button onClick={() => setImageMode(false)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition-all"
                 style={{ background: !imageMode ? 'linear-gradient(135deg, #7C3AED, #9D7AFF)' : '#1a1a26',
                   border: `1px solid ${!imageMode ? '#7C3AED' : '#2a2a35'}`, color: !imageMode ? '#fff' : '#6B6B7B' }}>
-                <MessageSquare size={15} /> AI Chat
+                <MessageSquare size={13} className="hidden sm:inline" /> AI Chat
               </button>
               <button onClick={() => setImageMode(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition-all"
                 style={{ background: imageMode ? 'linear-gradient(135deg, #10a37f, #0e8f6c)' : '#1a1a26',
                   border: `1px solid ${imageMode ? '#10a37f' : '#2a2a35'}`, color: imageMode ? '#fff' : '#6B6B7B' }}>
-                <ImagePlus size={15} /> Image Gen
+                <ImagePlus size={13} className="hidden sm:inline" /> Image Gen
               </button>
               {imageMode && (
                 <select value={imageSize} onChange={e => setImageSize(e.target.value)}
@@ -1645,9 +1685,9 @@ export default function AIChatPage() {
                   ? (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!imageGenerating && input.trim()) generateImage(input.trim()); } }
                   : handleKeyDown
                 }
-                placeholder={imageMode ? 'Describe the image you want to generate…' : 'Ask anything…'}
+                placeholder={imageMode ? 'Describe the image…' : 'Ask anything…'}
                 rows={1}
-                className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none"
+                className="flex-1 resize-none rounded-2xl px-3 md:px-4 py-2.5 md:py-3 text-sm outline-none"
                 style={{
                   background: '#18181b',
                   border: `2px solid ${imageMode ? 'rgba(16,163,127,0.4)' : 'rgba(124,92,255,0.3)'}`,
@@ -1658,19 +1698,19 @@ export default function AIChatPage() {
                   transition: 'border-color 0.2s',
                 }}
               />
-              {/* Left action buttons — paperclip + mic */}
+              {/* Left action buttons — paperclip + mic (hidden on small mobile) */}
               {!imageMode && (
                 <>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+                    className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl items-center justify-center transition-all hover:opacity-80"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(161,161,170,0.8)' }}
                     title="Attach files"
                   >
                     <Paperclip size={16} />
                   </button>
                   <button
-                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+                    className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl items-center justify-center transition-all hover:opacity-80"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(161,161,170,0.8)' }}
                     title="Voice input (coming soon)"
                   >
