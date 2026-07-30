@@ -145,6 +145,10 @@ export const api = {
   analyzeScreenshot: (payload) => request('/ai/analyze-screenshot', { method: 'POST', body: payload }),
   generateComponents: (payload) => request('/ai/generate-components', { method: 'POST', body: payload }),
 
+  // AI Conversations
+  deleteConversation: (id) => request(`/ai/conversations/${id}`, { method: 'DELETE' }),
+  clearConversationHistory: () => request('/ai/conversations/clear-history', { method: 'POST' }),
+
   // Templates — dedup enabled
   listTemplates: ()         => request('/templates',                 { dedup: true }),
   getTemplate: (id)         => request(`/templates/${id}`,             { dedup: true }),

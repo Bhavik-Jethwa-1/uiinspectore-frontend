@@ -100,6 +100,15 @@ const api = {
   // Settings
   settings: (token) => fetch('/api/ai/settings', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
   saveSettings: (token, data) => fetch('/api/ai/settings', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(data) }).then(r => r.json()),
+  // Conversation management
+  deleteConversation: (id) => {
+    const token = localStorage.getItem('ui-inspectore_token');
+    return fetch(`/api/ai/conversations/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  },
+  clearConversationHistory: () => {
+    const token = localStorage.getItem('ui-inspectore_token');
+    return fetch('/api/ai/conversations/clear-history', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  },
 };
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
@@ -679,7 +688,7 @@ function SettingsPanel({ onClose }) {
 }
 
 // ─── HISTORY SIDEBAR ─────────────────────────────────────────────────────────
-function HistorySidebar({ history, activeId, onSelect, onNew, onDelete, collapsed, onToggle }) {
+function HistorySidebar({ history, activeId, onSelect, onNew, onDelete, onClearAll, collapsed, onToggle }) {
   const [search, setSearch] = useState('');
 
   const filtered = search.trim()
@@ -799,13 +808,53 @@ function HistorySidebar({ history, activeId, onSelect, onNew, onDelete, collapse
 
       {history.length > 0 && (
         <div className="p-3" style={{ borderTop: '1px solid #1e1e2a' }}>
-          <button onClick={() => { if (confirm('Clear all chat history?')) { setHistory([]); persistHistory([]); onSelect(null); } }}
+          <button onClick={onClearAll}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs transition-all hover:opacity-70"
             style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.15)' }}>
             <Trash2 size={12} /> Clear all history
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── CONFIRM DIALOG ─────────────────────────────────────────────────────────
+function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', cancelLabel = 'Cancel',
+  destructive = true, onConfirm, onCancel }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+      onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl p-6"
+        style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+        onClick={e => e.stopPropagation()}>
+        {/* Icon */}
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+          style={{ background: destructive ? 'rgba(239,68,68,0.12)' : 'rgba(124,92,255,0.12)' }}>
+          <Trash2 size={20} style={{ color: destructive ? '#ef4444' : '#7c5cff' }} />
+        </div>
+        <h3 className="text-base font-semibold mb-2" style={{ color: '#f4f4f5' }}>{title}</h3>
+        <p className="text-sm mb-6" style={{ color: '#a1a1aa' }}>{message}</p>
+        <div className="flex items-center gap-3">
+          <button onClick={onCancel}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+            style={{ background: 'rgba(255,255,255,0.06)', color: '#a1a1aa', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {cancelLabel}
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{
+              background: destructive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #7c5cff, #9d7aff)',
+              color: '#fff',
+              boxShadow: destructive ? '0 4px 14px rgba(239,68,68,0.3)' : '0 4px 14px rgba(124,92,255,0.3)',
+            }}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -891,6 +940,8 @@ export default function AIChatPage() {
   const [userAgents, setUserAgents] = useState([]);
   const [userAgentsLoading, setUserAgentsLoading] = useState(false);
   const [attachments, setAttachments] = useState([]); // [{file, preview, name, size, type, dataUrl}]
+  const [deleteDialog, setDeleteDialog] = useState(null); // { id, title } for delete confirm
+  const [clearDialog, setClearDialog] = useState(false); // true when clear-all confirm is open
   const fileInputRef = useRef(null);
   const scrollerRef = useRef(null);
   const inputRef = useRef(null);
@@ -1206,12 +1257,40 @@ export default function AIChatPage() {
     if (f) setConv(f);
   };
 
-  const deleteConversation = (id) => {
+  // ─── DELETE / CLEAR ──────────────────────────────────────────────────────────
+  const requestDelete = (id) => {
+    // Find conversation title for the dialog
+    const found = history.find(c => c.id === id);
+    setDeleteDialog({ id, title: found?.title || 'this conversation' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog) return;
+    const { id } = deleteDialog;
+    setDeleteDialog(null);
+    // Optimistic UI update
     setHistory(h => { const nh = h.filter(c => c.id !== id); persistHistory(nh); return nh; });
     if (conv.id === id) {
-      const rem = historyRef.current.filter(c => c.id !== id);
+      const rem = history.filter(c => c.id !== id);
       setConv(rem.length > 0 ? rem[0] : newConversation());
     }
+    // Call backend API
+    try {
+      const token = localStorage.getItem('ui-inspectore_token');
+      await api.deleteConversation(id);
+    } catch { /* already removed from UI */ }
+  };
+
+  const requestClearHistory = () => setClearDialog(true);
+
+  const confirmClearHistory = async () => {
+    setClearDialog(false);
+    setHistory([]);
+    persistHistory([]);
+    setConv(newConversation());
+    try {
+      await api.clearConversationHistory();
+    } catch { /* already cleared UI */ }
   };
 
   const startNewChat = () => setConv(newConversation());
@@ -1335,7 +1414,8 @@ export default function AIChatPage() {
       {/* Sidebar */}
       <HistorySidebar history={history} activeId={conv.id}
         onSelect={loadConversation} onNew={startNewChat}
-        onDelete={deleteConversation}
+        onDelete={requestDelete}
+        onClearAll={requestClearHistory}
         collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
 
       {/* Main */}
@@ -1941,6 +2021,26 @@ export default function AIChatPage() {
           onRegenerate={lightboxPrompt ? (() => { const p = lightboxPrompt; setLightboxImage(null); setLightboxPrompt(null); generateImage(p); }) : undefined}
         />
       )}
+
+      {/* Delete conversation confirmation */}
+      <ConfirmDialog
+        open={!!deleteDialog}
+        title="Delete conversation?"
+        message={`Are you sure you want to delete "${deleteDialog?.title}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog(null)}
+      />
+
+      {/* Clear all history confirmation */}
+      <ConfirmDialog
+        open={clearDialog}
+        title="Clear all history?"
+        message={`This will permanently delete all ${history.length} conversation${history.length !== 1 ? 's' : ''}. This action cannot be undone.`}
+        confirmLabel="Clear all"
+        onConfirm={confirmClearHistory}
+        onCancel={() => setClearDialog(false)}
+      />
       </div>
     </>
   );
