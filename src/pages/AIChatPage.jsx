@@ -476,10 +476,10 @@ function ChatMessage({ message, onRegenerate, index, onImageClick, robotState })
 
         <div className={`flex items-center gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
           {!isUser && (message.model || message.provider) && (() => {
-            const _u = typeof getUserData === 'function' ? getUserData() : null;
+            const u = getUserData();
             return (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(124,92,255,0.1)', color: '#9d7aff' }}>
-                {_u?.name ? `${_u.name} · AI` : `${message.provider} · ${message.model}`}
+                {u?.name ? `${u.name} · AI` : `${message.provider} · ${message.model}`}
               </span>
             );
           })()}
