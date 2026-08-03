@@ -1,17 +1,19 @@
-import { useState } from 'react';
-import { ACCENT } from './constants/theme';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Loader2, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useInspectorAuth } from '../../contexts/InspectorAuthContext';
+import { ACCENT } from './constants/theme';
 
 export default function InspectorLoginPage() {
-  const { login, loading } = useInspectorAuth();
+  const { user, login, loading } = useInspectorAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => { if (user) navigate('/inspector'); }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,80 +22,97 @@ export default function InspectorLoginPage() {
       await login(email, password);
       navigate('/inspector');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Invalid email or password');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ background: ACCENT }} />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ background: '#ff6b6b' }} />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm relative"
-      >
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: ACCENT }}>
-            <Sparkles size={28} color="#fff" />
+    <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
+      {/* Left — Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: ACCENT }}>
+              <Sparkles size={18} color="#fff" />
+            </div>
+            <span className="text-[16px] font-bold" style={{ color: 'var(--text)' }}>UI Inspector</span>
           </div>
-          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text)' }}>UI Inspector</h1>
-          <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>AI-powered UI/UX review platform</p>
-        </div>
 
-        {/* Form card */}
-        <div className="rounded-2xl border p-6" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-          <h2 className="text-[16px] font-bold mb-5" style={{ color: 'var(--text)' }}>Sign in to your account</h2>
+          <h1 className="text-[26px] font-bold mb-1.5" style={{ color: 'var(--text)' }}>Welcome back</h1>
+          <p className="text-[14px] mb-8" style={{ color: 'var(--text-muted)' }}>Sign in to continue your UI reviews</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              <label className="text-[12px] font-medium block mb-2" style={{ color: 'var(--text-muted)' }}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-3 py-2.5 rounded-xl border text-[13px] outline-none transition-all"
-                style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                required
+                className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition-all"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                onFocus={(e) => e.target.style.borderColor = ACCENT}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
               />
             </div>
 
             <div>
-              <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Password</label>
+              <label className="text-[12px] font-medium block mb-2" style={{ color: 'var(--text-muted)' }}>Password</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3 py-2.5 pr-10 rounded-xl border text-[13px] outline-none transition-all"
-                  style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  required
+                  className="w-full px-4 py-3 rounded-xl text-[14px] outline-none pr-12 transition-all"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  onFocus={(e) => e.target.style.borderColor = ACCENT}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
                 />
                 <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100">
-                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                  {showPw ? <EyeOff size={15} style={{ color: 'var(--text-muted)' }} /> : <Eye size={15} style={{ color: 'var(--text-muted)' }} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="px-3 py-2 rounded-xl text-[12px]" style={{ background: '#FEE2E2', color: '#991B1B' }}>
-                {error}
-              </div>
+              <p className="text-[12px] px-3 py-2 rounded-xl" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>{error}</p>
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 mt-2"
               style={{ background: ACCENT }}>
-              {loading && <Loader2 size={14} className="animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <>Sign In <ArrowRight size={15} /></>}
             </button>
           </form>
 
-          <div className="text-center mt-4">
-            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Don't have an account? </span>
-            <Link to="/inspector/register" className="text-[12px] font-bold" style={{ color: ACCENT }}>Sign up free</Link>
+          <p className="text-[13px] text-center mt-6" style={{ color: 'var(--text-muted)' }}>
+            Don't have an account?{' '}
+            <Link to="/inspector/register" className="font-medium transition-opacity hover:opacity-70" style={{ color: ACCENT }}>
+              Create account
+            </Link>
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Right — Visual */}
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12"
+        style={{ background: 'linear-gradient(135deg, #1a1625 0%, #0f1623 100%)' }}>
+        <div className="max-w-sm text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+            style={{ background: `${ACCENT}20` }}>
+            <Sparkles size={32} style={{ color: ACCENT }} />
           </div>
+          <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text)' }}>AI-Powered UI Reviews</h2>
+          <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            Get instant insights on your UI design. Upload a screenshot, select a persona, and receive actionable feedback in seconds.
+          </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfirmProvider } from './hooks/useConfirm';
 import { InspectorAuthProvider } from './contexts/InspectorAuthContext';
+import { ToastProvider } from './app/inspector/components/Toast';
 
 // ─── Layouts (static — needed on every page) ─────────────────────────────
 import LandingLayout from './layouts/LandingLayout';
@@ -68,6 +69,8 @@ import InspectorCreateProjectPage from './app/inspector/CreateProjectPage';
 import InspectorReviewWorkspace from './app/inspector/ReviewWorkspace';
 import InspectorLoginPage from './app/inspector/LoginPage';
 import InspectorRegisterPage from './app/inspector/RegisterPage';
+import InspectorLandingPage from './app/inspector/LandingPage';
+import InspectorSettingsPage from './app/inspector/SettingsPage';
 import InspectorLayout from './app/inspector/layouts/InspectorLayout';
 
 // ─── Loading fallback ─────────────────────────────────────────────────────
@@ -108,6 +111,7 @@ export default function App() {
     <ConfirmProvider>
       <InspectorAuthProvider>
       <Suspense fallback={<PageLoader />}>
+        <ToastProvider>
         <Routes>
           {/* ── Landing ─────────────────────────────────────────────────── */}
           <Route element={<LandingLayout />}>
@@ -187,19 +191,24 @@ export default function App() {
             <Route path="/admin/settings"         element={<AdminStub title="Settings" />} />
           </Route>
 
-          {/* ── Inspector ──────────────────────────────────────────────────── */}
+          {/* ── Inspector: public ──────────────────────────────────────────── */}
+          <Route path="/inspector/landing" element={<InspectorLandingPage />} />
+          <Route path="/inspector/login" element={<InspectorLoginPage />} />
+          <Route path="/inspector/register" element={<InspectorRegisterPage />} />
+
+          {/* ── Inspector: auth required ─────────────────────────────────── */}
           <Route path="/inspector" element={<InspectorAuthGuard><InspectorLayout /></InspectorAuthGuard>}>
             <Route index element={<InspectorDashboard />} />
             <Route path="projects" element={<InspectorProjectsPage />} />
             <Route path="projects/new" element={<InspectorCreateProjectPage />} />
             <Route path="projects/:id" element={<InspectorReviewWorkspace />} />
+            <Route path="settings" element={<InspectorSettingsPage />} />
           </Route>
-          <Route path="/inspector/login" element={<InspectorLoginPage />} />
-          <Route path="/inspector/register" element={<InspectorRegisterPage />} />
 
-          {/* ── Fallback ───────────────────────────────────────────────── */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* ── Root redirect to landing ──────────────────────────────── */}
+          <Route path="/" element={<Navigate to="/inspector/landing" replace />} />
         </Routes>
+        </ToastProvider>
       </Suspense>
       </InspectorAuthProvider>
     </ConfirmProvider>

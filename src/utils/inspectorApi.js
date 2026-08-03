@@ -37,6 +37,7 @@ export const inspectorApi = {
   logout: () => request('/inspector/logout', { method: 'POST' }),
   me: () => request('/inspector/me'),
   updateProfile: (data) => request('/inspector/profile', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAccount: () => request('/inspector/account', { method: 'DELETE' }),
 
   // Projects
   getProjects: () => request('/inspector/projects'),

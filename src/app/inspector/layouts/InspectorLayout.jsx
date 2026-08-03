@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FolderOpen, Plus, Settings, LogOut,
@@ -10,7 +10,7 @@ import { useInspectorAuth } from '../../../contexts/InspectorAuthContext';
 const ACCENT = '#7c5cff';
 const SIDEBAR_W = 240;
 
-export default function InspectorLayout({ children }) {
+export default function InspectorLayout() {
   const { user, logout } = useInspectorAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -19,6 +19,7 @@ export default function InspectorLayout({ children }) {
   const navItems = [
     { to: '/inspector', icon: LayoutDashboard, label: 'Dashboard', exact: true },
     { to: '/inspector/projects', icon: FolderOpen, label: 'Projects' },
+    { to: '/inspector/settings', icon: Settings, label: 'Settings' },
   ];
 
   const handleLogout = () => {
@@ -115,7 +116,7 @@ export default function InspectorLayout({ children }) {
 
       {/* Main content */}
       <div className="lg:ml-[240px] min-h-screen">
-        {children}
+        <Outlet />
       </div>
     </div>
   );

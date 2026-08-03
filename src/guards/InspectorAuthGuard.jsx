@@ -5,7 +5,7 @@ export default function InspectorAuthGuard({ children }) {
   const { user, token } = useInspectorAuth();
 
   if (!token || !user) {
-    return <Navigate to="/inspector/login" replace />;
+    return <Navigate to="/inspector/landing" replace />;
   }
 
   return children;
