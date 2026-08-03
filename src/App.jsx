@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfirmProvider } from './hooks/useConfirm';
+import { InspectorAuthProvider } from './contexts/InspectorAuthContext';
 
 // ─── Layouts (static — needed on every page) ─────────────────────────────
 import LandingLayout from './layouts/LandingLayout';
@@ -12,6 +13,7 @@ import AdminLayout  from './layouts/AdminLayout';
 import UserGuard  from './guards/UserGuard';
 import AuthGuard  from './guards/AuthGuard';
 import AdminGuard from './guards/AdminGuard';
+import InspectorAuthGuard from './guards/InspectorAuthGuard';
 
 // ─── Landing (static — always needed) ────────────────────────────────────
 import LandingPage from './pages/LandingPage';
@@ -59,6 +61,15 @@ const AdminAISettingsPage      = lazy(() => import('./pages/admin/AdminAISetting
 const AdminAIModelsPage        = lazy(() => import('./app/admin/AdminAIModelsPage'));
 const AdminCouponPage          = lazy(() => import('./app/admin/AdminCouponPage'));
 
+// ─── Inspector pages ───────────────────────────────────────────────────────
+import InspectorDashboard from './app/inspector/InspectorDashboard';
+import InspectorProjectsPage from './app/inspector/ProjectsPage';
+import InspectorCreateProjectPage from './app/inspector/CreateProjectPage';
+import InspectorReviewWorkspace from './app/inspector/ReviewWorkspace';
+import InspectorLoginPage from './app/inspector/LoginPage';
+import InspectorRegisterPage from './app/inspector/RegisterPage';
+import InspectorLayout from './app/inspector/layouts/InspectorLayout';
+
 // ─── Loading fallback ─────────────────────────────────────────────────────
 function PageLoader() {
   return (
@@ -95,6 +106,7 @@ function AdminStub({ title }) {
 export default function App() {
   return (
     <ConfirmProvider>
+      <InspectorAuthProvider>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* ── Landing ─────────────────────────────────────────────────── */}
@@ -122,7 +134,7 @@ export default function App() {
             <Route path="/app/editor/:id"           element={<EditorPage />} />
             <Route path="/app/autodesigner"          element={<AutodesignerPage />} />
             <Route path="/app/premium-autodesigner"  element={<PremiumAutoDesignerPage />} />
-            <Route path="/app/projects"              element={<ProjectsPage />} />
+            <Route path="/app/projects"              element={<InspectorProjectsPage />} />
             <Route path="/app/analysis"              element={<AnalysisPage />} />
             <Route path="/app/product-consultant"   element={<ProductConsultantPage />} />
             <Route path="/app/ai/research"           element={<AIResearchPage />} />
@@ -175,10 +187,21 @@ export default function App() {
             <Route path="/admin/settings"         element={<AdminStub title="Settings" />} />
           </Route>
 
+          {/* ── Inspector ──────────────────────────────────────────────────── */}
+          <Route path="/inspector" element={<InspectorAuthGuard><InspectorLayout /></InspectorAuthGuard>}>
+            <Route index element={<InspectorDashboard />} />
+            <Route path="projects" element={<InspectorProjectsPage />} />
+            <Route path="projects/new" element={<InspectorCreateProjectPage />} />
+            <Route path="projects/:id" element={<InspectorReviewWorkspace />} />
+          </Route>
+          <Route path="/inspector/login" element={<InspectorLoginPage />} />
+          <Route path="/inspector/register" element={<InspectorRegisterPage />} />
+
           {/* ── Fallback ───────────────────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </InspectorAuthProvider>
     </ConfirmProvider>
   );
 }
