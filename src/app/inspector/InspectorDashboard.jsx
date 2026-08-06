@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, FolderOpen, Sparkles, ArrowRight, Upload, Clock,
-  ChevronRight, Image, Zap, TrendingUp
+  ChevronRight, Image, Zap, TrendingUp, Trash2
 } from 'lucide-react';
 import inspectorApi from '../../utils/inspectorApi';
 import { useInspectorAuth } from '../../contexts/InspectorAuthContext';
@@ -131,10 +131,15 @@ function QuickUploadCard({ onUpload }) {
 }
 
 // ─── Project Card ────────────────────────────────────────────────────────────
-function ProjectCard({ project, delay = 0 }) {
+function ProjectCard({ project, delay = 0, onDelete }) {
   const navigate = useNavigate();
   const review = project.review;
   const score = review?.scores?.overall;
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    onDelete(project.id);
+  };
 
   return (
     <motion.div
@@ -142,9 +147,19 @@ function ProjectCard({ project, delay = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       onClick={() => navigate(`/inspector/projects/${project.id}`)}
-      className="group rounded-2xl border p-4 cursor-pointer transition-all hover:border-opacity-100"
+      className="group rounded-2xl border p-4 cursor-pointer transition-all hover:border-opacity-100 relative"
       style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
+      {/* Delete button — visible on hover */}
+      <button
+        onClick={handleDeleteClick}
+        className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+        title="Delete project"
+      >
+        <Trash2 size={13} />
+      </button>
+
       {/* Thumbnail */}
       <div className="relative rounded-xl overflow-hidden mb-3 aspect-video"
         style={{ background: 'var(--surface2)' }}>
@@ -293,6 +308,16 @@ export default function InspectorDashboard() {
 
   const handleQuickUpload = () => navigate('/inspector/projects/new');
 
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this project?')) return;
+    try {
+      await inspectorApi.deleteProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+    } catch {
+      alert('Failed to delete project');
+    }
+  };
+
   const recentProjects = projects.slice(0, 6);
   const lastProject = projects.find(p => p.status !== 'reviewed');
 
@@ -343,7 +368,7 @@ export default function InspectorDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {recentProjects.map((p, i) => <ProjectCard key={p.id} project={p} delay={i * 0.04} />)}
+            {recentProjects.map((p, i) => <ProjectCard key={p.id} project={p} delay={i * 0.04} onDelete={handleDelete} />)}
           </div>
         )}
       </div>
