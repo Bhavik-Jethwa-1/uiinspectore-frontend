@@ -23,8 +23,8 @@ function ScoreRing({ score, size = 80, stroke = 6 }) {
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface3)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface3)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           style={{ filter: `drop-shadow(0 0 6px ${color}60)` }} />
       </svg>
@@ -64,16 +64,16 @@ function WelcomeCard({ userName, onQuickUpload }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-5">
+        <div className="flex flex-wrap items-center gap-3 mt-5">
           <button
             onClick={onQuickUpload}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 hover:scale-[1.02]"
+            className="flex items-center whitespace-nowrap gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 hover:scale-[1.02]"
             style={{ background: ACCENT }}
           >
             <Upload size={15} /> Upload Screenshot
           </button>
           <Link to="/inspector/projects/new"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-70"
+            className="flex items-center whitespace-nowrap gap-2 px-5 py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-70"
             style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
             Create Project <ArrowRight size={14} />
           </Link>
@@ -143,7 +143,7 @@ function ProjectCard({ project, delay = 0 }) {
       transition={{ delay }}
       onClick={() => navigate(`/inspector/projects/${project.id}`)}
       className="group rounded-2xl border p-4 cursor-pointer transition-all hover:border-opacity-100"
-      style={{ background: 'var(--surface)', borderColor: 'var(--border)', borderOpacity: 0.6 }}
+      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
       {/* Thumbnail */}
       <div className="relative rounded-xl overflow-hidden mb-3 aspect-video"
@@ -199,7 +199,7 @@ function ContinueCard({ project }) {
       transition={{ delay: 0.03 }}
       onClick={() => navigate(`/inspector/projects/${project.id}`)}
       className="rounded-2xl border p-5 cursor-pointer transition-all hover:border-opacity-100 flex items-center gap-4"
-      style={{ background: 'var(--surface)', borderColor: score ? 'var(--border)' : ACCENT, borderOpacity: 0.6 }}
+      style={{ background: 'var(--surface)', borderColor: score ? 'var(--border)' : ACCENT }}
     >
       {project.screenshots?.[0]?.url ? (
         <img src={project.screenshots[0].url} alt={project.name}
@@ -297,56 +297,56 @@ export default function InspectorDashboard() {
   const lastProject = projects.find(p => p.status !== 'reviewed');
 
   return (
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Welcome */}
-        <WelcomeCard userName={user?.name || "there"} onQuickUpload={handleQuickUpload} />
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      {/* Welcome */}
+      <WelcomeCard userName={user?.name || "there"} onQuickUpload={handleQuickUpload} />
 
-        {/* Continue last */}
-        {!loading && lastProject && (
-          <div className="mt-5">
-            <ContinueCard project={lastProject} />
+      {/* Continue last */}
+      {!loading && lastProject && (
+        <div className="mt-5">
+          <ContinueCard project={lastProject} />
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="mt-6">
+        <SectionHeader title="Overview" />
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" />
+          </div>
+        ) : (
+          <StatsRow projects={projects} />
+        )}
+      </div>
+
+      {/* Recent Projects */}
+      <div className="mt-8">
+        <SectionHeader title="Recent Projects" action="View all" onAction={() => navigate('/inspector/projects')} />
+        {loading ? (
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40" />)}
+          </div>
+        ) : recentProjects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-12 text-center" style={{ borderColor: 'var(--border)' }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'var(--surface2)' }}>
+              <FolderOpen size={22} style={{ color: 'var(--text-muted)' }} />
+            </div>
+            <p className="text-[14px] font-medium mb-1" style={{ color: 'var(--text)' }}>No projects yet</p>
+            <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>Upload your first screenshot to get started</p>
+            <button onClick={handleQuickUpload}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+              style={{ background: ACCENT }}>
+              <Plus size={14} /> Create Project
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {recentProjects.map((p, i) => <ProjectCard key={p.id} project={p} delay={i * 0.04} />)}
           </div>
         )}
-
-        {/* Stats */}
-        <div className="mt-6">
-          <SectionHeader title="Overview" />
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" />
-            </div>
-          ) : (
-            <StatsRow projects={projects} />
-          )}
-        </div>
-
-        {/* Recent Projects */}
-        <div className="mt-8">
-          <SectionHeader title="Recent Projects" action="View all" onAction={() => navigate('/inspector/projects')} />
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40" />)}
-            </div>
-          ) : recentProjects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed p-12 text-center" style={{ borderColor: 'var(--border)' }}>
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'var(--surface2)' }}>
-                <FolderOpen size={22} style={{ color: 'var(--text-muted)' }} />
-              </div>
-              <p className="text-[14px] font-medium mb-1" style={{ color: 'var(--text)' }}>No projects yet</p>
-              <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>Upload your first screenshot to get started</p>
-              <button onClick={handleQuickUpload}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
-                style={{ background: ACCENT }}>
-                <Plus size={14} /> Create Project
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {recentProjects.map((p, i) => <ProjectCard key={p.id} project={p} delay={i * 0.04} />)}
-            </div>
-          )}
-        </div>
       </div>
+    </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Plus, FolderOpen, Clock, MoreHorizontal, Trash2, Eye,
-  Copy, Archive, Edit3, Image, Loader2, Sparkles
+  Copy, Image
 } from 'lucide-react';
 import inspectorApi from '../../utils/inspectorApi';
 import { ACCENT } from './constants/theme';
@@ -44,7 +44,7 @@ function ProjectMenu({ project, onDelete }) {
   );
 }
 
-function ProjectCard({ project, delay = 0 }) {
+function ProjectCard({ project, delay = 0, onDelete }) {
   const navigate = useNavigate();
   const screenshot = project.screenshots?.[0];
   const review = project.latest_review;
@@ -63,7 +63,7 @@ function ProjectCard({ project, delay = 0 }) {
       transition={{ delay }}
       onClick={() => navigate(`/inspector/projects/${project.id}`)}
       className="group rounded-2xl border p-4 cursor-pointer transition-all hover:border-opacity-100 relative"
-      style={{ background: 'var(--surface)', borderColor: 'var(--border)', borderOpacity: 0.6 }}
+      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
       {/* Thumbnail */}
       <div className="relative rounded-xl overflow-hidden mb-3 aspect-video" style={{ background: 'var(--surface2)' }}>
@@ -87,7 +87,7 @@ function ProjectCard({ project, delay = 0 }) {
 
       {/* Info */}
       <h3 className="text-[13px] font-semibold truncate mb-1.5" style={{ color: 'var(--text)' }}>{project.name}</h3>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between whitespace-nowrap">
         <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
           <Clock size={10} />
           {timeAgo(project.updated_at)}
@@ -97,7 +97,7 @@ function ProjectCard({ project, delay = 0 }) {
 
       {/* Hover actions */}
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ProjectMenu project={project} onDelete={() => {}} />
+        <ProjectMenu project={project} onDelete={onDelete} />
       </div>
     </motion.div>
   );
@@ -151,73 +151,73 @@ export default function InspectorProjectsPage() {
 
   const filtered = filter === 'all' ? projects
     : filter === 'reviewed' ? projects.filter(p => p.status === 'reviewed')
-    : projects.filter(p => p.status !== 'reviewed');
+      : projects.filter(p => p.status !== 'reviewed');
 
   return (
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-[22px] font-bold" style={{ color: 'var(--text)' }}>Projects</h1>
-            <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-            </p>
-          </div>
-          <button onClick={() => navigate('/inspector/projects/new')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90"
-            style={{ background: ACCENT }}>
-            <Plus size={15} /> New Project
-          </button>
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text)' }}>Projects</h1>
+          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+          </p>
         </div>
+        <button onClick={() => navigate('/inspector/projects/new')}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90"
+          style={{ background: ACCENT }}>
+          <Plus size={15} /> New Project
+        </button>
+      </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-1 mb-6">
-          {[['all', 'All'], ['reviewed', 'Reviewed'], ['draft', 'In Progress']].map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-              style={{
-                background: filter === val ? `${ACCENT}15` : 'transparent',
-                color: filter === val ? ACCENT : 'var(--text-muted)',
-              }}>
-              {label}
+      {/* Filters */}
+      <div className="flex items-center gap-1 mb-6">
+        {[['all', 'All'], ['reviewed', 'Reviewed'], ['draft', 'In Progress']].map(([val, label]) => (
+          <button key={val} onClick={() => setFilter(val)}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+            style={{
+              background: filter === val ? `${ACCENT}15` : 'transparent',
+              color: filter === val ? ACCENT : 'var(--text-muted)',
+            }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Projects Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--surface2)' }}>
+            <FolderOpen size={24} style={{ color: 'var(--text-muted)' }} />
+          </div>
+          <p className="text-[15px] font-semibold mb-1.5" style={{ color: 'var(--text)' }}>
+            {filter === 'all' ? 'No projects yet' : `No ${filter} projects`}
+          </p>
+          <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
+            {filter === 'all' ? 'Upload your first UI screenshot to get started' : 'Try a different filter'}
+          </p>
+          {filter === 'all' && (
+            <button onClick={() => navigate('/inspector/projects/new')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+              style={{ background: ACCENT }}>
+              <Plus size={14} /> Create your first project
             </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {filtered.map((p, i) => (
+            <div key={p.id}>
+              <ProjectCard project={p} delay={i * 0.03} onDelete={handleDelete} />
+            </div>
           ))}
         </div>
-
-        {/* Projects Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--surface2)' }}>
-              <FolderOpen size={24} style={{ color: 'var(--text-muted)' }} />
-            </div>
-            <p className="text-[15px] font-semibold mb-1.5" style={{ color: 'var(--text)' }}>
-              {filter === 'all' ? 'No projects yet' : `No ${filter} projects`}
-            </p>
-            <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-              {filter === 'all' ? 'Upload your first UI screenshot to get started' : 'Try a different filter'}
-            </p>
-            {filter === 'all' && (
-              <button onClick={() => navigate('/inspector/projects/new')}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
-                style={{ background: ACCENT }}>
-                <Plus size={14} /> Create your first project
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filtered.map((p, i) => (
-              <div key={p.id}>
-                <ProjectCard project={p} delay={i * 0.03} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
+    </div>
   );
 }
 
