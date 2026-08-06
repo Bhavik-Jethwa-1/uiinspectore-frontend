@@ -100,14 +100,14 @@ function ComparisonSlider({ original, redesigned }) {
 
   return (
     <div ref={containerRef} className="relative w-full rounded-2xl overflow-hidden cursor-col-resize select-none"
-      style={{ height: 400 }} onMouseDown={handleMouseDown} onTouchMove={handleMove}>
+      style={{ height: 'auto', aspectRatio: '16/10' }} onMouseDown={handleMouseDown} onTouchMove={handleMove}>
       <img src={original} alt="Original" className="absolute inset-0 w-full h-full object-contain" />
       <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
         <img src={redesigned} alt="Redesigned" className="absolute inset-0 w-full h-full object-contain" style={{ minWidth: containerRef.current?.offsetWidth || '100%' }} />
       </div>
-      <div className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg cursor-col-resize z-10"
+      <div className="absolute top-0 bottom-0 w-1 bg-white shadow-lg cursor-col-resize z-10"
         style={{ left: `${sliderPos}%`, transform: 'translateX(-50%)' }}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center touch-manipulation">
           <ChevronRight size={14} className="opacity-60" />
         </div>
       </div>
@@ -704,14 +704,14 @@ export default function InspectorReviewWorkspace() {
                 </div>
               ) : !redesign || !redesign.image_url ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Original</p>
                       {screenshot ? <img src={screenshot.url} alt="Original" className="w-full rounded-2xl" style={{ maxHeight: 350, objectFit: 'cover' }} /> : <ScreenshotSkeleton />}
                     </div>
                     <div>
                       <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-muted)' }}>AI Redesigned</p>
-                      <div className="rounded-2xl border border-dashed p-10 flex flex-col items-center justify-center" style={{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 280 }}>
+                      <div className="rounded-2xl border border-dashed p-6 sm:p-10 flex flex-col items-center justify-center" style={{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 200 }}>
                         <motion.div
                           animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.98, 1.02, 0.98] }}
                           transition={{ duration: 2, repeat: Infinity }}

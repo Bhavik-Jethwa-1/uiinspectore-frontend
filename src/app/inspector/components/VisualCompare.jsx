@@ -195,19 +195,19 @@ function CodePreviewCompare({ originalUrl, previewHtml }) {
   }, [previewHtml]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ minHeight: 480 }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Original screenshot */}
-      <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+      <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', aspectRatio: '16/10' }}>
         <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg text-[11px] font-bold"
           style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }}>
           Original
         </div>
         {originalUrl && (
-          <img src={originalUrl} alt="Original" className="w-full h-full object-contain" style={{ minHeight: 480 }} />
+          <img src={originalUrl} alt="Original" className="absolute inset-0 w-full h-full object-contain" />
         )}
       </div>
       {/* Code-rendered preview */}
-      <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+      <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', aspectRatio: '16/10' }}>
         <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg text-[11px] font-bold"
           style={{ background: `${ACCENT}99`, color: '#fff' }}>
           Code Preview
@@ -215,7 +215,7 @@ function CodePreviewCompare({ originalUrl, previewHtml }) {
         <iframe
           ref={iframeRef}
           className="w-full rounded-2xl"
-          style={{ height: 480, border: 0, display: 'block', background: 'var(--bg)' }}
+          style={{ height: '100%', border: 0, display: 'block', background: 'var(--bg)' }}
           sandbox="allow-scripts"
           title="Code Preview"
         />
@@ -241,21 +241,21 @@ function SwipeCompare({ originalUrl, redesignedUrl }) {
     <div
       ref={containerRef}
       className="relative rounded-2xl overflow-hidden select-none cursor-col-resize"
-      style={{ background: 'var(--bg)', maxHeight: '520px', userSelect: 'none' }}
+      style={{ background: 'var(--bg)', aspectRatio: '16/10', userSelect: 'none' }}
       onMouseMove={e => dragging.current && handleMove(e.clientX)}
       onMouseDown={e => { dragging.current = true; handleMove(e.clientX); }}
       onMouseUp={() => dragging.current = false}
       onMouseLeave={() => dragging.current = false}
     >
       <img src={originalUrl} alt="Original"
-        className="w-full max-h-[520px] object-contain pointer-events-none"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         style={{ clipPath: `inset(0 ${100 - swipeX}% 0 0)` }}
         draggable={false}
       />
       <div className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 0 0 ${swipeX}%)` }}>
         <img src={redesignedUrl} alt="Filtered"
-          className="w-full max-h-[520px] object-contain pointer-events-none"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
           draggable={false}
         />
       </div>
@@ -287,8 +287,8 @@ function SideBySideCompare({ originalUrl, redesignedUrl }) {
         { url: originalUrl, label: 'Original', accent: false },
         { url: redesignedUrl, label: 'Filtered', accent: true },
       ].map(({ url, label, accent }) => (
-        <div key={label} className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--bg)' }}>
-          <img src={url} alt={label} className="w-full max-h-[520px] object-contain" />
+        <div key={label} className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--bg)', aspectRatio: '16/10' }}>
+          <img src={url} alt={label} className="absolute inset-0 w-full h-full object-contain" />
           <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md"
             style={{ background: accent ? `${ACCENT}cc` : 'rgba(0,0,0,0.7)', color: '#fff' }}>
             {label}
@@ -304,14 +304,14 @@ function OverlayCompare({ originalUrl, redesignedUrl }) {
   const [opacity, setOpacity] = useState(50);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--bg)', maxHeight: '520px' }}>
+    <div className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--bg)', aspectRatio: '16/10' }}>
       <img src={originalUrl} alt="Original"
-        className="w-full max-h-[520px] object-contain pointer-events-none"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         style={{ opacity: 1 - opacity / 100 }}
         draggable={false}
       />
       <img src={redesignedUrl} alt="Filtered"
-        className="absolute inset-0 w-full h-full max-h-[520px] object-contain pointer-events-none transition-opacity duration-200"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200"
         style={{ opacity: opacity / 100 }}
         draggable={false}
       />
