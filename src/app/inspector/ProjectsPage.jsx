@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import inspectorApi from '../../utils/inspectorApi';
 import { ACCENT } from './constants/theme';
+import DeleteModal from '../../components/ui/DeleteModal';
 
 function ProjectMenu({ project, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -128,6 +129,7 @@ export default function InspectorProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all | reviewed | draft
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, targetId: null, deleting: false });
   const navigate = useNavigate();
 
   const loadProjects = () => {
@@ -139,13 +141,21 @@ export default function InspectorProjectsPage() {
 
   useEffect(() => { loadProjects(); }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this project?')) return;
+  const handleDelete = (id) => {
+    setDeleteModal({ isOpen: true, targetId: id, deleting: false });
+  };
+
+  const confirmDelete = async () => {
+    const { targetId } = deleteModal;
+    if (!targetId) return;
+    setDeleteModal(prev => ({ ...prev, deleting: true }));
     try {
-      await inspectorApi.deleteProject(id);
-      setProjects(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
+      await inspectorApi.deleteProject(targetId);
+      setProjects(prev => prev.filter(p => p.id !== targetId));
+      setDeleteModal({ isOpen: false, targetId: null, deleting: false });
+    } catch {
       alert('Failed to delete project');
+      setDeleteModal(prev => ({ ...prev, deleting: false }));
     }
   };
 
@@ -217,6 +227,16 @@ export default function InspectorProjectsPage() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDelete}
+        title="Delete Project"
+        message="This will permanently delete the project, all screenshots, reviews, and redesigns. This action cannot be undone."
+        deleting={deleteModal.deleting}
+      />
     </div>
   );
 }
