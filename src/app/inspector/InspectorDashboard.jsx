@@ -51,7 +51,7 @@ function WelcomeCard({ userName, onQuickUpload }) {
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-bold mb-1" style={{ color: 'var(--text)' }}>
+            <h1 className="text-[22px] font-bold mb-1" style={{ color: '#ffffff' }}>
               Good {getTimeOfDay()}, {userName?.split(' ')[0] || 'there'}
             </h1>
             <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>

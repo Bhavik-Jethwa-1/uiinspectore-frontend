@@ -6,6 +6,7 @@ import {
   Menu, X, Sparkles, ChevronRight
 } from 'lucide-react';
 import { useInspectorAuth } from '../../../contexts/InspectorAuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 const ACCENT = '#7c5cff';
 const SIDEBAR_W = 240;
@@ -59,6 +60,14 @@ export default function InspectorLayout() {
           );
         })}
       </nav>
+
+      {/* Theme Toggle */}
+      <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-between px-3 py-2">
+          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Theme</span>
+          <ThemeToggle />
+        </div>
+      </div>
 
       {/* User */}
       <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>

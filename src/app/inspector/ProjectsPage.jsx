@@ -117,9 +117,9 @@ function timeAgo(dateStr) {
 function SkeletonCard() {
   return (
     <div className="rounded-2xl border p-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-      <div className="rounded-xl aspect-video mb-3 animate-pulse" style={{ background: 'var(--surface2)' }} />
-      <div className="h-4 rounded animate-pulse mb-2" style={{ background: 'var(--surface2)', width: '70%' }} />
-      <div className="h-3 rounded animate-pulse" style={{ background: 'var(--surface2)', width: '40%' }} />
+      <div className="rounded-xl aspect-video mb-3 skeleton" />
+      <div className="h-4 rounded skeleton mb-2" style={{ width: '70%' }} />
+      <div className="h-3 rounded skeleton" style={{ width: '40%' }} />
     </div>
   );
 }

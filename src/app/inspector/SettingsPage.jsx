@@ -1,9 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useInspectorAuth } from '../../contexts/InspectorAuthContext';
 import { inspectorApi } from '../../utils/inspectorApi';
-import { Save, User, Lock, Trash2, Eye, EyeOff, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { Save, User, Lock, Trash2, Eye, EyeOff, CheckCircle, AlertTriangle, X, Sun, Moon, Monitor } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/LoadingScreen';
 
 const ACCENT = '#7c5cff';
+
+function AppearanceSection() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  const options = [
+    {
+      value: 'dark',
+      icon: Moon,
+      label: 'Dark',
+      desc: 'Easy on the eyes at night',
+      preview: 'linear-gradient(135deg, #09090b 50%, #18181b 50%)',
+    },
+    {
+      value: 'light',
+      icon: Sun,
+      label: 'Light',
+      desc: 'Clean and bright',
+      preview: 'linear-gradient(135deg, #ffffff 50%, #f4f4f5 50%)',
+    },
+    {
+      value: 'system',
+      icon: Monitor,
+      label: 'System',
+      desc: `Following ${resolvedTheme}`,
+      preview: 'linear-gradient(135deg, #09090b 25%, #ffffff 25%, #ffffff 50%, #09090b 50%, #09090b 75%, #ffffff 75%)',
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border p-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT}20` }}>
+          <Moon size={15} style={{ color: ACCENT }} />
+        </div>
+        <h2 className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Appearance</h2>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {options.map(({ value, icon: Icon, label, desc, preview }) => {
+          const selected = theme === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className="relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
+              style={{
+                background: 'var(--bg)',
+                borderColor: selected ? ACCENT : 'var(--border)',
+                boxShadow: selected ? `0 0 0 2px ${ACCENT}30` : 'none',
+              }}
+            >
+              {/* Color preview swatch */}
+              <div
+                className="w-full h-10 rounded-lg border"
+                style={{ background: preview, borderColor: 'var(--border)' }}
+              />
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  {selected && (
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
+                  )}
+                  <span className="text-[12px] font-semibold" style={{ color: 'var(--text)' }}>{label}</span>
+                </div>
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{desc}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ConfirmModal({ title, message, confirmLabel, onConfirm, onCancel, danger = false }) {
   return (
@@ -47,17 +121,19 @@ function ConfirmModal({ title, message, confirmLabel, onConfirm, onCancel, dange
 
 export default function SettingsPage() {
   const { user, setUser } = useInspectorAuth();
+  const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
   // Profile state
   const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '' });
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileErrors, setProfileErrors] = useState({ name: '', email: '' });
 
   // Password state
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
-  const [passwordError, setPasswordError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState({ current: '', new: '', confirm: '' });
   const [passwordSaved, setPasswordSaved] = useState(false);
 
   // Delete confirmation modal
@@ -65,7 +141,15 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const handleProfileSave = async () => {
-    if (!profile.name.trim()) return;
+    const errors = { name: '', email: '' };
+    if (!profile.name.trim()) errors.name = 'Name is required';
+    if (!profile.email.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) errors.email = 'Invalid email address';
+    if (errors.name || errors.email) {
+      setProfileErrors(errors);
+      return;
+    }
+    setProfileErrors({ name: '', email: '' });
     setLoading(true);
     setMessage(null);
     try {
@@ -82,10 +166,17 @@ export default function SettingsPage() {
   };
 
   const handlePasswordSave = async () => {
-    setPasswordError('');
-    if (!passwords.current) { setPasswordError('Current password is required'); return; }
-    if (passwords.new.length < 8) { setPasswordError('New password must be at least 8 characters'); return; }
-    if (passwords.new !== passwords.confirm) { setPasswordError('Passwords do not match'); return; }
+    const errors = { current: '', new: '', confirm: '' };
+    if (!passwords.current) errors.current = 'Current password is required';
+    if (!passwords.new) errors.new = 'New password is required';
+    else if (passwords.new.length < 8) errors.new = 'Must be at least 8 characters';
+    if (!passwords.confirm) errors.confirm = 'Please confirm your new password';
+    else if (passwords.new !== passwords.confirm) errors.confirm = 'Passwords do not match';
+    if (errors.current || errors.new || errors.confirm) {
+      setPasswordErrors(errors);
+      return;
+    }
+    setPasswordErrors({ current: '', new: '', confirm: '' });
     setLoading(true);
     setMessage(null);
     try {
@@ -124,6 +215,75 @@ export default function SettingsPage() {
     }
   };
 
+  // Simulate initial load for skeleton
+  useEffect(() => {
+    const t = setTimeout(() => setPageLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (pageLoading) {
+    return (
+      <div className="p-6 max-w-xl mx-auto space-y-6">
+        <div>
+          <Skeleton className="h-6 w-20 rounded mb-1" />
+          <Skeleton className="h-3 w-40 rounded" />
+        </div>
+        {/* Profile skeleton */}
+        <div className="rounded-2xl border p-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 mb-5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <Skeleton className="h-4 w-16 rounded" />
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Skeleton className="h-2 w-10 rounded mb-2" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+            <div>
+              <Skeleton className="h-2 w-10 rounded mb-2" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+            <Skeleton className="h-8 w-24 rounded-xl" />
+          </div>
+        </div>
+        {/* Appearance skeleton */}
+        <div className="rounded-2xl border p-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 mb-5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <Skeleton className="h-4 w-24 rounded" />
+          </div>
+          <div className="flex gap-3">
+            <Skeleton className="h-20 w-20 rounded-xl" />
+            <Skeleton className="h-20 w-20 rounded-xl" />
+            <Skeleton className="h-20 w-20 rounded-xl" />
+          </div>
+        </div>
+        {/* Password skeleton */}
+        <div className="rounded-2xl border p-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 mb-5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <Skeleton className="h-4 w-28 rounded" />
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Skeleton className="h-2 w-28 rounded mb-2" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+            <div>
+              <Skeleton className="h-2 w-24 rounded mb-2" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+            <div>
+              <Skeleton className="h-2 w-28 rounded mb-2" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+            <Skeleton className="h-9 w-28 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-xl mx-auto space-y-6">
       {/* Header */}
@@ -134,9 +294,8 @@ export default function SettingsPage() {
 
       {/* Message */}
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium ${
-          message.type === 'success' ? 'text-green-400' : 'text-red-400'
-        }`} style={{ background: message.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)' }}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium ${message.type === 'success' ? 'text-green-400' : 'text-red-400'
+          }`} style={{ background: message.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)' }}>
           {message.type === 'success' && <CheckCircle size={16} />}
           {message.text}
         </div>
@@ -156,20 +315,26 @@ export default function SettingsPage() {
             <input
               type="text"
               value={profile.name}
-              onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+              onChange={e => { setProfile(p => ({ ...p, name: e.target.value })); setProfileErrors(p => ({ ...p, name: '' })); }}
               className="w-full px-3 py-2.5 rounded-xl text-[13px] border outline-none transition-all"
-              style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              style={{ background: 'var(--bg)', borderColor: profileErrors.name ? '#ef4444' : 'var(--border)', color: 'var(--text)' }}
             />
+            {profileErrors.name && (
+              <p className="text-[11px] mt-1.5" style={{ color: '#ef4444' }}>{profileErrors.name}</p>
+            )}
           </div>
           <div>
             <label className="block text-[11px] font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Email</label>
             <input
               type="email"
               value={profile.email}
-              onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+              onChange={e => { setProfile(p => ({ ...p, email: e.target.value })); setProfileErrors(p => ({ ...p, email: '' })); }}
               className="w-full px-3 py-2.5 rounded-xl text-[13px] border outline-none transition-all"
-              style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              style={{ background: 'var(--bg)', borderColor: profileErrors.email ? '#ef4444' : 'var(--border)', color: 'var(--text)' }}
             />
+            {profileErrors.email && (
+              <p className="text-[11px] mt-1.5" style={{ color: '#ef4444' }}>{profileErrors.email}</p>
+            )}
           </div>
           <div className="pt-1">
             <button
@@ -184,6 +349,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Appearance Section */}
+      <AppearanceSection />
 
       {/* Change Password Section */}
       <div className="rounded-2xl border p-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
@@ -200,19 +368,23 @@ export default function SettingsPage() {
               <input
                 type={showPasswords.current ? 'text' : 'password'}
                 value={passwords.current}
-                onChange={e => setPasswords(p => ({ ...p, current: e.target.value }))}
-                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all"
-                style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                onChange={e => { setPasswords(p => ({ ...p, current: e.target.value })); setPasswordErrors(p => ({ ...p, current: '' })); }}
+                placeholder="Enter current password"
+                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all placeholder:opacity-50"
+                style={{ background: 'var(--bg)', borderColor: passwordErrors.current ? '#ef4444' : 'var(--border)', color: 'var(--text)' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(s => ({ ...s, current: !s.current }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-2/3 -translate-y-1/2 p-0.5"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {showPasswords.current ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {passwordErrors.current && (
+              <p className="text-[11px] mt-1.5" style={{ color: '#ef4444' }}>{passwordErrors.current}</p>
+            )}
           </div>
           <div>
             <label className="block text-[11px] font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>New Password</label>
@@ -220,19 +392,23 @@ export default function SettingsPage() {
               <input
                 type={showPasswords.new ? 'text' : 'password'}
                 value={passwords.new}
-                onChange={e => setPasswords(p => ({ ...p, new: e.target.value }))}
-                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all"
-                style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                onChange={e => { setPasswords(p => ({ ...p, new: e.target.value })); setPasswordErrors(p => ({ ...p, new: '' })); }}
+                placeholder="Enter new password"
+                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all placeholder:opacity-50"
+                style={{ background: 'var(--bg)', borderColor: passwordErrors.new ? '#ef4444' : 'var(--border)', color: 'var(--text)' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(s => ({ ...s, new: !s.new }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-2/3 -translate-y-1/2 p-0.5"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {showPasswords.new ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {passwordErrors.new && (
+              <p className="text-[11px] mt-1.5" style={{ color: '#ef4444' }}>{passwordErrors.new}</p>
+            )}
           </div>
           <div>
             <label className="block text-[11px] font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Confirm New Password</label>
@@ -240,23 +416,24 @@ export default function SettingsPage() {
               <input
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={passwords.confirm}
-                onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))}
-                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all"
-                style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                onChange={e => { setPasswords(p => ({ ...p, confirm: e.target.value })); setPasswordErrors(p => ({ ...p, confirm: '' })); }}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2.5 pr-10 rounded-xl text-[13px] border outline-none transition-all placeholder:opacity-50"
+                style={{ background: 'var(--bg)', borderColor: passwordErrors.confirm ? '#ef4444' : 'var(--border)', color: 'var(--text)' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(s => ({ ...s, confirm: !s.confirm }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-2/3 -translate-y-1/2 p-0.5"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {showPasswords.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {passwordErrors.confirm && (
+              <p className="text-[11px] mt-1.5" style={{ color: '#ef4444' }}>{passwordErrors.confirm}</p>
+            )}
           </div>
-          {passwordError && (
-            <p className="text-[12px] text-red-400">{passwordError}</p>
-          )}
           <div className="pt-1">
             <button
               onClick={handlePasswordSave}

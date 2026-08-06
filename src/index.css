@@ -34,6 +34,28 @@
 }
 
 /* ===================================================
+   LIGHT THEME OVERRIDES
+   =================================================== */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #fafafa;
+  --surface2: #f4f4f5;
+  --surface3: #e4e4e7;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --text: #18181b;
+  --text-2: #44444c;
+  --text-muted: #72727a;
+  --accent-glow: rgba(124, 92, 255, 0.15);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+}
+
+/* ===================================================
    GLOBAL RESETS & BASE
    =================================================== */
 *, *::before, *::after {

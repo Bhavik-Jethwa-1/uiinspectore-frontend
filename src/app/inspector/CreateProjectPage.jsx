@@ -1,14 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  Upload, X, Loader2, ArrowLeft, Image, CheckCircle2,
-  ChevronRight, Sparkles
+  Upload, X, Loader2, ArrowLeft, CheckCircle2,
+  Sparkles, ChevronDown
 } from 'lucide-react';
 import inspectorApi from '../../utils/inspectorApi';
 import { ACCENT } from './constants/theme';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { CodeGenProgress } from '../../components/ui/StepProgress';
+import { ErrorState } from '../../components/ui/LoadingScreen';
 
-// ─── Persona Select ─────────────────────────────────────────────────────────
 const PERSONAS = [
   { value: 'first_time', label: 'First-time User', desc: 'Focus on onboarding & clarity', color: '#8b5cf6' },
   { value: 'non_technical', label: 'Non-technical', desc: 'Plain language, intuitive navigation', color: '#06b6d4' },
@@ -21,7 +23,7 @@ function PersonaCard({ persona, selected, onSelect }) {
   return (
     <button
       onClick={() => onSelect(persona.value)}
-      className="flex items-start gap-3 p-4 rounded-2xl border text-left transition-all w-full"
+      className="flex items-start gap-3 p-3 rounded-xl border text-left transition-all w-full"
       style={{
         borderColor: selected ? persona.color : 'var(--border)',
         background: selected ? `${persona.color}10` : 'var(--surface)',
@@ -31,118 +33,15 @@ function PersonaCard({ persona, selected, onSelect }) {
       <div className="w-4 h-4 rounded-full border-2 shrink-0 mt-0.5"
         style={{ borderColor: selected ? persona.color : 'var(--text-muted)', background: selected ? persona.color : 'transparent' }} />
       <div>
-        <p className="text-[13px] font-semibold mb-0.5" style={{ color: selected ? persona.color : 'var(--text)' }}>{persona.label}</p>
-        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{persona.desc}</p>
+        <p className="text-[12px] font-semibold mb-0.5" style={{ color: selected ? persona.color : 'var(--text)' }}>{persona.label}</p>
+        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{persona.desc}</p>
       </div>
     </button>
   );
 }
 
-// ─── Step Indicator ─────────────────────────────────────────────────────────
-function StepIndicator({ current, total }) {
-  return (
-    <div className="flex items-center gap-2 mb-8">
-      {[...Array(total)].map((_, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors"
-            style={{
-              background: i < current ? ACCENT : i === current ? `${ACCENT}30` : 'var(--surface2)',
-              color: i <= current ? '#fff' : 'var(--text-muted)',
-            }}>
-            {i < current ? <CheckCircle2 size={12} /> : i + 1}
-          </div>
-          {i < total - 1 && (
-            <div className="w-8 h-px" style={{ background: i < current ? ACCENT : 'var(--border)' }} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Upload Zone ─────────────────────────────────────────────────────────────
-function UploadZone({ onFile, preview, uploading }) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef(null);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) onFile(file);
-  }, [onFile]);
-
-  // Paste support
-  useEffect(() => {
-    const onPaste = (e) => {
-      const item = [...e.clipboardData?.items || []].find(i => i.type.startsWith('image/'));
-      if (item) {
-        const file = item.getAsFile();
-        if (file) onFile(file);
-      }
-    };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
-  }, [onFile]);
-
-  if (preview) {
-    return (
-      <div className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--surface2)' }}>
-        <img src={preview} alt="Preview" className="w-full max-h-80 object-contain" />
-        <button onClick={() => onFile(null)}
-          className="absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-colors"
-          style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <X size={14} className="text-white" />
-        </button>
-        {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
-            <Loader2 size={24} className="animate-spin text-white" />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
-      className="relative rounded-2xl border-2 border-dashed p-12 text-center cursor-pointer transition-all"
-      style={{ borderColor: dragging ? ACCENT : 'var(--border)', background: dragging ? `${ACCENT}05` : 'transparent' }}
-    >
-      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
-
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors"
-        style={{ background: dragging ? `${ACCENT}20` : 'var(--surface2)' }}>
-        <Upload size={24} style={{ color: dragging ? ACCENT : 'var(--text-muted)' }} />
-      </div>
-
-      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text)' }}>
-        {dragging ? 'Drop your screenshot' : 'Upload your UI screenshot'}
-      </p>
-      <p className="text-[13px] mb-4" style={{ color: 'var(--text-muted)' }}>
-        Drag & drop, click to browse, or paste from clipboard
-      </p>
-      <div className="flex items-center justify-center gap-2">
-        {['PNG', 'JPG', 'WEBP'].map(fmt => (
-          <span key={fmt} className="px-2 py-1 rounded-md text-[10px] font-medium"
-            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{fmt}</span>
-        ))}
-      </div>
-      <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-        Max 10MB — For best results, use a full-page screenshot
-      </p>
-    </div>
-  );
-}
-
-// ─── Main Create Project Page ────────────────────────────────────────────────
 export default function InspectorCreateProjectPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0); // 0=upload, 1=persona, 2=goal
   const [name, setName] = useState('');
   const [persona, setPersona] = useState('first_time');
   const [pageGoal, setPageGoal] = useState('');
@@ -150,6 +49,9 @@ export default function InspectorCreateProjectPage() {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [personaOpen, setPersonaOpen] = useState(false);
+  const [goalFocused, setGoalFocused] = useState(false);
+  const inputRef = useRef(null);
 
   const handleFile = useCallback((f) => {
     if (!f) { setFile(null); setPreview(null); return; }
@@ -160,6 +62,18 @@ export default function InspectorCreateProjectPage() {
     setFile(f);
     setPreview(URL.createObjectURL(f));
   }, []);
+
+  useEffect(() => {
+    const onPaste = (e) => {
+      const item = [...e.clipboardData?.items || []].find(i => i.type.startsWith('image/'));
+      if (item) {
+        const f = item.getAsFile();
+        if (f) handleFile(f);
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [handleFile]);
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Please enter a project name'); return; }
@@ -173,7 +87,6 @@ export default function InspectorCreateProjectPage() {
       if (pageGoal.trim()) formData.append('page_goal', pageGoal.trim());
       const uploadResult = await inspectorApi.uploadScreenshot(proj.project.id, formData);
       const screenshotId = uploadResult?.screenshot?.id;
-      // Generate review immediately
       await inspectorApi.generateReview(proj.project.id, {
         screenshot_id: screenshotId,
         persona,
@@ -186,150 +99,249 @@ export default function InspectorCreateProjectPage() {
     }
   };
 
-  const canProceed = file && name.trim();
+  const selectedPersona = PERSONAS.find(p => p.value === persona);
 
   return (
-      <div className="max-w-xl mx-auto px-6 py-10">
-        {/* Back */}
-        <button onClick={() => navigate('/inspector/projects')}
-          className="flex items-center gap-1.5 text-[12px] mb-8 transition-opacity hover:opacity-60"
-          style={{ color: 'var(--text-muted)' }}>
-          <ArrowLeft size={13} /> Back to Projects
-        </button>
+    <div className="max-w-xl mx-auto px-6 py-10">
+      {/* Back */}
+      <button onClick={() => navigate('/inspector/projects')}
+        className="flex items-center gap-1.5 text-[12px] mb-8 transition-opacity hover:opacity-60"
+        style={{ color: 'var(--text-muted)' }}>
+        <ArrowLeft size={13} /> Back to Projects
+      </button>
 
-        <StepIndicator current={step} total={3} />
-
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <motion.div key="upload" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-[22px] font-bold mb-1" style={{ color: 'var(--text)' }}>
-                Upload your UI screenshot
-              </h2>
-              <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)' }}>
-                Show the interface you want to review
-              </p>
-
-              <UploadZone onFile={handleFile} preview={preview} uploading={submitting} />
-
-              {error && (
-                <p className="text-[12px] text-red-400 mt-3">{error}</p>
-              )}
-
-              {/* Project name */}
-              {file && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5">
-                  <label className="text-[12px] font-medium block mb-2" style={{ color: 'var(--text-muted)' }}>
-                    Project name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Checkout Flow Redesign"
-                    className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition-all"
-                    style={{
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--text)',
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = ACCENT}
-                    onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-                  />
-                </motion.div>
-              )}
-
-              {file && name.trim() && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="flex items-center gap-2 w-full justify-center px-5 py-3 rounded-xl text-[14px] font-semibold text-white transition-all hover:opacity-90"
-                    style={{ background: ACCENT }}
-                  >
-                    Continue <ChevronRight size={16} />
-                  </button>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {step === 1 && (
-            <motion.div key="persona" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-[22px] font-bold mb-1" style={{ color: 'var(--text)' }}>
-                Who will use this?
-              </h2>
-              <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)' }}>
-                Select a persona to tailor the review perspective
-              </p>
-
-              <div className="space-y-2">
-                {PERSONAS.map(p => (
-                  <PersonaCard key={p.value} persona={p} selected={persona === p.value} onSelect={setPersona} />
-                ))}
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(0)}
-                  className="px-5 py-3 rounded-xl text-[13px] font-medium transition-all hover:opacity-70"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                  Back
-                </button>
-                <button onClick={() => setStep(2)}
-                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-semibold text-white transition-all hover:opacity-90"
-                  style={{ background: ACCENT }}>
-                  Continue <ChevronRight size={16} />
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 2 && (
-            <motion.div key="goal" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-[22px] font-bold mb-1" style={{ color: 'var(--text)' }}>
-                What's the page goal?
-              </h2>
-              <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)' }}>
-                Optional — helps AI give more focused feedback
-              </p>
-
-              <textarea
-                value={pageGoal}
-                onChange={(e) => setPageGoal(e.target.value)}
-                placeholder="e.g. Users should be able to complete checkout in under 3 clicks"
-                rows={4}
-                className="w-full px-4 py-3 rounded-xl text-[14px] outline-none resize-none transition-all"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)',
-                }}
-                onFocus={(e) => e.target.style.borderColor = ACCENT}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-              />
-
-              {error && <p className="text-[12px] text-red-400 mt-3">{error}</p>}
-
-              <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(1)}
-                  className="px-5 py-3 rounded-xl text-[13px] font-medium transition-all hover:opacity-70"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                  Back
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: submitting ? '#666' : ACCENT }}
-                >
-                  {submitting ? (
-                    <><Loader2 size={15} className="animate-spin" /> Generating…</>
-                  ) : (
-                    <><Sparkles size={15} /> Generate Review</>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="text-[22px] font-bold mb-1" style={{ color: 'var(--text)' }}>
+          Create New Project
+        </h2>
+        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>
+          Upload a screenshot and get an AI-powered UI review instantly
+        </p>
       </div>
+
+      {/* Form — skeleton while submitting */}
+      {submitting ? (
+        <SubmittingSkeleton />
+      ) : (
+        <NormalForm
+          name={name} setName={setName}
+          persona={persona} setPersona={setPersona}
+          selectedPersona={selectedPersona}
+          personaOpen={personaOpen} setPersonaOpen={setPersonaOpen}
+          pageGoal={pageGoal} setPageGoal={setPageGoal}
+          goalFocused={goalFocused} setGoalFocused={setGoalFocused}
+          preview={preview} setPreview={preview}
+          handleFile={handleFile}
+          file={file} inputRef={inputRef}
+          error={error} setError={setError}
+          handleSubmit={handleSubmit}
+        />
+      )}
+    </div>
+  );
+}
+
+function NormalForm({
+  name, setName,
+  persona, setPersona, selectedPersona, personaOpen, setPersonaOpen,
+  pageGoal, setPageGoal, goalFocused, setGoalFocused,
+  preview, handleFile, file, inputRef,
+  error, setError, handleSubmit,
+}) {
+  return (
+    <div className="space-y-5">
+      {/* Screenshot */}
+      <div>
+        <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+          Screenshot
+        </label>
+        {preview ? (
+          <div className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--surface2)' }}>
+            <img src={preview} alt="Preview" className="w-full max-h-64 object-contain" />
+            <button onClick={() => handleFile(null)}
+              className="absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-colors"
+              style={{ background: 'rgba(0,0,0,0.6)' }}>
+              <X size={14} className="text-white" />
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => { e.preventDefault(); }}
+            onClick={() => inputRef.current?.click()}
+            className="relative rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all"
+            style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}
+          >
+            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+              style={{ background: 'var(--surface2)' }}>
+              <Upload size={20} style={{ color: 'var(--text-muted)' }} />
+            </div>
+            <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--text)' }}>
+              Drop image or click to upload
+            </p>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              PNG, JPG, WEBP — Max 10MB
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Project Name */}
+      <div>
+        <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+          Project Name
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Checkout Flow Redesign"
+          className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition-all placeholder:opacity-40"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+          onFocus={(e) => e.target.style.borderColor = ACCENT}
+          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+        />
+      </div>
+
+      {/* Persona */}
+      <div>
+        <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+          Review Perspective
+        </label>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setPersonaOpen(!personaOpen)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-[14px] transition-all"
+            style={{
+              background: 'var(--surface)',
+              border: `1px solid ${personaOpen ? ACCENT : 'var(--border)'}`,
+              color: 'var(--text)',
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full" style={{ background: selectedPersona?.color }} />
+              {selectedPersona?.label}
+            </span>
+            <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: personaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          {personaOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute z-10 w-full mt-1 rounded-xl border overflow-hidden shadow-lg"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            >
+              {PERSONAS.map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => { setPersona(p.value); setPersonaOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:opacity-80"
+                  style={{ background: persona === p.value ? `${p.color}10` : 'transparent' }}
+                >
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: p.color }} />
+                  <div>
+                    <p className="text-[12px] font-medium" style={{ color: persona === p.value ? p.color : 'var(--text)' }}>{p.label}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{p.desc}</p>
+                  </div>
+                  {persona === p.value && <CheckCircle2 size={12} className="ml-auto shrink-0" style={{ color: p.color }} />}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* Page Goal */}
+      <div>
+        <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+          Page Goal <span style={{ opacity: 0.5 }}>(optional)</span>
+        </label>
+        <textarea
+          value={pageGoal}
+          onChange={(e) => setPageGoal(e.target.value)}
+          placeholder="e.g. Users should complete checkout in under 3 clicks"
+          rows={3}
+          className="w-full px-4 py-3 rounded-xl text-[14px] outline-none resize-none transition-all placeholder:opacity-40"
+          style={{
+            background: 'var(--surface)',
+            border: `1px solid ${goalFocused ? ACCENT : 'var(--border)'}`,
+            color: 'var(--text)',
+          }}
+          onFocus={() => setGoalFocused(true)}
+          onBlur={() => setGoalFocused(false)}
+        />
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-[13px]" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Generate Button */}
+      <button
+        onClick={handleSubmit}
+        className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-[14px] font-semibold text-white transition-all hover:opacity-90"
+        style={{ background: ACCENT }}
+      >
+        <Sparkles size={15} /> Generate Review
+      </button>
+    </div>
+  );
+}
+
+function SubmittingSkeleton() {
+  return (
+    <div className="space-y-5">
+      {/* Screenshot skeleton */}
+      <div>
+        <Skeleton className="h-3 w-20 rounded mb-2" />
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface2)', minHeight: 180 }}>
+          <div className="w-full p-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-6 h-6 rounded-full" />
+              <Skeleton className="h-3 flex-1 rounded" style={{ maxWidth: 100 }} />
+              <Skeleton className="h-6 w-16 rounded-lg" />
+            </div>
+            <Skeleton className="h-3 rounded" />
+            <Skeleton className="h-3 rounded" style={{ width: '85%' }} />
+            <Skeleton className="h-3 rounded" style={{ width: '65%' }} />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-3 rounded" style={{ width: '90%' }} />
+            <div className="flex gap-2 mt-3">
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton className="h-8 w-20 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Project name skeleton */}
+      <div>
+        <Skeleton className="h-3 w-24 rounded mb-2" />
+        <Skeleton className="h-11 w-full rounded-xl" />
+      </div>
+
+      {/* Persona skeleton */}
+      <div>
+        <Skeleton className="h-3 w-28 rounded mb-2" />
+        <Skeleton className="h-11 w-full rounded-xl" />
+      </div>
+
+      {/* Goal skeleton */}
+      <div>
+        <Skeleton className="h-3 w-20 rounded mb-2" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+
+      {/* Code generation progress */}
+      <CodeGenProgress activeStep={0} />
+    </div>
   );
 }
