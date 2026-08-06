@@ -112,7 +112,7 @@ export default function InspectorLayout() {
 
       {/* Mobile header */}
       <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-white/10">
+        <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:opacity-70" style={{ color: 'var(--text)' }}>
           <Menu size={20} />
         </button>
         <div className="flex items-center gap-2">

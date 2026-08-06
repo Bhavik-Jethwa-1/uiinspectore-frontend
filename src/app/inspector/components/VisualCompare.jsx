@@ -195,7 +195,7 @@ function CodePreviewCompare({ originalUrl, previewHtml }) {
   }, [previewHtml]);
 
   return (
-    <div className="grid grid-cols-2 gap-4" style={{ minHeight: 480 }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ minHeight: 480 }}>
       {/* Original screenshot */}
       <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
         <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg text-[11px] font-bold"
@@ -282,7 +282,7 @@ function SwipeCompare({ originalUrl, redesignedUrl }) {
 // ─── Side by Side ─────────────────────────────────────────────────────────────
 function SideBySideCompare({ originalUrl, redesignedUrl }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {[
         { url: originalUrl, label: 'Original', accent: false },
         { url: redesignedUrl, label: 'Filtered', accent: true },
@@ -500,25 +500,30 @@ function FullscreenModal({ originalUrl, redesignedUrl, mode, onClose }) {
       className="fixed inset-0 z-50 flex flex-col"
       style={{ background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(16px)' }}
     >
-      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0"
         style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold text-white">Full Preview</h2>
-          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            {COMPARE_MODES.map(m => (
-              <button key={m.id} onClick={() => setCompareMode(m.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                style={{
-                  background: compareMode === m.id ? ACCENT : 'transparent',
-                  color: compareMode === m.id ? '#fff' : 'rgba(255,255,255,0.6)',
-                }}>
-                <m.icon size={12} /> {m.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <h2 className="text-[14px] sm:text-[15px] font-bold text-white">Full Preview</h2>
+          <button onClick={onClose}
+            className="p-2 rounded-xl transition-all hover:bg-white/10 sm:hidden"
+            style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="flex items-center gap-1 p-1 rounded-xl overflow-x-auto shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          {COMPARE_MODES.map(m => (
+            <button key={m.id} onClick={() => setCompareMode(m.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all whitespace-nowrap shrink-0"
+              style={{
+                background: compareMode === m.id ? ACCENT : 'transparent',
+                color: compareMode === m.id ? '#fff' : 'rgba(255,255,255,0.6)',
+              }}>
+              <m.icon size={12} /> <span className="hidden xs:inline">{m.label}</span>
+            </button>
+          ))}
         </div>
         <button onClick={onClose}
-          className="p-2 rounded-xl transition-all hover:bg-white/10"
+          className="p-2 rounded-xl transition-all hover:bg-white/10 hidden sm:block"
           style={{ color: 'rgba(255,255,255,0.6)' }}>
           <X size={20} />
         </button>
@@ -648,61 +653,68 @@ export default function VisualCompare({
     return (
       <div className="space-y-6">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Style:</span>
-            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              {DESIGN_STYLES.map(ds => (
-                <button key={ds.id} onClick={() => setCurrentDesignStyle(ds.id)}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all"
-                  style={{
-                    background: currentDesignStyle === ds.id ? ACCENT : 'transparent',
-                    color: currentDesignStyle === ds.id ? '#fff' : 'var(--text-muted)',
-                  }}>
-                  {ds.label}
-                </button>
-              ))}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Row 1: Style + Preview chips (scrollable on mobile) */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[12px] whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Style:</span>
+              <div className="flex items-center gap-1 p-1 rounded-xl shrink-0" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                {DESIGN_STYLES.map(ds => (
+                  <button key={ds.id} onClick={() => setCurrentDesignStyle(ds.id)}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap shrink-0"
+                    style={{
+                      background: currentDesignStyle === ds.id ? ACCENT : 'transparent',
+                      color: currentDesignStyle === ds.id ? '#fff' : 'var(--text-muted)',
+                    }}>
+                    {ds.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Preview:</span>
-            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <button
-                onClick={() => setPreviewSource('ai_image')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all"
-                style={{
-                  background: previewSource === 'ai_image' ? ACCENT : 'transparent',
-                  color: previewSource === 'ai_image' ? '#fff' : 'var(--text-muted)',
-                }}>
-                <Sparkles size={11} /> Filtered
-              </button>
-              {generatedCode?.generated_code && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[12px] whitespace-nowrap hidden sm:inline" style={{ color: 'var(--text-muted)' }}>Preview:</span>
+              <div className="flex items-center gap-1 p-1 rounded-xl shrink-0" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <button
-                  onClick={() => setPreviewSource('code_preview')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                  onClick={() => setPreviewSource('ai_image')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap shrink-0"
                   style={{
-                    background: previewSource === 'code_preview' ? ACCENT : 'transparent',
-                    color: previewSource === 'code_preview' ? '#fff' : 'var(--text-muted)',
+                    background: previewSource === 'ai_image' ? ACCENT : 'transparent',
+                    color: previewSource === 'ai_image' ? '#fff' : 'var(--text-muted)',
                   }}>
-                  <Code size={11} /> Code Preview
+                  <Sparkles size={11} />
+                  <span className="hidden xs:inline">Filtered</span>
                 </button>
-              )}
+                {generatedCode?.generated_code && (
+                  <button
+                    onClick={() => setPreviewSource('code_preview')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap shrink-0"
+                    style={{
+                      background: previewSource === 'code_preview' ? ACCENT : 'transparent',
+                      color: previewSource === 'code_preview' ? '#fff' : 'var(--text-muted)',
+                    }}>
+                    <Code size={11} />
+                    <span className="hidden xs:inline">Code</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Row 2: Compare modes + actions */}
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
               {COMPARE_MODES.map(m => {
                 const Icon = m.icon;
                 return (
                   <button key={m.id} onClick={() => setCompareMode(m.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all shrink-0"
                     style={{
                       background: compareMode === m.id ? `${ACCENT}16` : 'transparent',
                       color: compareMode === m.id ? ACCENT : 'var(--text-muted)',
                     }}>
-                    <Icon size={12} /> {m.label}
+                    <Icon size={12} />
+                    <span className="hidden sm:inline">{m.label}</span>
                   </button>
                 );
               })}
@@ -711,16 +723,18 @@ export default function VisualCompare({
             <DownloadMenu originalUrl={originalUrl} redesignedUrl={redesignedUrl} />
 
             <button onClick={() => setShowFullscreen(true)}
-              className="p-2 rounded-xl transition-all"
+              className="p-2 rounded-xl transition-all shrink-0"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
               <Maximize2 size={14} />
             </button>
 
             <button onClick={handleRetry}
               disabled={generatingRedesign}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-              <RefreshCw size={13} /> {generatingRedesign ? 'Generating…' : 'Regenerate'}
+              <RefreshCw size={13} />
+              <span className="hidden sm:inline">{generatingRedesign ? 'Generating…' : 'Regenerate'}</span>
+              <span className="sm:hidden">Regen</span>
             </button>
           </div>
         </div>

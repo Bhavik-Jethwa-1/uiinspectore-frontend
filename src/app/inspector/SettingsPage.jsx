@@ -43,7 +43,7 @@ function AppearanceSection() {
         </div>
         <h2 className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Appearance</h2>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {options.map(({ value, icon: Icon, label, desc, preview }) => {
           const selected = theme === value;
           return (

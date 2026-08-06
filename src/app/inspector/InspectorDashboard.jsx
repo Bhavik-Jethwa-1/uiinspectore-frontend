@@ -257,7 +257,7 @@ function StatsRow({ projects }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="grid grid-cols-3 gap-3"
+      className="grid grid-cols-1 sm:grid-cols-3 gap-3"
     >
       {[
         { label: 'Total Projects', value: projects.length, icon: FolderOpen, color: ACCENT },
@@ -312,7 +312,7 @@ export default function InspectorDashboard() {
         <div className="mt-6">
           <SectionHeader title="Overview" />
           {loading ? (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" />
             </div>
           ) : (
