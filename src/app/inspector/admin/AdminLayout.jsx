@@ -2,26 +2,32 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, FolderOpen, Plus, Settings, LogOut,
-  Menu, X, Sparkles, ChevronRight, Shield
+  LayoutDashboard, Users, FolderOpen, Star, Settings, LogOut,
+  Menu, X, Sparkles, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import { useInspectorAuth } from '../../../contexts/InspectorAuthContext';
-import ThemeToggle from '../components/ThemeToggle';
 
 const ACCENT = '#7c5cff';
+const ADMIN_ACCENT = '#ef4444';
 const SIDEBAR_W = 240;
 
-export default function InspectorLayout() {
+export default function AdminLayout() {
   const { user, logout } = useInspectorAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
-    { to: '/inspector', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-    { to: '/inspector/projects', icon: FolderOpen, label: 'Projects' },
-    { to: '/inspector/settings', icon: Settings, label: 'Settings' },
+    { to: '/inspector/admin', icon: LayoutDashboard, label: 'Overview', exact: true },
+    { to: '/inspector/admin/users', icon: Users, label: 'Users' },
+    { to: '/inspector/admin/projects', icon: FolderOpen, label: 'Projects' },
+    { to: '/inspector/admin/reviews', icon: Star, label: 'Reviews' },
+    { to: '/inspector/admin/settings', icon: Settings, label: 'Settings' },
   ];
+
+  const handleBackToUser = () => {
+    navigate('/inspector');
+  };
 
   const handleLogout = () => {
     logout();
@@ -33,25 +39,38 @@ export default function InspectorLayout() {
       style={{ width: SIDEBAR_W, background: 'var(--surface)', borderColor: 'var(--border)' }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: ACCENT }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: ADMIN_ACCENT }}>
           <Sparkles size={16} color="#fff" />
         </div>
         <div>
-          <div className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>UI Inspector</div>
-          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>AI Review Platform</div>
+          <div className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>Admin Panel</div>
+          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>UI Inspector</div>
         </div>
+      </div>
+
+      {/* Back to User Panel */}
+      <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+        <button
+          onClick={handleBackToUser}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[12px] transition-all hover:opacity-80"
+          style={{ background: 'rgba(124,92,255,0.1)', color: ACCENT }}>
+          <ArrowLeft size={14} />
+          Back to User Panel
+        </button>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map(({ to, icon: Icon, label, exact }) => {
-          const active = exact ? location.pathname === to : location.pathname.startsWith(to);
+          const active = exact
+            ? location.pathname === to
+            : location.pathname.startsWith(to);
           return (
             <Link key={to} to={to}>
               <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all ${active ? '' : 'hover:opacity-70'}`}
                 style={{
-                  background: active ? `${ACCENT}18` : 'transparent',
-                  color: active ? ACCENT : 'var(--text-muted)',
+                  background: active ? `${ADMIN_ACCENT}18` : 'transparent',
+                  color: active ? ADMIN_ACCENT : 'var(--text-muted)',
                 }}>
                 <Icon size={16} />
                 {label}
@@ -61,18 +80,10 @@ export default function InspectorLayout() {
         })}
       </nav>
 
-      {/* Theme Toggle */}
-      <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Theme</span>
-          <ThemeToggle />
-        </div>
-      </div>
-
       {/* User */}
-      <div className="p-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
+      <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style={{ background: ACCENT }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style={{ background: ADMIN_ACCENT }}>
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -80,18 +91,6 @@ export default function InspectorLayout() {
             <div className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
           </div>
         </div>
-
-        {/* Admin Panel Button — only visible to admins */}
-        {(user?.role === 'admin' || user?.role === 'super_admin' || user?.is_admin) && (
-          <Link to="/inspector/admin">
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] font-medium transition-all hover:opacity-80"
-              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              <Shield size={14} />
-              Admin Panel
-            </div>
-          </Link>
-        )}
-
         <button onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-[12px] text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
           <LogOut size={14} /> Sign out
@@ -128,10 +127,10 @@ export default function InspectorLayout() {
           <Menu size={20} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: ACCENT }}>
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: ADMIN_ACCENT }}>
             <Sparkles size={12} color="#fff" />
           </div>
-          <span className="text-[14px] font-bold">UI Inspector</span>
+          <span className="text-[14px] font-bold">Admin Panel</span>
         </div>
       </div>
 

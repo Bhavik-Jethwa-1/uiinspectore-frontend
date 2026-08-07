@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import inspectorApi from '../../utils/inspectorApi';
 import { ACCENT } from './constants/theme';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { CodeGenProgress } from '../../components/ui/StepProgress';
 import { ErrorState } from '../../components/ui/LoadingScreen';
 
 const PERSONAS = [
@@ -297,51 +295,100 @@ function NormalForm({
 }
 
 function SubmittingSkeleton() {
+  const CODE_LINES = [
+    { width: '60%', active: true },
+    { width: '80%', active: false },
+    { width: '45%', active: false },
+    { width: '70%', active: false },
+    { width: '35%', active: false },
+  ];
+
   return (
     <div className="space-y-5">
-      {/* Screenshot skeleton */}
+      {/* Screenshot placeholder */}
       <div>
-        <Skeleton className="h-3 w-20 rounded mb-2" />
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface2)', minHeight: 180 }}>
-          <div className="w-full p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-6 h-6 rounded-full" />
-              <Skeleton className="h-3 flex-1 rounded" style={{ maxWidth: 100 }} />
-              <Skeleton className="h-6 w-16 rounded-lg" />
+        <div className="h-3 w-20 rounded mb-2" style={{ background: 'var(--surface2)' }} />
+        <div className="rounded-2xl border-2 border-dashed flex items-center justify-center"
+          style={{ borderColor: 'var(--border)', minHeight: 180, background: 'var(--surface)' }}>
+          <div className="text-center">
+            <div className="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center"
+              style={{ background: 'var(--surface2)' }}>
+              <Upload size={18} style={{ color: 'var(--text-muted)' }} />
             </div>
-            <Skeleton className="h-3 rounded" />
-            <Skeleton className="h-3 rounded" style={{ width: '85%' }} />
-            <Skeleton className="h-3 rounded" style={{ width: '65%' }} />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-3 rounded" style={{ width: '90%' }} />
-            <div className="flex gap-2 mt-3">
-              <Skeleton className="h-8 w-24 rounded-lg" />
-              <Skeleton className="h-8 w-20 rounded-lg" />
-            </div>
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Screenshot uploaded</p>
           </div>
         </div>
       </div>
 
-      {/* Project name skeleton */}
+      {/* Project Name placeholder */}
       <div>
-        <Skeleton className="h-3 w-24 rounded mb-2" />
-        <Skeleton className="h-11 w-full rounded-xl" />
+        <div className="h-3 w-24 rounded mb-2" style={{ background: 'var(--surface2)' }} />
+        <div className="h-11 w-full rounded-xl" style={{ background: 'var(--surface2)' }} />
       </div>
 
-      {/* Persona skeleton */}
+      {/* Review Perspective placeholder */}
       <div>
-        <Skeleton className="h-3 w-28 rounded mb-2" />
-        <Skeleton className="h-11 w-full rounded-xl" />
+        <div className="h-3 w-32 rounded mb-2" style={{ background: 'var(--surface2)' }} />
+        <div className="h-11 w-full rounded-xl" style={{ background: 'var(--surface2)' }} />
       </div>
 
-      {/* Goal skeleton */}
+      {/* Page Goal placeholder */}
       <div>
-        <Skeleton className="h-3 w-20 rounded mb-2" />
-        <Skeleton className="h-20 w-full rounded-xl" />
+        <div className="h-3 w-20 rounded mb-2" style={{ background: 'var(--surface2)' }} />
+        <div className="h-20 w-full rounded-xl" style={{ background: 'var(--surface2)' }} />
       </div>
 
-      {/* Code generation progress */}
-      <CodeGenProgress activeStep={0} />
+      {/* Code Generation Panel */}
+      <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full border-2 border-dashed animate-spin" style={{ borderColor: ACCENT, borderTopColor: 'transparent' }} />
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Code Generation</span>
+        </div>
+
+        {/* Code preview */}
+        <div className="rounded-xl p-4 space-y-2 font-mono" style={{ background: 'var(--surface2)' }}>
+          {CODE_LINES.map((line, i) => (
+            <div key={i} className="flex gap-3 items-center">
+              <span className="text-[10px] w-4 text-right" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
+              <div
+                className="h-2.5 rounded"
+                style={{
+                  width: line.width,
+                  background: line.active ? ACCENT : 'var(--border)',
+                  opacity: line.active ? 1 : 0.35,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Status text + dots */}
+        <div className="text-center">
+          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Generating React Components...</span>
+          <div className="flex justify-center gap-1 mt-2">
+            <motion.span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: ACCENT }}
+              animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
+              transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+            />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--border)' }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--border)' }} />
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: ACCENT }}
+            initial={{ width: '0%' }}
+            animate={{ width: '20%' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

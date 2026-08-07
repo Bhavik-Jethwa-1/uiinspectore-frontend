@@ -4,7 +4,8 @@ const AIProviderContext = createContext(null);
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 function getToken() {
-  try { return localStorage.getItem('ui-inspectore_token'); }
+  // Try inspector token first, then fallback to ui-inspectore_token
+  try { return localStorage.getItem('inspector_token') || localStorage.getItem('ui-inspectore_token') || null; }
   catch { return null; }
 }
 

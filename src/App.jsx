@@ -8,7 +8,6 @@ import { ToastProvider } from './app/inspector/components/Toast';
 import LandingLayout from './layouts/LandingLayout';
 import AuthLayout    from './layouts/AuthLayout';
 import UserLayout   from './layouts/UserLayout';
-import AdminLayout  from './layouts/AdminLayout';
 
 // ─── Guards ─────────────────────────────────────────────────────────────────
 import UserGuard  from './guards/UserGuard';
@@ -51,7 +50,7 @@ const TasksPage                = lazy(() => import('./pages/TasksPage'));
 const IntegrationsPage         = lazy(() => import('./pages/IntegrationsPage'));
 const PrototypingPage          = lazy(() => import('./pages/PrototypingPage'));
 
-// Admin pages
+// Legacy Admin pages (for /admin/* routes)
 const AdminDashboardPage       = lazy(() => import('./app/admin/AdminDashboardPage'));
 const AdminUsersPage           = lazy(() => import('./app/admin/AdminUsersPage'));
 const AdminSubscriptionsPage   = lazy(() => import('./app/admin/AdminSubscriptionsPage'));
@@ -72,6 +71,14 @@ import InspectorRegisterPage from './app/inspector/RegisterPage';
 import InspectorLandingPage from './app/inspector/LandingPage';
 import InspectorSettingsPage from './app/inspector/SettingsPage';
 import InspectorLayout from './app/inspector/layouts/InspectorLayout';
+
+// ─── Inspector Admin pages ───────────────────────────────────────────────
+import InspectorAdminLayout from './app/inspector/admin/AdminLayout';
+import InspectorAdminDashboard from './app/inspector/admin/pages/AdminDashboard';
+import InspectorAdminUsersPage from './app/inspector/admin/pages/AdminUsersPage';
+import InspectorAdminProjectsPage from './app/inspector/admin/pages/AdminProjectsPage';
+import InspectorAdminReviewsPage from './app/inspector/admin/pages/AdminReviewsPage';
+import InspectorAdminSettingsPage from './app/inspector/admin/pages/AdminSettingsPage';
 
 // ─── Loading fallback ─────────────────────────────────────────────────────
 function PageLoader() {
@@ -137,58 +144,58 @@ export default function App() {
             <Route path="/app/dashboard"             element={<DashboardPage />} />
             <Route path="/app/editor/:id"           element={<EditorPage />} />
             <Route path="/app/autodesigner"          element={<AutodesignerPage />} />
-            <Route path="/app/premium-autodesigner"  element={<PremiumAutoDesignerPage />} />
+            <Route path="/app/premium-autodesigner"   element={<PremiumAutoDesignerPage />} />
             <Route path="/app/projects"              element={<InspectorProjectsPage />} />
             <Route path="/app/analysis"              element={<AnalysisPage />} />
-            <Route path="/app/product-consultant"   element={<ProductConsultantPage />} />
+            <Route path="/app/product-consultant"    element={<ProductConsultantPage />} />
             <Route path="/app/ai/research"           element={<AIResearchPage />} />
-            <Route path="/app/ai/chat"               element={<AIChatPage />} />
-            <Route path="/app/ai/redesign"           element={<AIRedesignPage />} />
+            <Route path="/app/ai/chat"              element={<AIChatPage />} />
+            <Route path="/app/ai/redesign"          element={<AIRedesignPage />} />
             <Route path="/app/ai/detect"             element={<AIDetectPage />} />
             <Route path="/app/templates"             element={<TemplatesPage />} />
-            <Route path="/app/billing"               element={<BillingPage />} />
-            <Route path="/app/usage"                 element={<UsagePage />} />
-            <Route path="/app/pricing"               element={<PricingPage />} />
-            <Route path="/app/settings"              element={<SettingsPage />} />
-            <Route path="/app/profile"               element={<ProfilePage />} />
-            <Route path="/app/reports"               element={<ReportsPage />} />
-            <Route path="/app/analytics"             element={<AnalyticsPage />} />
-            <Route path="/app/team"                  element={<TeamPage />} />
-            <Route path="/app/tasks"                 element={<TasksPage />} />
-            <Route path="/app/integrations"          element={<IntegrationsPage />} />
-            <Route path="/app/prototyping"           element={<PrototypingPage />} />
-            <Route path="/app/admin"                element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/app/billing"              element={<BillingPage />} />
+            <Route path="/app/usage"                element={<UsagePage />} />
+            <Route path="/app/pricing"              element={<PricingPage />} />
+            <Route path="/app/settings"             element={<SettingsPage />} />
+            <Route path="/app/profile"              element={<ProfilePage />} />
+            <Route path="/app/reports"              element={<ReportsPage />} />
+            <Route path="/app/analytics"            element={<AnalyticsPage />} />
+            <Route path="/app/team"                element={<TeamPage />} />
+            <Route path="/app/tasks"               element={<TasksPage />} />
+            <Route path="/app/integrations"         element={<IntegrationsPage />} />
+            <Route path="/app/prototyping"          element={<PrototypingPage />} />
+            <Route path="/app/admin"               element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
 
-          {/* ── Admin Panel ────────────────────────────────────────────── */}
-          <Route element={<AdminLayout />}>
+          {/* ── Legacy Admin Panel (uses different auth) ────────────────── */}
+          <Route element={<AdminGuard />}>
             <Route path="/admin"                  element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard"        element={<AdminDashboardPage />} />
-            <Route path="/admin/users"             element={<AdminUsersPage />} />
-            <Route path="/admin/subscriptions"    element={<AdminSubscriptionsPage />} />
-            <Route path="/admin/billing"          element={<AdminBillingPage />} />
-            <Route path="/admin/payments"         element={<AdminPaymentsPage />} />
+            <Route path="/admin/users"            element={<AdminUsersPage />} />
+            <Route path="/admin/subscriptions"   element={<AdminSubscriptionsPage />} />
+            <Route path="/admin/billing"         element={<AdminBillingPage />} />
+            <Route path="/admin/payments"        element={<AdminPaymentsPage />} />
             <Route path="/admin/plans"            element={<AdminPlansPage />} />
-            <Route path="/admin/coupons"          element={<AdminCouponPage />} />
+            <Route path="/admin/coupons"         element={<AdminCouponPage />} />
             <Route path="/admin/transactions"     element={<AdminStub title="Transactions" />} />
             <Route path="/admin/ai-providers"    element={<AdminAISettingsPage />} />
             <Route path="/admin/ai-models"        element={<AdminAIModelsPage />} />
-            <Route path="/admin/prompt-library"   element={<AdminStub title="Prompt Library" />} />
+            <Route path="/admin/prompt-library"  element={<AdminStub title="Prompt Library" />} />
             <Route path="/admin/templates"       element={<AdminStub title="Templates" />} />
-            <Route path="/admin/projects"         element={<AdminStub title="Projects" />} />
-            <Route path="/admin/analytics"        element={<AdminStub title="Analytics" />} />
-            <Route path="/admin/reports"          element={<AdminStub title="Reports" />} />
-            <Route path="/admin/support"          element={<AdminStub title="Support Tickets" />} />
-            <Route path="/admin/notifications"    element={<AdminStub title="Notifications" />} />
-            <Route path="/admin/feature-flags"   element={<AdminStub title="Feature Flags" />} />
-            <Route path="/admin/audit-logs"       element={<AdminStub title="Audit Logs" />} />
-            <Route path="/admin/server"           element={<AdminStub title="Server Monitor" />} />
-            <Route path="/admin/queue"            element={<AdminStub title="Queue Monitor" />} />
-            <Route path="/admin/database"          element={<AdminStub title="Database" />} />
-            <Route path="/admin/backups"           element={<AdminStub title="Backups" />} />
-            <Route path="/admin/admin-users"      element={<AdminStub title="Admin Users" />} />
-            <Route path="/admin/roles"            element={<AdminStub title="Roles & Permissions" />} />
-            <Route path="/admin/settings"         element={<AdminStub title="Settings" />} />
+            <Route path="/admin/projects"        element={<AdminStub title="Projects" />} />
+            <Route path="/admin/analytics"       element={<AdminStub title="Analytics" />} />
+            <Route path="/admin/reports"         element={<AdminStub title="Reports" />} />
+            <Route path="/admin/support"         element={<AdminStub title="Support Tickets" />} />
+            <Route path="/admin/notifications"   element={<AdminStub title="Notifications" />} />
+            <Route path="/admin/feature-flags"  element={<AdminStub title="Feature Flags" />} />
+            <Route path="/admin/audit-logs"      element={<AdminStub title="Audit Logs" />} />
+            <Route path="/admin/server"          element={<AdminStub title="Server Monitor" />} />
+            <Route path="/admin/queue"           element={<AdminStub title="Queue Monitor" />} />
+            <Route path="/admin/database"        element={<AdminStub title="Database" />} />
+            <Route path="/admin/backups"         element={<AdminStub title="Backups" />} />
+            <Route path="/admin/admin-users"     element={<AdminStub title="Admin Users" />} />
+            <Route path="/admin/roles"           element={<AdminStub title="Roles & Permissions" />} />
+            <Route path="/admin/settings"        element={<AdminStub title="Settings" />} />
           </Route>
 
           {/* ── Inspector: public ──────────────────────────────────────────── */}
@@ -198,11 +205,20 @@ export default function App() {
 
           {/* ── Inspector: auth required ─────────────────────────────────── */}
           <Route path="/inspector" element={<InspectorAuthGuard><InspectorLayout /></InspectorAuthGuard>}>
-            <Route index element={<InspectorDashboard />} />
-            <Route path="projects" element={<InspectorProjectsPage />} />
-            <Route path="projects/new" element={<InspectorCreateProjectPage />} />
-            <Route path="projects/:id" element={<InspectorReviewWorkspace />} />
-            <Route path="settings" element={<InspectorSettingsPage />} />
+            <Route path="/inspector" index element={<InspectorDashboard />} />
+            <Route path="/inspector/projects" element={<InspectorProjectsPage />} />
+            <Route path="/inspector/projects/new" element={<InspectorCreateProjectPage />} />
+            <Route path="/inspector/projects/:id" element={<InspectorReviewWorkspace />} />
+            <Route path="/inspector/settings" element={<InspectorSettingsPage />} />
+          </Route>
+
+          {/* ── Inspector Admin Panel ────────────────────────────────────────── */}
+          <Route path="/inspector/admin" element={<InspectorAuthGuard adminOnly><InspectorAdminLayout /></InspectorAuthGuard>}>
+            <Route path="/inspector/admin" index element={<InspectorAdminDashboard />} />
+            <Route path="/inspector/admin/users" element={<InspectorAdminUsersPage />} />
+            <Route path="/inspector/admin/projects" element={<InspectorAdminProjectsPage />} />
+            <Route path="/inspector/admin/reviews" element={<InspectorAdminReviewsPage />} />
+            <Route path="/inspector/admin/settings" element={<InspectorAdminSettingsPage />} />
           </Route>
 
           {/* ── Root redirect to landing ──────────────────────────────── */}
