@@ -8,7 +8,14 @@ import {
 } from 'lucide-react';
 
 export default function ReviewPage() {
-  const { id } = useParams();
+  // In React Router v7, useParams() may return the raw params object in some cases.
+  // Use window.location as the definitive source to ensure we always get a string ID.
+  const urlId = window.location.pathname.split('/').filter(Boolean).pop();
+  const { id: paramId } = useParams();
+  // Prefer useParams() id, fall back to URL parsing — never use an object
+  const rawId = paramId !== undefined ? paramId : urlId;
+  const id = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : urlId;
+
   const { token } = useAuth();
   const navigate = useNavigate();
   const [review, setReview] = useState(null);
@@ -18,14 +25,28 @@ export default function ReviewPage() {
   const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
-    if (id) loadReview();
+    if (id) loadReview(id);
+    return () => { };
   }, [id]);
 
-  async function loadReview() {
+  async function loadReview(targetId) {
+    // Ensure targetId is a valid string before API call
+    if (!targetId || typeof targetId !== 'string' || targetId === '[object Object]') {
+      // Fallback: parse from URL
+      targetId = window.location.pathname.split('/').filter(Boolean).pop();
+    }
+    if (!targetId || typeof targetId !== 'string') return;
+    setLoading(true);
+    setReview(null); // clear stale review while loading
     try {
-      const data = await api.getReview(id, token);
+      const data = await api.getReview(targetId, token);
+      // Guard: if user navigated away, discard stale response
+      if (String(targetId) !== String(id)) return;
       setReview(data.review);
-    } catch {} finally {
+    } catch {
+      if (String(targetId) !== String(id)) return;
+    } finally {
+      if (String(targetId) !== String(id)) return;
       setLoading(false);
     }
   }
@@ -45,9 +66,24 @@ export default function ReviewPage() {
     </div>
   );
 
+  // Guard: ensure loaded review belongs to the correct project
+  // (prevents showing a different project's review after stale navigation)
+  if (review.project_id == null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
+        <AlertCircle size={24} style={{ color: 'var(--error)' }} />
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Invalid review data</p>
+        <Link to="/dashboard" className="btn-primary" style={{ fontSize: 12 }}>Back to Dashboard</Link>
+      </div>
+    );
+  }
+
   const scores = review.scores || {};
   const annotations = review.annotations || [];
   const suggestions = review.suggestions || [];
+  const isCompleted = review.status === 'completed' && scores.overall > 0;
+  const isAnalyzing = review.status === 'analyzing' || review.status === 'pending';
+  const isFailed = review.status === 'failed';
   const overall = scores.overall || 0;
 
   const getScoreColor = (v) => {
@@ -82,9 +118,9 @@ export default function ReviewPage() {
     <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
       {/* Top bar */}
       <div className="review-topbar">
-        <Link to="/dashboard" className="btn-icon" title="Back">
+        <button onClick={() => navigate('/dashboard')} className="btn-icon" title="Back to Dashboard">
           <ArrowLeft size={15} />
-        </Link>
+        </button>
         <div className="review-breadcrumb">
           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
             {review.project?.name || 'Project'} · {review.page_goal || 'Page Review'}
@@ -127,12 +163,23 @@ export default function ReviewPage() {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Screenshot */}
+                {review.screenshot_url && (
+                  <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <img
+                      src={review.screenshot_url}
+                      alt="Screenshot"
+                      style={{ width: '100%', maxHeight: 320, objectFit: 'contain', display: 'block', background: 'var(--background)' }}
+                    />
+                  </div>
+                )}
+
                 {/* Overall Score Card */}
                 <div className="card" style={{ padding: '20px 20px', textAlign: 'center' }}>
                   <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                     Overall Score
                   </p>
-                  {overall > 0 ? (
+                  {isCompleted ? (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
                         <span style={{ fontSize: 52, fontWeight: 700, color: getScoreColor(overall), lineHeight: 1 }}>
@@ -144,16 +191,30 @@ export default function ReviewPage() {
                         {getScoreLabel(overall)}
                       </span>
                     </>
-                  ) : (
+                  ) : isAnalyzing ? (
                     <div style={{ padding: '16px 0' }}>
                       <Loader2 size={20} className="animate-spin" style={{ color: 'var(--primary)', margin: '0 auto 8px' }} />
                       <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Analysis in progress...</p>
+                    </div>
+                  ) : isFailed ? (
+                    <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                      <AlertCircle size={22} style={{ color: 'var(--error)', margin: '0 auto' }} />
+                      <p style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Analysis failed</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>The AI could not complete this review.</p>
+                      <button onClick={loadReview} className="btn-secondary" style={{ fontSize: 11, height: 30, padding: '0 12px' }}>
+                        <RefreshCw size={11} /> Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '16px 0' }}>
+                      <Loader2 size={20} className="animate-spin" style={{ color: 'var(--primary)', margin: '0 auto 8px' }} />
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Waiting...</p>
                     </div>
                   )}
                 </div>
 
                 {/* Score Bars */}
-                {overall > 0 && (
+                {isCompleted && (
                   <div className="card" style={{ padding: '16px 18px' }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 14 }}>Score Breakdown</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -176,7 +237,7 @@ export default function ReviewPage() {
                 )}
 
                 {/* What's Working */}
-                {scores.what_works_well && (
+                {isCompleted && scores.what_works_well && (
                   <div className="card" style={{ padding: '16px 18px' }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
@@ -187,7 +248,7 @@ export default function ReviewPage() {
                 )}
 
                 {/* Needs Attention */}
-                {scores.needs_attention && (
+                {isCompleted && scores.needs_attention && (
                   <div className="card" style={{ padding: '16px 18px' }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <AlertCircle size={14} style={{ color: 'var(--warning)' }} />

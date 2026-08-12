@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/api';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function AdminSettingsPage() {
@@ -10,13 +11,13 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Load current AI config from backend if available
     if (token) loadConfig();
   }, [token]);
 
   async function loadConfig() {
     try {
-      const res = await fetch('http://127.0.0.1:9005/api/admin/settings', {
+      // Use relative URL via fetch (api utility doesn't have admin/settings GET)
+      const res = await fetch('/api/admin/settings', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -35,7 +36,7 @@ export default function AdminSettingsPage() {
     setError('');
     setSaved(false);
     try {
-      const res = await fetch('http://127.0.0.1:9005/api/admin/settings', {
+      const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

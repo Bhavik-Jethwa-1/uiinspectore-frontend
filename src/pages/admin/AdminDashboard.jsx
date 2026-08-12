@@ -2,43 +2,48 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Search, Eye, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { Search, Eye, Loader2, AlertCircle, RefreshCw, Users, FolderOpen, Star, AlertTriangle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { token } = useAuth();
+  const [stats, setStats] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    if (token) loadData();
+    if (token) loadStats();
   }, [token]);
 
-  async function loadData() {
+  async function loadStats() {
     try {
-      const pd = await api.getProjects(token);
-      const allReviews = [];
-      for (const p of pd.projects) {
-        try {
-          const fp = await api.getProject(p.id, token);
-          allReviews.push(...fp.project.reviews.map(r => ({
-            ...r,
-            project_name: p.name,
-            project_id: p.id,
-          })));
-        } catch {}
-      }
-      allReviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setReviews(allReviews);
+      const data = await api.adminGetDashboard(token);
+      setStats(data.stats);
     } catch {} finally {
       setLoading(false);
     }
   }
 
-  const filtered = reviews.filter(r =>
-    r.project_name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.page_goal?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (!token) return;
+    loadReviews();
+  }, [token, page, search]);
+
+  async function loadReviews() {
+    try {
+      const params = { page, per_page: 20 };
+      if (search) params.search = search;
+      const data = await api.adminGetReviews(token, params);
+      setReviews(data.reviews);
+      setTotal(data.total);
+      setTotalPages(data.last_page);
+    } catch {}
+  }
+
+  const filtered = reviews;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -67,26 +72,75 @@ export default function AdminDashboard() {
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
+  const statCards = stats ? [
+    { label: 'Total Users', value: stats.total_users, icon: Users, color: 'var(--primary)' },
+    { label: 'Total Projects', value: stats.total_projects, icon: FolderOpen, color: 'var(--success)' },
+    { label: 'Total Reviews', value: stats.total_reviews, icon: Star, color: 'var(--warning)' },
+    { label: 'Avg Score', value: stats.avg_score ?? '—', icon: Star, color: 'var(--primary)' },
+    { label: 'Pending', value: stats.pending_reviews, icon: AlertTriangle, color: 'var(--warning)' },
+    { label: 'Failed', value: stats.failed_reviews, icon: AlertCircle, color: 'var(--error)' },
+  ] : [];
+
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 700, margin: '0 auto' }}>
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-            All Reviews
-          </h1>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {reviews.length} total review{reviews.length !== 1 ? 's' : ''} across all projects
-          </p>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+
+        {/* Header + Refresh */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
+              Overview
+            </h1>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {stats ? `${stats.total_users} users · ${stats.total_projects} projects · ${stats.total_reviews} reviews` : 'Loading...'}
+            </p>
+          </div>
+          <button onClick={loadStats} className="btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        {!loading && stats && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
+            {statCards.map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card" style={{ padding: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={12} style={{ color }} />
+                  </div>
+                </div>
+                <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Loading stats */}
+        {loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="card" style={{ padding: '14px', height: 80 }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--border)', margin: 'auto' }} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Reviews Table */}
+        <div style={{ marginBottom: 16 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Recent Reviews</h2>
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 12 }}>
           <div style={{ position: 'relative' }}>
             <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search reviews..."
               className="input"
               style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)' }}
@@ -113,7 +167,7 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <div className="card" style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['ID', 'Project', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
@@ -121,7 +175,7 @@ export default function AdminDashboard() {
                       padding: '10px 12px', fontSize: 10, fontWeight: 600,
                       color: 'var(--text-muted)', textAlign: 'left',
                       textTransform: 'uppercase', letterSpacing: '0.04em',
-                      background: 'var(--background)',
+                      background: 'var(--background)', whiteSpace: 'nowrap',
                     }}>
                       {h}
                     </th>
@@ -132,7 +186,9 @@ export default function AdminDashboard() {
                 {filtered.map((r, i) => (
                   <tr key={r.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)' }}>#{r.id}</td>
-                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.project_name}</td>
+                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 120 }}>
+                      <span className="truncate" style={{ display: 'block' }}>{r.project_name || '—'}</span>
+                    </td>
                     <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 140 }}>
                       <span className="truncate" style={{ display: 'block' }}>{r.page_goal || '—'}</span>
                     </td>
@@ -146,7 +202,9 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)' }}>{formatDate(r.created_at)}</td>
+                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {formatDate(r.created_at)}
+                    </td>
                     <td style={{ padding: '11px 12px' }}>
                       <Link to={`/review/${r.id}`} className="btn-icon" title="View">
                         <Eye size={13} />
@@ -156,6 +214,33 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  Page {page} of {totalPages} · {total} reviews
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

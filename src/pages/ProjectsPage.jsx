@@ -6,6 +6,7 @@ import {
   Plus, Search, FolderOpen, Image, Clock,
   X, Upload, Loader2, BarChart3, Trash2, ChevronRight,
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const PERSONAS = [
   { value: 'first-time', label: 'First-time user' },
@@ -245,6 +246,8 @@ export default function ProjectsPage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (token) loadProjects();
@@ -274,11 +277,7 @@ export default function ProjectsPage() {
   }
 
   async function handleDeleteProject(id) {
-    if (!confirm('Delete this project and all its reviews?')) return;
-    try {
-      await api.deleteProject(id, token);
-      setProjects(projects.filter(p => p.id !== id));
-    } catch {}
+    setDeleteTarget({ id });
   }
 
   const filteredProjects = projects.filter(p =>
@@ -386,6 +385,30 @@ export default function ProjectsPage() {
         project={selectedProject}
         onSuccess={(review) => navigate(`/review/${review.id}`)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Project"
+          message="Are you sure you want to delete this project and all its reviews? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          loading={deleting}
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await api.deleteProject(deleteTarget.id, token);
+              setDeleteTarget(null);
+              setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
+            } catch {
+              setDeleteTarget(null);
+            } finally {
+              setDeleting(false);
+            }
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

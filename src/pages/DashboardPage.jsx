@@ -1,3 +1,4 @@
+// TEST_BUILD_MARKER_12345
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,7 @@ import {
   Plus, Search, FolderOpen, Clock,
   ChevronRight, X, Loader2, Upload, Trash2, Eye, Sparkles,
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 // ---- New Review Modal ----
 function NewReviewModal({ open, onClose }) {
@@ -81,7 +83,6 @@ function NewReviewModal({ open, onClose }) {
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content animate-scale-in">
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -96,27 +97,17 @@ function NewReviewModal({ open, onClose }) {
           </div>
           <button onClick={onClose} className="btn-icon"><X size={14} /></button>
         </div>
-
-        {/* Body */}
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {error && (
             <div style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, background: 'var(--error-light)', color: 'var(--error)' }}>
               {error}
             </div>
           )}
-
           {step === 1 && (
             <>
               <div>
                 <label className="label" style={{ marginBottom: 5 }}>Project name</label>
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={e => setProjectName(e.target.value)}
-                  className="input"
-                  placeholder="Enter project name"
-                  style={{ fontSize: 12 }}
-                />
+                <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="input" placeholder="Enter project name" style={{ fontSize: 12 }} />
               </div>
               <div>
                 <label className="label" style={{ marginBottom: 5 }}>Reviewer persona</label>
@@ -126,45 +117,30 @@ function NewReviewModal({ open, onClose }) {
               </div>
               <div>
                 <label className="label" style={{ marginBottom: 5 }}>Page goal</label>
-                <textarea
-                  value={goal}
-                  onChange={e => setGoal(e.target.value)}
-                  className="input"
-                  style={{ resize: 'none', minHeight: 56, fontSize: 12, lineHeight: 1.4 }}
-                  placeholder="What should a user be able to do on this page?"
-                />
+                <textarea value={goal} onChange={e => setGoal(e.target.value)} className="input" style={{ resize: 'none', minHeight: 56, fontSize: 12, lineHeight: 1.4 }} placeholder="What should a user be able to do on this page?" />
               </div>
-              <label className="block cursor-pointer rounded-lg text-center"
-                style={{ border: '1.5px dashed var(--border)', background: 'var(--background)', padding: '14px 12px' }}>
-                <div style={{ width: 30, height: 30, borderRadius: 7, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
-                  <Upload size={13} style={{ color: 'var(--primary)' }} />
+              {preview ? (
+                <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+                  <img src={preview} alt="Screenshot preview" style={{ width: '100%', maxHeight: 180, objectFit: 'contain', display: 'block', background: 'var(--background)' }} />
                 </div>
-                <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload screenshot</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', marginTop: 2 }}>PNG, JPG, or WEBP · Optional</p>
-                <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-              </label>
-              <button
-                onClick={() => setStep(2)}
-                disabled={!projectName.trim() || !goal.trim()}
-                className="btn-primary"
-                style={{ width: '100%', justifyContent: 'center', padding: '9px 16px', fontSize: 13 }}
-              >
-                Continue →
-              </button>
+              ) : (
+                <label className="block cursor-pointer rounded-lg text-center" style={{ border: '1.5px dashed var(--border)', background: 'var(--background)', padding: '14px 12px' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 7, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
+                    <Upload size={13} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Upload screenshot</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', marginTop: 2 }}>PNG, JPG, or WEBP · Optional</p>
+                  <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                </label>
+              )}
+              <button onClick={() => setStep(2)} disabled={!projectName.trim() || !goal.trim()} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '9px 16px', fontSize: 13 }}>Continue →</button>
             </>
           )}
-
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {preview && (
                 <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                  <img src={preview} alt="Preview" className="w-full max-h-32 object-contain" style={{ background: 'var(--background)', display: 'block' }} />
-                  <button
-                    onClick={() => { setFile(null); setPreview(null); }}
-                    style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
-                  >
-                    <X size={10} />
-                  </button>
+                  <img src={preview} alt="Screenshot preview" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block', background: 'var(--background)' }} />
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
@@ -175,34 +151,17 @@ function NewReviewModal({ open, onClose }) {
               </div>
             </div>
           )}
-
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-              {[
-                'Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy',
-                'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations',
-              ].map((label) => (
+              {['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'].map((label) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                    background: label === analysisStep ? 'var(--success-light)' : 'var(--hover)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ fontSize: 8, color: label === analysisStep ? 'var(--success)' : 'var(--border)' }}>
-                      {label === analysisStep ? '●' : '✓'}
-                    </span>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: label === analysisStep ? 'var(--success-light)' : 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 8, color: label === analysisStep ? 'var(--success)' : 'var(--border)' }}>{label === analysisStep ? '●' : '✓'}</span>
                   </div>
-                  <span style={{
-                    fontSize: 12, color: label === analysisStep ? 'var(--primary)' : 'var(--border)',
-                    fontWeight: label === analysisStep ? '600' : '400',
-                  }}>
-                    {label}
-                  </span>
+                  <span style={{ fontSize: 12, color: label === analysisStep ? 'var(--primary)' : 'var(--border)', fontWeight: label === analysisStep ? '600' : '400' }}>{label}</span>
                 </div>
               ))}
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
-                This usually takes 15–30 seconds
-              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>This usually takes 15–30 seconds</p>
             </div>
           )}
         </div>
@@ -220,6 +179,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -228,16 +189,9 @@ export default function DashboardPage() {
 
   async function loadData() {
     try {
-      const pd = await api.getProjects(token);
-      setProjects(pd.projects);
-      const all = [];
-      for (const p of pd.projects) {
-        if (p.reviews) {
-          all.push(...p.reviews.map(r => ({ ...r, project_name: p.name, project_id: p.id })));
-        }
-      }
-      all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setReviews(all);
+      const data = await api.getDashboard(token);
+      setProjects(data.projects);
+      setReviews(data.reviews);
     } catch {} finally {
       setLoading(false);
     }
@@ -245,27 +199,19 @@ export default function DashboardPage() {
 
   const totalProjects = projects.length;
   const totalReviews = reviews.length;
-  const avg = reviews.filter(r => r.scores?.overall).length > 0
-    ? Math.round(reviews.filter(r => r.scores?.overall).reduce((s, r) => s + r.scores.overall, 0) / reviews.filter(r => r.scores?.overall).length)
-    : 0;
+  const avg = (() => {
+    const scored = reviews.filter(r => r.scores?.overall);
+    if (scored.length === 0) return null;
+    return Math.round(scored.reduce((s, r) => s + r.scores.overall, 0) / scored.length);
+  })();
 
-  const filtered = reviews.filter(r =>
-    r.project_name.toLowerCase().includes(search.toLowerCase()) ||
-    r.page_goal.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProjects = projects.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
 
   const getScoreColor = (score) => {
     if (!score) return 'var(--text-muted)';
     if (score >= 80) return 'var(--success)';
     if (score >= 60) return 'var(--warning)';
     return 'var(--error)';
-  };
-
-  const getScoreBg = (score) => {
-    if (!score) return 'var(--hover)';
-    if (score >= 80) return 'var(--success-light)';
-    if (score >= 60) return 'var(--warning-light)';
-    return 'var(--error-light)';
   };
 
   const formatDate = (dateStr) => {
@@ -276,153 +222,80 @@ export default function DashboardPage() {
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
       <div style={{ maxWidth: 500, margin: '0 auto', padding: '24px 16px' }}>
-
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-            Review your UI
-          </h1>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            Upload a screenshot and get actionable UI/UX feedback in seconds.
-          </p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Review your UI</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Upload a screenshot and get actionable UI/UX feedback in seconds.</p>
         </div>
-
-        {/* Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Total Projects', value: totalProjects },
-            { label: 'Total Reviews', value: totalReviews },
-            { label: 'Avg Score', value: avg || '—' },
-          ].map(item => (
+          {[{ label: 'Total Projects', value: totalProjects }, { label: 'Total Reviews', value: totalReviews }, { label: 'Avg Score', value: avg || '—' }].map(item => (
             <div key={item.label} className="card" style={{ padding: '12px 14px' }}>
-              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-                {item.label}
-              </p>
-              <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
-                {item.value}
-              </p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{item.label}</p>
+              <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{item.value}</p>
             </div>
           ))}
         </div>
-
-        {/* Actions row */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
-          <button onClick={() => setShowNew(true)} className="btn-primary">
-            <Plus size={14} /> New Review
-          </button>
+          <button onClick={() => setShowNew(true)} className="btn-primary"><Plus size={14} /> New Review</button>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search projects..."
-              className="input"
-              style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)' }}
-            />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..." className="input" style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)' }} />
           </div>
         </div>
-
-        {/* Project list */}
         {loading ? (
           <div className="card" style={{ padding: '32px 0', textAlign: 'center' }}>
             <Loader2 size={18} className="animate-spin" style={{ color: 'var(--border)', margin: '0 auto 8px' }} />
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading...</p>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredProjects.length === 0 ? (
           <div className="card" style={{ padding: '28px 0', textAlign: 'center' }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
               <FolderOpen size={18} style={{ color: 'var(--primary)' }} />
             </div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-              {search ? 'No results found' : 'No projects yet'}
-            </p>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>
-              {search ? `No reviews matching "${search}"` : 'Create your first UI review to get started.'}
-            </p>
-            {!search && (
-              <button onClick={() => setShowNew(true)} className="btn-primary" style={{ fontSize: 12 }}>
-                <Plus size={13} /> New Review
-              </button>
-            )}
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{search ? 'No results found' : 'No projects yet'}</p>
+            {!search && <button onClick={() => setShowNew(true)} className="btn-primary" style={{ fontSize: 12 }}><Plus size={13} /> New Review</button>}
           </div>
         ) : (
           <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {filtered.map((r) => (
-              <div
-                key={r.id}
-                className="card card-hover"
-                style={{
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 7,
-                  background: 'var(--hover)', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <FolderOpen size={15} style={{ color: 'var(--text-muted)' }} />
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }} className="truncate">
-                      {r.project_name}
-                    </p>
-                    <span className="badge badge-green" style={{ fontSize: 9, padding: '1px 6px' }}>
-                      {r.status === 'completed' ? 'completed' : r.status}
-                    </span>
+            {filteredProjects.map((p) => {
+              const projectReviews = reviews.filter(r => r.project_id === p.id);
+              const latestReview = projectReviews.length > 0 ? projectReviews.reduce((best, r) => r.id > best.id ? r : best, projectReviews[0]) : null;
+              return (
+                <div key={p.id} className="card card-hover" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                  onClick={() => { if (latestReview) { navigate(`/review/${latestReview.id}`); } else { setDeleteTarget({ id: p.id, name: p.name, type: 'project' }); } }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 7, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <FolderOpen size={15} style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={10} style={{ color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatDate(r.created_at)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }} className="truncate">{p.name}</p>
+                      <span className="badge badge-green" style={{ fontSize: 9, padding: '1px 6px' }}>{p.reviews_count > 0 ? `${p.reviews_count} review${p.reviews_count !== 1 ? 's' : ''}` : 'no reviews'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={10} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatDate(p.created_at)}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                    <Link to={`/projects/${p.id}`} className="btn-icon" title="View" onClick={e => e.stopPropagation()}><Eye size={13} /></Link>
+                    <button className="btn-icon" title="Delete" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.id, name: p.name, type: 'project' }); }}><Trash2 size={13} /></button>
+                    <ChevronRight size={13} style={{ color: 'var(--border)' }} />
                   </div>
                 </div>
-
-                {r.scores?.overall ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 700,
-                      color: getScoreColor(r.scores.overall),
-                      background: getScoreBg(r.scores.overall),
-                      padding: '2px 7px', borderRadius: 5,
-                    }}>
-                      {r.scores.overall}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'var(--border)' }}>/100</span>
-                  </div>
-                ) : (
-                  <div style={{ width: 36, flexShrink: 0 }} />
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                  <Link to={`/review/${r.id}`} className="btn-icon" title="View" onClick={e => e.stopPropagation()}>
-                    <Eye size={13} />
-                  </Link>
-                  <button
-                    className="btn-icon"
-                    title="Delete"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (confirm('Delete this review?')) {
-                        try { await api.deleteReview(r.id, token); loadData(); } catch {}
-                      }
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                  <ChevronRight size={13} style={{ color: 'var(--border)', display: 'none' }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
-
       <NewReviewModal open={showNew} onClose={() => setShowNew(false)} />
+      {deleteTarget && (
+        <ConfirmModal title={deleteTarget.type === 'project' ? 'Delete Project' : 'Delete Review'}
+          message={deleteTarget.type === 'project' ? `Are you sure you want to delete the project "${deleteTarget.name}" and all its reviews? This cannot be undone.` : `Are you sure you want to delete the review for "${deleteTarget.name}"? This action cannot be undone.`}
+          confirmLabel="Delete" variant="danger" loading={deleting}
+          onConfirm={async () => { setDeleting(true); try { if (deleteTarget.type === 'project') { await api.deleteProject(deleteTarget.id, token); } else { await api.deleteReview(deleteTarget.id, token); } setDeleteTarget(null); loadData(); } catch { setDeleteTarget(null); } finally { setDeleting(false); } }}
+          onCancel={() => setDeleteTarget(null)} />
+      )}
     </div>
   );
 }
+
+// VITE_TEST_$(date +%s)

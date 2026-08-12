@@ -17,58 +17,57 @@ import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import './index.css';
 
+function LoadingScreen() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: 'var(--background)',
+      flexDirection: 'column', gap: 12,
+    }}>
+      <div style={{
+        width: 32, height: 32,
+        border: '3px solid var(--primary-light)',
+        borderTopColor: 'var(--primary)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+    </div>
+  );
+}
+
 function ProtectedRoute() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--background)', flexDirection: 'column', gap: 12 }}>
-        <div style={{ width: 32, height: 32, border: '3px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Layout><Outlet /></Layout>;
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  return (
+    <Layout>
+      <Outlet />
+    </Layout>
+  );
 }
 
 function GuestRoute() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--background)', flexDirection: 'column', gap: 12 }}>
-        <div style={{ width: 32, height: 32, border: '3px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (loading) return <LoadingScreen />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 
 function AdminRoute() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--background)', flexDirection: 'column', gap: 12 }}>
-        <div style={{ width: 32, height: 32, border: '3px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user?.is_admin) return <Navigate to="/dashboard" replace />;
 
-  if (!user?.is_admin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <Layout><AdminLayout><Outlet /></AdminLayout></Layout>;
+  // AdminLayout has its own full sidebar — do NOT wrap with Layout
+  return (
+    <AdminLayout>
+      <Outlet />
+    </AdminLayout>
+  );
 }
 
 export default function App() {
@@ -76,11 +75,13 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Guest routes */}
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Route>
 
+          {/* Protected user routes — use Layout (UserSidebar) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="/templates" element={<TemplatesPage />} />
           </Route>
 
+          {/* Admin routes — use AdminLayout (AdminSidebar only, no UserSidebar) */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
@@ -98,6 +100,7 @@ export default function App() {
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
           </Route>
 
+          {/* Default */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>

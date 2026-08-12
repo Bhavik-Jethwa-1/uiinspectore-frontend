@@ -37,16 +37,25 @@ export const api = {
   logout: (token) => request('POST', '/logout', null, token),
   getUser: (token) => request('GET', '/user', null, token),
 
+  // Dashboard (aggregated — single call for all user dashboard data)
+  getDashboard: (token) => request('GET', '/dashboard', null, token),
+
   // Projects
   getProjects: (token) => request('GET', '/projects', null, token),
   createProject: (data, token) => request('POST', '/projects', data, token),
-  getProject: (id, token) => request('GET', `/projects/${id}`, null, token),
+  getProject: (id, token) => {
+    const safeId = typeof id === 'object' ? id?.id ?? '' : String(id ?? '');
+    return request('GET', `/projects/${safeId}`, null, token);
+  },
   updateProject: (id, data, token) => request('PUT', `/projects/${id}`, data, token),
   deleteProject: (id, token) => request('DELETE', `/projects/${id}`, null, token),
 
   // Reviews
   createReview: (data, token) => request('POST', '/reviews', data, token),
-  getReview: (id, token) => request('GET', `/reviews/${id}`, null, token),
+  getReview: (id, token) => {
+    const safeId = typeof id === 'object' ? id?.id ?? '' : String(id ?? '');
+    return request('GET', `/reviews/${safeId}`, null, token);
+  },
   uploadScreenshot: (reviewId, file, token) => {
     const form = new FormData();
     form.append('image', file);
@@ -57,6 +66,31 @@ export const api = {
 
   // Profile
   updateProfile: (data, token) => request('PUT', '/user', data, token),
+
+  // Admin — Dashboard (aggregated)
+  adminGetDashboard: (token) => request('GET', '/admin/dashboard', null, token),
+
+  // Admin — Reviews (aggregated, no N+1)
+  adminGetReviews: (token, params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set('search', params.search);
+    if (params.status) qs.set('status', params.status);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.page) qs.set('page', params.page);
+    qs.set('per_page', params.per_page || 20);
+    const query = qs.toString();
+    return request('GET', `/admin/reviews${query ? '?' + query : ''}`, null, token);
+  },
+
+  // Admin — Projects
+  adminGetProjects: (token, params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set('search', params.search);
+    if (params.page) qs.set('page', params.page);
+    qs.set('per_page', params.per_page || 20);
+    const query = qs.toString();
+    return request('GET', `/admin/projects${query ? '?' + query : ''}`, null, token);
+  },
 
   // Admin — Users
   adminGetUsers: (token, params = {}) => {

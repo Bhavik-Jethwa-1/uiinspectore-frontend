@@ -6,6 +6,7 @@ import {
   ArrowLeft, Plus, Image as ImageIcon, Clock, BarChart3,
   Trash2, X, Loader2, Upload, Eye
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const PERSONAS = [
   { value: 'first-time', label: 'First-time user' },
@@ -43,7 +44,6 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
     const reader = new FileReader();
     reader.onload = (ev) => setPreview(ev.target.result);
     reader.readAsDataURL(f);
-    setStep(2);
   };
 
   const handleAnalyze = async () => {
@@ -92,61 +92,77 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
             </div>
           )}
 
-          {step === 1 && (
-            <div>
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>Upload Screenshot</h3>
-              <label
-                style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: '32px 16px', textAlign: 'center', cursor: 'pointer', display: 'block', transition: 'border-color 0.15s' }}
-              >
-                <Upload size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>Click or drag to upload</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>PNG, JPG, JPEG, WEBP (max 10MB)</p>
-                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} className="hidden" />
-              </label>
-            </div>
-          )}
-
-          {step === 2 && preview && (
+          {(step === 1 || preview) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                <img src={preview} alt="Preview" className="w-full rounded-lg max-h-48 object-contain" style={{ background: 'var(--background)', display: 'block' }} />
-                <button
-                  onClick={() => { setFile(null); setPreview(null); setStep(1); }}
-                  style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 2 }}>
+                {preview ? 'Screenshot' : 'Upload Screenshot'}
+              </h3>
+
+              {preview ? (
+                <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative' }}>
+                  <img
+                    src={preview}
+                    alt="Screenshot preview"
+                    style={{ width: '100%', maxHeight: 220, objectFit: 'contain', display: 'block', background: 'var(--background)' }}
+                  />
+                  <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
+                    <label
+                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '0.3rem 0.6rem', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: 'var(--shadow-sm)' }}
+                    >
+                      <Upload size={11} />
+                      Replace
+                      <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} className="hidden" />
+                    </label>
+                    <button
+                      onClick={() => { setFile(null); setPreview(null); setStep(1); }}
+                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '0.3rem 0.6rem', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: 'var(--shadow-sm)' }}
+                    >
+                      <Trash2 size={11} />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label
+                  style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: '32px 16px', textAlign: 'center', cursor: 'pointer', display: 'block', transition: 'border-color 0.15s' }}
                 >
-                  <X size={12} />
-                </button>
-              </div>
+                  <Upload size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>Click or drag to upload</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>PNG, JPG, JPEG, WEBP (max 10MB)</p>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} className="hidden" />
+                </label>
+              )}
 
-              <div>
-                <label className="label">Persona</label>
-                <select value={persona} onChange={(e) => setPersona(e.target.value)} className="select">
-                  {PERSONAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              </div>
+              {preview && (
+                <>
+                  <div>
+                    <label className="label">Persona</label>
+                    <select value={persona} onChange={(e) => setPersona(e.target.value)} className="select">
+                      {PERSONAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="label">Page Goal</label>
-                <textarea
-                  value={pageGoal}
-                  onChange={(e) => setPageGoal(e.target.value)}
-                  className="textarea"
-                  placeholder="User should be able to..."
-                  style={{ minHeight: 80 }}
-                />
-              </div>
+                  <div>
+                    <label className="label">Page Goal</label>
+                    <textarea
+                      value={pageGoal}
+                      onChange={(e) => setPageGoal(e.target.value)}
+                      className="textarea"
+                      placeholder="User should be able to..."
+                      style={{ minHeight: 80 }}
+                    />
+                  </div>
 
-              <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-                <button onClick={() => setStep(1)} className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>Back</button>
-                <button
-                  onClick={handleAnalyze}
-                  disabled={uploading || !pageGoal.trim()}
-                  className="btn-primary"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                >
-                  {uploading ? <><Loader2 size={14} className="animate-spin" /> Analyzing...</> : 'Analyze'}
-                </button>
-              </div>
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={uploading || !pageGoal.trim()}
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {uploading ? <><Loader2 size={14} className="animate-spin" /> Analyzing...</> : 'Analyze'}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -164,32 +180,43 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
 }
 
 export default function ProjectDetailPage() {
-  const { id } = useParams();
+  // In React Router v7, useParams() may return the raw params object.
+  // Always derive the ID from the URL as a string.
+  const urlId = window.location.pathname.split('/').filter(Boolean).pop();
+  const { id: paramId } = useParams();
+  const id = typeof paramId === 'string' || typeof paramId === 'number' ? String(paramId) : urlId;
+
   const { token } = useAuth();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNewReview, setShowNewReview] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (token && id) loadProject();
+    if (token && id) loadProject(id);
   }, [id, token]);
 
-  async function loadProject() {
+  async function loadProject(targetId) {
+    // Guard: ensure targetId is a valid string
+    if (!targetId || typeof targetId !== 'string' || targetId === '[object Object]') {
+      targetId = window.location.pathname.split('/').filter(Boolean).pop();
+    }
+    if (!targetId || typeof targetId !== 'string') return;
+    setLoading(true);
+    setProject(null);
     try {
-      const data = await api.getProject(id, token);
+      const data = await api.getProject(targetId, token);
+      if (String(targetId) !== String(id)) return;
+      if (data.project && String(data.project.id) !== String(targetId)) return;
       setProject(data.project);
-    } catch {} finally {
+    } catch {
+      if (String(targetId) !== String(id)) return;
+    } finally {
+      if (String(targetId) !== String(id)) return;
       setLoading(false);
     }
-  }
-
-  async function handleDeleteReview(reviewId) {
-    if (!confirm('Delete this review?')) return;
-    try {
-      await api.deleteReview(reviewId, token);
-      loadProject();
-    } catch {}
   }
 
   const getScoreColor = (score) => {
@@ -223,18 +250,25 @@ export default function ProjectDetailPage() {
   if (!project) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
       <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Project not found</p>
-      <Link to="/projects" className="btn-primary" style={{ fontSize: 12 }}>Back to Projects</Link>
+      <button onClick={() => navigate('/dashboard')} className="btn-primary" style={{ fontSize: 12 }}>Back to Dashboard</button>
     </div>
   );
+
+  const completedCount = reviews.filter(r => r.status === 'completed').length;
+  const scoredReviews = reviews.filter(r => r.scores?.overall);
+  const avgScore = scoredReviews.length > 0
+    ? Math.round(scoredReviews.reduce((s, r) => s + r.scores.overall, 0) / scoredReviews.length)
+    : null;
 
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <Link to="/projects" className="btn-icon">
+          <button onClick={() => navigate('/dashboard')} className="btn-icon" title="Back to Dashboard">
             <ArrowLeft size={16} />
-          </Link>
+          </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {project.name}
@@ -250,25 +284,23 @@ export default function ProjectDetailPage() {
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-          {[
-            { label: 'Total Reviews', value: reviews.length, icon: ImageIcon },
-            { label: 'Completed', value: reviews.filter(r => r.status === 'completed').length, icon: BarChart3 },
-            { label: 'Avg Score', value: reviews.filter(r => r.scores?.overall).length > 0
-              ? Math.round(reviews.filter(r => r.scores?.overall).reduce((s, r) => s + r.scores.overall, 0) / reviews.filter(r => r.scores?.overall).length)
-              : '—', icon: Clock },
-          ].map(item => (
-            <div key={item.label} className="card" style={{ padding: '12px 14px' }}>
-              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-                {item.label}
-              </p>
-              <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{item.value}</p>
-            </div>
-          ))}
+          <div className="card" style={{ padding: '12px 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Total Reviews</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{reviews.length}</p>
+          </div>
+          <div className="card" style={{ padding: '12px 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Completed</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{completedCount}</p>
+          </div>
+          <div className="card" style={{ padding: '12px 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Avg Score</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{avgScore ?? '—'}</p>
+          </div>
         </div>
 
-        {/* Reviews */}
+        {/* Reviews section */}
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Reviews</h2>
 
         {reviews.length === 0 ? (
@@ -317,7 +349,7 @@ export default function ProjectDetailPage() {
                     <button
                       className="btn-icon"
                       title="Delete"
-                      onClick={() => handleDeleteReview(r.id)}
+                      onClick={() => setDeleteTarget({ id: r.id })}
                       onMouseEnter={e => e.currentTarget.style.color = 'var(--error)'}
                       onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
@@ -337,6 +369,29 @@ export default function ProjectDetailPage() {
         project={project}
         onSuccess={(review) => navigate(`/review/${review.id}`)}
       />
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Review"
+          message="Are you sure you want to delete this review? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          loading={deleting}
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await api.deleteReview(deleteTarget.id, token);
+              setDeleteTarget(null);
+              loadProject(id);
+            } catch {
+              setDeleteTarget(null);
+            } finally {
+              setDeleting(false);
+            }
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
