@@ -123,7 +123,7 @@ export default function ReviewPage() {
         </button>
         <div className="review-breadcrumb">
           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-            {review.project?.name || 'Project'} · {review.page_goal || 'Page Review'}
+            {(review.project_name || 'Project')} · {review.page_goal || 'Page Review'}
           </span>
         </div>
         {overall > 0 && (

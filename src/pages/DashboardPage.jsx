@@ -1,4 +1,3 @@
-// TEST_BUILD_MARKER_12345
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,23 +9,32 @@ import {
 import ConfirmModal from '../components/ConfirmModal';
 
 // ---- New Review Modal ----
-function NewReviewModal({ open, onClose }) {
+// project: null = create new project, { id, name } = use existing project
+function NewReviewModal({ open, onClose, project }) {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const isForExistingProject = !!project;
   const [projectName, setProjectName] = useState('');
   const [persona, setPersona] = useState('first-time');
   const [goal, setGoal] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(isForExistingProject ? 2 : 1);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [analysisStep, setAnalysisStep] = useState('');
 
+  // Initialize project name when project prop is provided
+  useEffect(() => {
+    if (project) {
+      setProjectName(project.name || '');
+    }
+  }, [project]);
+
   useEffect(() => {
     if (!open) {
       setProjectName(''); setPersona('first-time'); setGoal('');
-      setFile(null); setPreview(null); setStep(1); setError('');
+      setFile(null); setPreview(null); setStep(isForExistingProject ? 2 : 1); setError('');
     }
   }, [open]);
 
@@ -51,7 +59,8 @@ function NewReviewModal({ open, onClose }) {
   };
 
   const handleSubmit = async () => {
-    if (!projectName.trim() || !goal.trim()) { setError('Please fill in all fields'); return; }
+    if (!goal.trim()) { setError('Please describe the page goal'); return; }
+    if (!projectName.trim()) { setError('Project name is required'); return; }
     setError(''); setStep(3); setUploading(true);
     const steps = ['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy',
       'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'];
@@ -61,11 +70,17 @@ function NewReviewModal({ open, onClose }) {
       i++;
     }, 2000);
     try {
-      let projectId = null;
-      const projectsData = await api.getProjects(token);
-      const existing = projectsData.projects.find(p => p.name.toLowerCase() === projectName.trim().toLowerCase());
-      if (existing) { projectId = existing.id; }
-      else { const newProj = await api.createProject({ name: projectName.trim() }, token); projectId = newProj.project.id; }
+      let projectId;
+      if (isForExistingProject) {
+        // Use the existing project directly
+        projectId = project.id;
+      } else {
+        // Look up or create project
+        const projectsData = await api.getProjects(token);
+        const existing = projectsData.projects.find(p => p.name.toLowerCase() === projectName.trim().toLowerCase());
+        if (existing) { projectId = existing.id; }
+        else { const newProj = await api.createProject({ name: projectName.trim() }, token); projectId = newProj.project.id; }
+      }
       const rd = await api.createReview({ project_id: projectId, persona, page_goal: goal }, token);
       if (file) await api.uploadScreenshot(rd.review.id, file, token);
       const result = await api.analyzeReview(rd.review.id, token);
@@ -74,7 +89,7 @@ function NewReviewModal({ open, onClose }) {
       navigate(`/review/${result.review.id}`);
     } catch (err) {
       clearInterval(iv);
-      setError(err.message); setStep(1); setUploading(false);
+      setError(err.message); setStep(isForExistingProject ? 2 : 1); setUploading(false);
     }
   };
 
@@ -90,7 +105,7 @@ function NewReviewModal({ open, onClose }) {
             </div>
             <div>
               <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                {step === 3 ? 'Analyzing...' : 'New Review'}
+                {step === 3 ? 'Analyzing...' : isForExistingProject ? `New Review for ${project.name}` : 'New Review'}
               </h2>
               <p className="text-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.2, marginTop: 1 }}>AI-powered UI analysis</p>
             </div>
@@ -105,10 +120,18 @@ function NewReviewModal({ open, onClose }) {
           )}
           {step === 1 && (
             <>
-              <div>
-                <label className="label" style={{ marginBottom: 5 }}>Project name</label>
-                <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="input" placeholder="Enter project name" style={{ fontSize: 12 }} />
-              </div>
+              {!isForExistingProject && (
+                <div>
+                  <label className="label" style={{ marginBottom: 5 }}>Project name</label>
+                  <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="input" placeholder="Enter project name" style={{ fontSize: 12 }} />
+                </div>
+              )}
+              {isForExistingProject && (
+                <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--hover)', fontSize: 12 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Project: </span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{projectName}</span>
+                </div>
+              )}
               <div>
                 <label className="label" style={{ marginBottom: 5 }}>Reviewer persona</label>
                 <select value={persona} onChange={e => setPersona(e.target.value)} className="select">
@@ -133,7 +156,7 @@ function NewReviewModal({ open, onClose }) {
                   <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
                 </label>
               )}
-              <button onClick={() => setStep(2)} disabled={!projectName.trim() || !goal.trim()} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '9px 16px', fontSize: 13 }}>Continue →</button>
+              <button onClick={() => setStep(2)} disabled={!goal.trim()} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '9px 16px', fontSize: 13 }}>Continue →</button>
             </>
           )}
           {step === 2 && (
@@ -178,6 +201,7 @@ export default function DashboardPage() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [showNewForProject, setShowNewForProject] = useState(null); // { id, name } when opened from zero-review project
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -261,7 +285,7 @@ export default function DashboardPage() {
               const latestReview = projectReviews.length > 0 ? projectReviews.reduce((best, r) => r.id > best.id ? r : best, projectReviews[0]) : null;
               return (
                 <div key={p.id} className="card card-hover" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                  onClick={() => { if (latestReview) { navigate(`/review/${latestReview.id}`); } else { setDeleteTarget({ id: p.id, name: p.name, type: 'project' }); } }}>
+                  onClick={() => { if (latestReview) { navigate(`/review/${latestReview.id}`); } else { setShowNewForProject({ id: p.id, name: p.name }); } }}>
                   <div style={{ width: 36, height: 36, borderRadius: 7, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <FolderOpen size={15} style={{ color: 'var(--text-muted)' }} />
                   </div>
@@ -286,7 +310,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-      <NewReviewModal open={showNew} onClose={() => setShowNew(false)} />
+      <NewReviewModal open={showNew} onClose={() => setShowNew(false)} project={null} />
+      <NewReviewModal open={!!showNewForProject} onClose={() => setShowNewForProject(null)} project={showNewForProject} />
       {deleteTarget && (
         <ConfirmModal title={deleteTarget.type === 'project' ? 'Delete Project' : 'Delete Review'}
           message={deleteTarget.type === 'project' ? `Are you sure you want to delete the project "${deleteTarget.name}" and all its reviews? This cannot be undone.` : `Are you sure you want to delete the review for "${deleteTarget.name}"? This action cannot be undone.`}
@@ -297,5 +322,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-// VITE_TEST_$(date +%s)
