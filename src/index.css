@@ -444,3 +444,11 @@
 .header-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .header-icon { color: var(--text-secondary); }
 .header-icon.active { color: var(--primary); }
+
+/* PullCord wobble animation */
+@keyframes cordWobble {
+  0%   { transform: scaleY(1.15) scaleX(0.95); }
+  40%  { transform: scaleY(0.92) scaleX(1.04); }
+  70%  { transform: scaleY(1.03); }
+  100% { transform: scaleY(1) scaleX(1); }
+}

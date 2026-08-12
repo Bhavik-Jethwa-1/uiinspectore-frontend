@@ -6,7 +6,7 @@ import {
   ShieldCheck, ChevronLeft, LogOut, Menu, X,
   ArrowLeft, LayoutDashboard as DashIcon
 } from 'lucide-react';
-import ThemeToggle from '../../components/ThemeToggle';
+import PullCord from '../../components/PullCord';
 
 const ADMIN_NAV = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -107,12 +107,12 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
         {!collapsed && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px', marginBottom: 4 }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Theme</span>
-            <ThemeToggle />
+            <PullCord />
           </div>
         )}
         {collapsed && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-            <ThemeToggle />
+            <PullCord />
           </div>
         )}
       </div>

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Settings, ShieldCheck, ChevronLeft,
   LogOut, Menu, X, User
 } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
+import PullCord from './PullCord';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -88,7 +88,7 @@ export default function Layout({ children }) {
         <div style={{ padding: '10px 12px', borderTop: '1px solid var(--divider)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Theme</span>
-            <ThemeToggle />
+            <PullCord />
           </div>
         </div>
 
