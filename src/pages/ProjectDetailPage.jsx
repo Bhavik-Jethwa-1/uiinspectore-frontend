@@ -9,7 +9,7 @@ import {
 import ConfirmModal from '../components/ConfirmModal';
 
 const PERSONAS = [
-  { value: 'first-time', label: 'First-time user' },
+  { value: 'first_time', label: 'First-time user' },
   { value: 'non-technical', label: 'Non-technical user' },
   { value: 'junior-developer', label: 'Junior developer' },
   { value: 'developer', label: 'Developer' },

@@ -15,7 +15,7 @@ function NewReviewModal({ open, onClose, project }) {
   const navigate = useNavigate();
   const isForExistingProject = !!project;
   const [projectName, setProjectName] = useState('');
-  const [persona, setPersona] = useState('first-time');
+  const [persona, setPersona] = useState('first_time');
   const [goal, setGoal] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -39,7 +39,7 @@ function NewReviewModal({ open, onClose, project }) {
   }, [open]);
 
   const PERSONAS = [
-    { value: 'first-time', label: 'First-time user' },
+    { value: 'first_time', label: 'First-time user' },
     { value: 'non-technical', label: 'Non-technical user' },
     { value: 'junior-developer', label: 'Junior developer' },
     { value: 'developer', label: 'Developer' },
