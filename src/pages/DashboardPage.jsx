@@ -33,15 +33,15 @@ function NewReviewModal({ open, onClose, project }) {
 
   useEffect(() => {
     if (!open) {
-      setProjectName(''); setPersona('first-time'); setGoal('');
+      setProjectName(''); setPersona('first_time'); setGoal('');
       setFile(null); setPreview(null); setStep(isForExistingProject ? 2 : 1); setError('');
     }
   }, [open]);
 
   const PERSONAS = [
     { value: 'first_time', label: 'First-time user' },
-    { value: 'non-technical', label: 'Non-technical user' },
-    { value: 'junior-developer', label: 'Junior developer' },
+    { value: 'non_technical', label: 'Non-technical user' },
+    { value: 'junior_developer', label: 'Junior developer' },
     { value: 'developer', label: 'Developer' },
     { value: 'devops', label: 'DevOps engineer' },
     { value: 'designer', label: 'Product designer' },
