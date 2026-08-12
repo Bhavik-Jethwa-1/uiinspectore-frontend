@@ -80,6 +80,7 @@ export default function ReviewPage() {
 
   const scores = review.scores || {};
   const annotations = review.annotations || [];
+  const issues = review.issues || [];
   const suggestions = review.suggestions || [];
   const isCompleted = review.status === 'completed' && scores.overall > 0;
   const isAnalyzing = review.status === 'analyzing' || review.status === 'pending';
@@ -146,7 +147,7 @@ export default function ReviewPage() {
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '0 16px' }}>
             {[
               { key: 'overview', label: 'Overview' },
-              { key: 'annotations', label: `Annotations (${annotations.length})` },
+              { key: 'annotations', label: `Annotations (${issues.length})` },
               { key: 'suggestions', label: `Suggestions (${suggestions.length})` },
             ].map(tab => (
               <button
@@ -273,26 +274,29 @@ export default function ReviewPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {annotations.map((ann, i) => (
-                      <div key={i} className="card" style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <div style={{
-                            width: 22, height: 22, borderRadius: 6,
-                            background: ann.severity === 'critical' ? 'var(--error-light)' : ann.severity === 'high' ? 'var(--warning-light)' : 'var(--primary-light)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1
-                          }}>
-                            <AlertCircle size={11} style={{ color: ann.severity === 'critical' ? 'var(--error)' : ann.severity === 'high' ? 'var(--warning)' : 'var(--primary)' }} />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{ann.type || ann.element}</p>
-                            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{ann.description || ann.message}</p>
-                            {ann.suggestion && (
-                              <p style={{ fontSize: 11, color: 'var(--primary)', marginTop: 6, fontWeight: 500 }}>{ann.suggestion}</p>
-                            )}
+                    {annotations.map((ann, i) => {
+                      const issue = ann.issue || {};
+                      return (
+                        <div key={i} className="card" style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{
+                              width: 22, height: 22, borderRadius: 6,
+                              background: issue.severity === 'critical' ? 'var(--error-light)' : issue.severity === 'high' ? 'var(--warning-light)' : 'var(--primary-light)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1
+                            }}>
+                              <AlertCircle size={11} style={{ color: issue.severity === 'critical' ? 'var(--error)' : issue.severity === 'high' ? 'var(--warning)' : 'var(--primary)' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{issue.title || 'Issue'}</p>
+                              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{issue.description || 'No description'}</p>
+                              {issue.recommendation && (
+                                <p style={{ fontSize: 11, color: 'var(--primary)', marginTop: 6, fontWeight: 500 }}>Fix: {issue.recommendation}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -357,7 +361,7 @@ export default function ReviewPage() {
           <div style={{ padding: '0 14px' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
               {[
-                { key: 'issues', label: `Issues (${annotations.length})` },
+                { key: 'issues', label: `Issues (${issues.length})` },
                 { key: 'tips', label: `Tips (${suggestions.length})` },
               ].map(t => (
                 <button
@@ -373,14 +377,14 @@ export default function ReviewPage() {
 
             {rightTab === 'issues' && (
               <div style={{ paddingBottom: 16 }}>
-                {annotations.length === 0 ? (
+                {issues.length === 0 ? (
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No issues found</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {annotations.map((ann, i) => (
-                      <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: ann.severity === 'critical' ? 'var(--error-light)' : ann.severity === 'high' ? 'var(--warning-light)' : 'var(--primary-light)', border: `1px solid ${ann.severity === 'critical' ? 'var(--error)' : ann.severity === 'high' ? 'var(--warning)' : 'var(--primary)'}30` }}>
-                        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{ann.type || 'Issue'}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{ann.description || ann.message}</p>
+                    {issues.map((iss, i) => (
+                      <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: iss.severity === 'critical' ? 'var(--error-light)' : iss.severity === 'high' ? 'var(--warning-light)' : 'var(--primary-light)', border: `1px solid ${iss.severity === 'critical' ? 'var(--error)' : iss.severity === 'high' ? 'var(--warning)' : 'var(--primary)'}30` }}>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{iss.title || 'Issue'}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{iss.description || iss.recommendation}</p>
                       </div>
                     ))}
                   </div>
@@ -396,8 +400,8 @@ export default function ReviewPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {suggestions.map((sug, i) => (
                       <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--primary-light)', border: '1px solid var(--primary)30' }}>
-                        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{sug.title || sug.category}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{sug.description || sug.suggestion}</p>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{sug.title || 'Suggestion'}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{sug.recommendation || sug.problem || ''}</p>
                       </div>
                     ))}
                   </div>
