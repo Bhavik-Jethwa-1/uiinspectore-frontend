@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import {
   Plus, Search, FolderOpen, Image, Clock,
-  X, Upload, Loader2, BarChart3, Trash2, ChevronRight,
+  X, Upload, Loader2, BarChart3, Trash2, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -242,6 +242,9 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
@@ -253,10 +256,13 @@ export default function ProjectsPage() {
     if (token) loadProjects();
   }, [token]);
 
-  async function loadProjects() {
+  async function loadProjects(p = 1) {
     try {
-      const data = await api.getProjects(token);
-      setProjects(data.projects);
+      const data = await api.getProjects(token, { page: p, per_page: 10, search: search || undefined });
+      setProjects(Array.isArray(data.projects) ? data.projects : (data.projects?.data ?? []));
+      setTotal(data.total ?? 0);
+      setPage(data.current_page ?? p);
+      setLastPage(data.last_page ?? 1);
     } catch {} finally {
       setLoading(false);
     }
@@ -271,6 +277,7 @@ export default function ProjectsPage() {
       setProjects([data.project, ...projects]);
       setNewProjectName('');
       setShowNewProject(false);
+      setPage(1);
     } catch {} finally {
       setCreatingProject(false);
     }
@@ -280,9 +287,7 @@ export default function ProjectsPage() {
     setDeleteTarget({ id });
   }
 
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProjects = projects;
 
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
@@ -290,7 +295,7 @@ export default function ProjectsPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Projects</h1>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{total} project{total !== 1 ? 's' : ''}</p>
           </div>
           <button onClick={() => setShowNewProject(true)} className="btn-primary">
             <Plus size={15} /> New Project
@@ -303,7 +308,7 @@ export default function ProjectsPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search projects..."
               className="input"
               style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)' }}
@@ -366,6 +371,7 @@ export default function ProjectsPage() {
             )}
           </div>
         ) : (
+          <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
             {filteredProjects.map(project => (
               <ProjectCard
@@ -376,6 +382,32 @@ export default function ProjectsPage() {
               />
             ))}
           </div>
+          {lastPage > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Page {page} of {lastPage} &middot; {total} project{total !== 1 ? 's' : ''}
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => loadProjects(page - 1)}
+                  disabled={page <= 1}
+                  className="btn-secondary"
+                  style={{ padding: '0.35rem 0.875rem', fontSize: 12 }}
+                >
+                  <ChevronLeft size={13} /> Prev
+                </button>
+                <button
+                  onClick={() => loadProjects(page + 1)}
+                  disabled={page >= lastPage}
+                  className="btn-secondary"
+                  style={{ padding: '0.35rem 0.875rem', fontSize: 12 }}
+                >
+                  Next <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
@@ -400,6 +432,7 @@ export default function ProjectsPage() {
               await api.deleteProject(deleteTarget.id, token);
               setDeleteTarget(null);
               setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
+              loadProjects(page);
             } catch {
               setDeleteTarget(null);
             } finally {

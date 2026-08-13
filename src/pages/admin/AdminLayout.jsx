@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+
 import {
   LayoutDashboard, Users, FolderOpen, Star, Settings,
   ShieldCheck, ChevronLeft, LogOut, Menu, X,
@@ -29,7 +30,7 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
   const w = collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W;
 
   const SidebarContent = () => (
-    <div style={{
+    <div className={`sidebar${collapsed ? ' collapsed' : ''}`} style={{
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
@@ -40,54 +41,27 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
       transition: 'width 0.2s ease',
     }}>
       {/* Brand */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: collapsed ? '16px 12px' : '16px 14px',
-        borderBottom: '1px solid var(--border)',
-        minHeight: 64,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: 'var(--radius-sm)',
-          background: 'var(--primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <ShieldCheck size={14} color="#fff" />
+      <div className="sidebar-brand">
+        <div className="sidebar-logo">
+          <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>UI</span>
         </div>
         {!collapsed && (
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              Admin Panel
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              UI Review
-            </div>
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-name">Admin Panel</div>
+            <div className="sidebar-brand-sub">UI Review</div>
           </div>
         )}
       </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto', overflowX: 'hidden' }}>
-        {!collapsed && (
-          <p style={{
-            fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.06em',
-            padding: '4px 16px', marginBottom: 2,
-          }}>
-            Admin
-          </p>
-        )}
         {ADMIN_NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             onClick={onMobileClose}
-            className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             style={collapsed ? {
               justifyContent: 'center',
               padding: '10px 0',
@@ -96,37 +70,22 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
             } : {}}
             title={collapsed ? label : undefined}
           >
-            <Icon size={15} style={{ flexShrink: 0 }} />
+            <Icon size={16} className="nav-icon" />
             {!collapsed && <span>{label}</span>}
           </NavLink>
         ))}
       </nav>
 
-      {/* Divider + Theme */}
-      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)' }}>
-        {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Theme</span>
-            <PullCord />
-          </div>
-        )}
-        {collapsed && (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-            <PullCord />
-          </div>
-        )}
-      </div>
-
       {/* Bottom section */}
-      <div style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ padding: '12px 8px', borderTop: '1px solid var(--divider)' }}>
         {/* Back to User App */}
         <button
           onClick={handleBackToApp}
-          className="admin-nav-item"
-          style={{ width: '100%', color: 'var(--text-secondary)', marginBottom: 2 }}
+          className="nav-item"
+          style={{ width: '100%', color: 'var(--text-muted)', marginBottom: 2 }}
           title={collapsed ? 'Back to User App' : undefined}
         >
-          <ArrowLeft size={14} style={{ flexShrink: 0 }} />
+          <ArrowLeft size={15} className="nav-icon" style={{ flexShrink: 0 }} />
           {!collapsed && <span>Back to User App</span>}
         </button>
 
@@ -134,17 +93,14 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: collapsed ? '8px 0' : '8px 10px',
+          gap: 10,
+          padding: '8px 10px',
           borderRadius: 'var(--radius-sm)',
           marginBottom: 4,
           justifyContent: collapsed ? 'center' : 'flex-start',
           overflow: 'hidden',
         }}>
-          <div className="avatar" style={{
-            width: 28, height: 28, fontSize: 11, flexShrink: 0,
-            background: 'var(--primary)',
-          }}>
+          <div className="avatar">
             {user?.name?.[0]?.toUpperCase() || 'A'}
           </div>
           {!collapsed && (
@@ -168,11 +124,11 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="admin-nav-item"
-          style={{ width: '100%', color: 'var(--error)', marginTop: 0 }}
+          className="nav-item"
+          style={{ width: '100%', color: 'var(--text-muted)', marginTop: 0 }}
           title={collapsed ? 'Sign out' : undefined}
         >
-          <LogOut size={14} style={{ flexShrink: 0 }} />
+          <LogOut size={15} className="nav-icon" style={{ flexShrink: 0 }} />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -196,26 +152,7 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
           {/* Desktop collapse toggle */}
           <button
             onClick={onToggle}
-            style={{
-              position: 'fixed',
-              top: '50%',
-              left: w,
-              transform: 'translateY(-50%)',
-              zIndex: 60,
-              width: 16,
-              height: 40,
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderLeft: 'none',
-              borderRadius: '0 6px 6px 0',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-muted)',
-              transition: 'left 0.2s ease',
-            }}
-            className="hide-mobile"
+            className={`sidebar-toggle${collapsed ? ' collapsed' : ''} hide-mobile`}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <ChevronLeft
@@ -261,7 +198,6 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const toggleCollapse = () => setCollapsed(c => !c);
   const closeMobile = () => setMobileOpen(false);
 
@@ -298,7 +234,7 @@ export default function AdminLayout() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <ShieldCheck size={12} color="#fff" />
+          <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>UI</span>
         </div>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           Admin Panel
@@ -319,9 +255,24 @@ export default function AdminLayout() {
           marginLeft: sidebarWidth,
           minHeight: '100vh',
           transition: 'margin-left 0.2s ease',
+          position: 'relative',
         }}
         className="hide-mobile"
       >
+        {/* Floating Theme Control — top right */}
+        <div
+          style={{
+            position: 'sticky',
+            top: 12,
+            zIndex: 30,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '12px 16px 0',
+          }}
+        >
+          <PullCord />
+        </div>
+
         <main style={{ minWidth: 0 }}>
           <Outlet />
         </main>
@@ -330,8 +281,22 @@ export default function AdminLayout() {
       {/* Mobile main content (no margin needed, sidebar overlays) */}
       <div
         className="show-mobile-only"
-        style={{ minHeight: '100vh' }}
+        style={{ minHeight: '100vh', position: 'relative' }}
       >
+        {/* Floating Theme Control — top right (mobile) */}
+        <div
+          style={{
+            position: 'sticky',
+            top: 64,
+            zIndex: 30,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '12px 16px 0',
+          }}
+        >
+          <PullCord />
+        </div>
+
         <main style={{ minWidth: 0 }}>
           <Outlet />
         </main>

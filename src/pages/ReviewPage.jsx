@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import PullCord from '../components/PullCord';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
@@ -108,15 +110,29 @@ export default function ReviewPage() {
   };
 
   const scoreBars = [
-    { label: 'Visual Hierarchy', value: scores.visual_hierarchy || 0 },
-    { label: 'Readability', value: scores.readability || 0 },
-    { label: 'Accessibility', value: scores.accessibility || 0 },
-    { label: 'Navigation', value: scores.navigation || 0 },
-    { label: 'Mobile Responsiveness', value: scores.mobile_responsiveness || 0 },
+    { label: 'Visual Hierarchy', value: scores.visualHierarchy || 0 },
+    { label: 'Clarity',          value: scores.clarity || 0 },
+    { label: 'Accessibility',    value: scores.accessibility || 0 },
+    { label: 'Consistency',      value: scores.consistency || 0 },
+    { label: 'Layout',           value: scores.layout || 0 },
+    { label: 'Typography',       value: scores.typography || 0 },
+    { label: 'UX',               value: scores.ux || 0 },
   ];
 
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
+      {/* Floating Theme Control — top right */}
+      <div
+        style={{
+          position: 'fixed', top: 12, right: 16, zIndex: 200,
+          display: 'flex', justifyContent: 'flex-end',
+        }}
+      >
+        <div style={{ cursor: 'pointer' }}>
+          <PullCord />
+        </div>
+      </div>
+
       {/* Top bar */}
       <div className="review-topbar">
         <button onClick={() => navigate('/dashboard')} className="btn-icon" title="Back to Dashboard">
@@ -147,7 +163,7 @@ export default function ReviewPage() {
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '0 16px' }}>
             {[
               { key: 'overview', label: 'Overview' },
-              { key: 'annotations', label: `Annotations (${issues.length})` },
+              { key: 'annotations', label: `Annotations (${annotations.length})` },
               { key: 'suggestions', label: `Suggestions (${suggestions.length})` },
             ].map(tab => (
               <button
@@ -237,25 +253,27 @@ export default function ReviewPage() {
                   </div>
                 )}
 
-                {/* What's Working */}
-                {isCompleted && scores.what_works_well && (
+                {/* Summary */}
+                {isCompleted && scores.summary && (
                   <div className="card" style={{ padding: '16px 18px' }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
-                      What's Working
+                      AI Summary
                     </p>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{scores.what_works_well}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{scores.summary}</p>
                   </div>
                 )}
 
-                {/* Needs Attention */}
-                {isCompleted && scores.needs_attention && (
+                {/* Strengths */}
+                {isCompleted && scores.strengths && scores.strengths.length > 0 && (
                   <div className="card" style={{ padding: '16px 18px' }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <AlertCircle size={14} style={{ color: 'var(--warning)' }} />
-                      Needs Attention
+                      Key Findings
                     </p>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{scores.needs_attention}</p>
+                    <ul style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: 16, margin: 0 }}>
+                      {scores.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
                   </div>
                 )}
               </div>

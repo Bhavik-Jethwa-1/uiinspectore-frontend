@@ -20,7 +20,7 @@ export default function AdminProjectsPage() {
     setError('');
     try {
       // ONE aggregated API call — admin-only endpoint with user data (no N+1)
-      const params = { page: pg, per_page: 20 };
+      const params = { page: pg, per_page: 10 };
       if (search) params.search = search;
       const data = await api.adminGetProjects(token, params);
       setProjects(data.projects);

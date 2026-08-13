@@ -34,7 +34,7 @@ export default function AdminDashboard() {
 
   async function loadReviews() {
     try {
-      const params = { page, per_page: 20 };
+      const params = { page, per_page: 10 };
       if (search) params.search = search;
       const data = await api.adminGetReviews(token, params);
       setReviews(data.reviews);

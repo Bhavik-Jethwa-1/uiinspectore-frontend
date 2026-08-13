@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -15,6 +17,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import './index.css';
 
 function LoadingScreen() {
@@ -55,6 +58,16 @@ function GuestRoute() {
   return <Outlet />;
 }
 
+function LandingPageWrapper() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <LoadingScreen />;
+  // Authenticated users go straight to dashboard
+  if (user) return <Navigate to="/dashboard" replace />;
+  // Guests see the landing page
+  return <LandingPage />;
+}
+
 function AdminRoute() {
   const { user, loading } = useAuth();
 
@@ -73,8 +86,12 @@ function AdminRoute() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+          {/* Landing page — public, no sidebar */}
+          <Route path="/" element={<LandingPageWrapper />} />
+
           {/* Guest routes */}
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<LoginPage />} />
@@ -95,6 +112,7 @@ export default function App() {
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
             <Route path="/admin/projects" element={<AdminProjectsPage />} />
             <Route path="/admin/reviews" element={<AdminReviewsPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
@@ -103,7 +121,9 @@ export default function App() {
           {/* Default */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }
+

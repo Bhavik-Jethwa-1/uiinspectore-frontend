@@ -9,6 +9,7 @@ import PullCord from './PullCord';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
+
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -84,14 +85,6 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* Theme Toggle */}
-        <div style={{ padding: '10px 12px', borderTop: '1px solid var(--divider)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Theme</span>
-            <PullCord />
-          </div>
-        </div>
-
         {/* User section */}
         <div style={{ padding: '12px 8px', borderTop: '1px solid var(--divider)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
@@ -103,7 +96,7 @@ export default function Layout({ children }) {
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.name || 'User'}
                 </p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p title={user?.email || ''} style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', lineHeight: 1.4 }}>
                   {user?.email || ''}
                 </p>
               </div>
@@ -129,7 +122,21 @@ export default function Layout({ children }) {
       </button>
 
       {/* Main Area */}
-      <div className={`main-area ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-area ${collapsed ? 'sidebar-collapsed' : ''}`} style={{ position: 'relative' }}>
+        {/* Floating Theme Control — top right */}
+        <div
+          style={{
+            position: 'sticky',
+            top: 12,
+            zIndex: 30,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '12px 16px 0',
+          }}
+        >
+          <PullCord />
+        </div>
+
         <main className="main-content">
           {children}
         </main>

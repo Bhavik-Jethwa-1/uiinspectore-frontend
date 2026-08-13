@@ -38,10 +38,16 @@ export const api = {
   getUser: (token) => request('GET', '/user', null, token),
 
   // Dashboard (aggregated — single call for all user dashboard data)
-  getDashboard: (token) => request('GET', '/dashboard', null, token),
+  getDashboard: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request('GET', `/dashboard${query ? '?' + query : ''}`, null, token);
+  },
 
   // Projects
-  getProjects: (token) => request('GET', '/projects', null, token),
+  getProjects: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request('GET', `/projects${query ? '?' + query : ''}`, null, token);
+  },
   createProject: (data, token) => request('POST', '/projects', data, token),
   getProject: (id, token) => {
     const safeId = typeof id === 'object' ? id?.id ?? '' : String(id ?? '');
@@ -104,8 +110,18 @@ export const api = {
     const query = qs.toString();
     return request('GET', `/admin/users${query ? '?' + query : ''}`, null, token);
   },
-  adminGetUser: (id, token) => request('GET', `/admin/users/${id}`, null, token),
+  adminGetUser: (id, token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request('GET', `/admin/users/${id}${query ? '?' + query : ''}`, null, token);
+  },
   adminUpdateUser: (id, data, token) => request('PATCH', `/admin/users/${id}`, data, token),
+  adminUpdateUserSetting: (id, key, value, token) => request('PUT', `/admin/users/${id}/settings`, { key, value }, token),
+  adminDeleteUserSetting: (id, key, token) => request('DELETE', `/admin/users/${id}/settings`, { key }, token),
+  adminResetPassword: (id, token) => request('POST', `/admin/users/${id}/reset-password`, null, token),
+  adminSuspendUser: (id, token) => request('POST', `/admin/users/${id}/suspend`, null, token),
+  adminActivateUser: (id, token) => request('POST', `/admin/users/${id}/activate`, null, token),
+  adminResetPreferences: (id, token) => request('POST', `/admin/users/${id}/reset-preferences`, null, token),
+  adminSettingsMeta: (token) => request('GET', '/admin/settings/meta', null, token),
   adminDeleteUser: (id, token) => request('DELETE', `/admin/users/${id}`, null, token),
 };
 

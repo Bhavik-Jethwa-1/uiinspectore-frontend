@@ -1,12 +1,13 @@
-// ADMIN_TEST_UNIQUE_987654321
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../utils/api';
+import { useToast } from '../../context/ToastContext';
 import {
-  Search, Loader2, AlertCircle, Eye, Trash2,
+  Search, Loader2, AlertCircle, Eye,
   ChevronLeft, ChevronRight, X, Copy, Check,
-  UserCog, UserX, UserCheck, ShieldCheck, RefreshCw,
-  ChevronDown, Users, Filter
+  ShieldCheck, RefreshCw,
+  UserX, UserCheck, UserCog, Trash2
 } from 'lucide-react';
 
 const DEBOUNCE_MS = 300;
@@ -96,86 +97,185 @@ function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'dan
 function UserDetailModal({ user, onClose, onAction, actionLoading }) {
   if (!user) return null;
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
       background: 'rgba(0,0,0,0.5)', display: 'flex',
       alignItems: 'center', justifyContent: 'center', padding: 16,
+      backdropFilter: 'blur(4px)',
     }}>
       <div style={{
-        background: 'var(--surface)', borderRadius: 'var(--radius)',
-        border: '1px solid var(--border)', width: '100%', maxWidth: 440,
-        boxShadow: 'var(--shadow-md)', maxHeight: '90vh', overflowY: 'auto',
+        background: 'var(--surface)',
+        borderRadius: 16,
+        border: '1px solid var(--border)',
+        width: '100%', maxWidth: 400,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
       }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar name={user.name} size={40} />
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>#{user.id}</p>
+
+        {/* Gradient header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #5B5FEF 0%, #8B5CF6 100%)',
+          padding: '24px 20px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <Avatar name={user.name} size={52} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: 'white', margin: 0 }}>{user.name}</p>
+              {user.is_admin && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  borderRadius: 9999,
+                  padding: '1px 7px',
+                  fontSize: 10, fontWeight: 700,
+                  color: 'white', letterSpacing: '0.04em',
+                }}>ADMIN</div>
+              )}
             </div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', margin: 0 }}>{user.email}</p>
           </div>
-          <button onClick={onClose} className="btn-icon" style={{ flexShrink: 0 }}>
-            <X size={15} />
+          <button
+            onClick={onClose}
+            style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', flexShrink: 0,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          >
+            <X size={14} />
           </button>
         </div>
 
-        {/* Info */}
-        <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Stats row */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+          borderBottom: '1px solid var(--border)',
+        }}>
           {[
-            { label: 'Email', value: user.email },
-            { label: 'Role', value: user.is_admin ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge> : <Badge variant="gray">User</Badge> },
-            { label: 'Status', value: user.is_active ? <Badge variant="green"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />Active</Badge> : <Badge variant="red"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)', display: 'inline-block' }} />Suspended</Badge> },
-            { label: 'Created', value: formatDate(user.created_at) },
-            { label: 'Projects', value: user.projects_count ?? 0 },
-            { label: 'Reviews', value: user.reviews_count ?? 0 },
-            ...(user.last_activity ? [{ label: 'Last Activity', value: formatDate(user.last_activity) }] : []),
-          ].map(({ label, value }) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{label}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>{value}</span>
+            { label: 'Projects', value: user.projects_count ?? 0, color: 'var(--primary)' },
+            { label: 'Reviews', value: user.reviews_count ?? 0, color: 'var(--primary)' },
+            { label: 'Status', value: user.is_active ? 'Active' : 'Suspended', color: user.is_active ? 'var(--success)' : 'var(--error)' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{
+              padding: '14px 12px',
+              textAlign: 'center',
+              borderRight: label !== 'Status' ? '1px solid var(--border)' : 'none',
+            }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 2, letterSpacing: '-0.02em' }}>{value}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Info */}
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {[
+            { label: 'User ID',    value: `#${user.id}` },
+            { label: 'Created',    value: formatDate(user.created_at) },
+            ...(user.last_activity ? [{ label: 'Last Active', value: formatDate(user.last_activity) }] : []),
+          ].map(({ label, value }, i, arr) => (
+            <div key={label} style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 0',
+              borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+            }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
             </div>
           ))}
         </div>
 
         {/* Actions */}
-        <div style={{ padding: '0.75rem 1.25rem 1.25rem', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--border)' }}>
+        <div style={{
+          padding: '14px 16px 16px',
+          display: 'flex', gap: 8, flexWrap: 'wrap',
+        }}>
           {user.is_active ? (
             <button
-              className="btn-secondary" onClick={() => onAction('suspend')}
+              onClick={() => onAction('suspend')}
               disabled={actionLoading}
-              style={{ fontSize: 12, padding: '0.4rem 0.875rem' }}
+              style={{
+                flex: 1, minWidth: 80,
+                padding: '0.5rem',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
+                fontSize: 12, fontWeight: 600,
+                cursor: actionLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                opacity: actionLoading ? 0.5 : 1,
+                transition: 'all 0.15s',
+              }}
             >
-              <UserX size={12} /> Suspend
+              <UserX size={13} /> Suspend
             </button>
           ) : (
             <button
-              className="btn-secondary" onClick={() => onAction('activate')}
+              onClick={() => onAction('activate')}
               disabled={actionLoading}
-              style={{ fontSize: 12, padding: '0.4rem 0.875rem' }}
+              style={{
+                flex: 1, minWidth: 80,
+                padding: '0.5rem',
+                borderRadius: 8,
+                border: '1px solid var(--success)',
+                background: 'var(--success-light)',
+                color: 'var(--success)',
+                fontSize: 12, fontWeight: 600,
+                cursor: actionLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                opacity: actionLoading ? 0.5 : 1,
+              }}
             >
-              <UserCheck size={12} /> Activate
+              <UserCheck size={13} /> Activate
             </button>
           )}
           <button
-            className="btn-secondary" onClick={() => onAction('toggle_role')}
+            onClick={() => onAction('toggle_role')}
             disabled={actionLoading}
-            style={{ fontSize: 12, padding: '0.4rem 0.875rem' }}
+            style={{
+              flex: 1, minWidth: 80,
+              padding: '0.5rem',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 600,
+              cursor: actionLoading ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              opacity: actionLoading ? 0.5 : 1,
+            }}
           >
-            <UserCog size={12} /> {user.is_admin ? 'Make User' : 'Make Admin'}
+            <UserCog size={13} /> {user.is_admin ? 'Make User' : 'Make Admin'}
           </button>
           <button
             onClick={() => onAction('delete')}
             disabled={actionLoading}
             style={{
-              marginLeft: 'auto', padding: '0.4rem 0.875rem', borderRadius: 'var(--radius-sm)',
-              fontSize: 12, fontWeight: 600, cursor: actionLoading ? 'not-allowed' : 'pointer',
-              background: 'var(--error-light)', color: 'var(--error)',
-              border: '1px solid rgba(239,68,68,0.2)', opacity: actionLoading ? 0.6 : 1,
+              flex: 1, minWidth: 80,
+              padding: '0.5rem',
+              borderRadius: 8,
+              border: '1px solid rgba(239,68,68,0.3)',
+              background: 'var(--error-light)',
+              color: 'var(--error)',
+              fontSize: 12, fontWeight: 600,
+              cursor: actionLoading ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              opacity: actionLoading ? 0.5 : 1,
             }}
           >
-            <Trash2 size={12} /> Delete
+            <Trash2 size={13} /> Delete
           </button>
         </div>
       </div>
@@ -183,43 +283,12 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
   );
 }
 
-function SelectFilter({ label, value, options, onChange }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {label && <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</span>}
-      <div style={{ position: 'relative' }}>
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          style={{
-            appearance: 'none', padding: '0.35rem 2rem 0.35rem 0.625rem',
-            borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-            background: 'var(--surface)', color: 'var(--text-primary)',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none',
-          }}
-        >
-          {options.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <ChevronDown size={11} style={{
-          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-          color: 'var(--text-muted)', pointerEvents: 'none',
-        }} />
-      </div>
-    </div>
-  );
-}
-
-console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"); export default function AdminUsersPage() {
+export default function AdminUsersPage() {
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState('all');
-  const [status, setStatus] = useState('all');
-  const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -227,12 +296,14 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
+  const navigate = useNavigate();
+  const { addToast } = useToast();
   const [copiedEmail, setCopiedEmail] = useState(null);
 
   const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
 
-  // Reset page when filters change
-  useEffect(() => { setPage(1); }, [debouncedSearch, role, status, sort]);
+  // Reset page when search changes
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   const fetchUsers = useCallback(async (pageNum = 1) => {
     if (!token) return;
@@ -241,9 +312,6 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
     try {
       const params = {
         search: debouncedSearch,
-        role: role !== 'all' ? role : undefined,
-        status: status !== 'all' ? status : undefined,
-        sort,
         page: pageNum,
       };
       const data = await api.adminGetUsers(token, params);
@@ -256,7 +324,7 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
     } finally {
       setLoading(false);
     }
-  }, [token, debouncedSearch, role, status, sort]);
+  }, [token, debouncedSearch]);
 
   useEffect(() => { fetchUsers(page); }, [fetchUsers, page]);
 
@@ -307,8 +375,10 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
       }
 
       setSelectedUser(data.user);
-      // Update user in list
       setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
+      if (action === 'suspend') addToast({ type: 'success', message: 'User suspended' });
+      else if (action === 'activate') addToast({ type: 'success', message: 'User activated' });
+      else if (action === 'toggle_role') addToast({ type: 'success', message: data.user.is_admin ? 'User promoted to admin' : 'Admin demoted to user' });
     } catch (e) {
       setConfirmModal({
         type: 'error',
@@ -342,6 +412,7 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
         setConfirmModal(null);
         setSelectedUser(null);
         fetchUsers(page);
+        addToast({ type: 'success', message: 'User deleted' });
       } catch (e) {
         setConfirmModal({
           type: 'error', title: 'Delete Failed', message: e.message || 'Could not delete user.', confirmLabel: 'OK', variant: 'danger',
@@ -353,7 +424,20 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
   };
 
   const copyEmail = (email) => {
-    navigator.clipboard.writeText(email).catch(() => {});
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email).catch(() => {});
+      } else {
+        const el = document.createElement('textarea');
+        el.value = email;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+    } catch {}
     setCopiedEmail(email);
     setTimeout(() => setCopiedEmail(null), 1500);
   };
@@ -366,13 +450,13 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
   // ===== RENDER =====
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-              Users
+              All Users
             </h1>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {loading ? '…' : `${total} user${total !== 1 ? 's' : ''} total`}
@@ -388,39 +472,21 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
           </button>
         </div>
 
-        {/* Search + Filters */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        {/* Search */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, email or ID…"
+              placeholder="Search users..."
               className="input"
-              style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13 }}
+              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13 }}
             />
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Filter size={12} style={{ color: 'var(--text-muted)' }} />
-            <SelectFilter label="Role" value={role}
-              options={[{ value: 'all', label: 'All' }, { value: 'admin', label: 'Admin' }, { value: 'user', label: 'User' }]}
-              onChange={setRole} />
-            <SelectFilter label="Status" value={status}
-              options={[{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]}
-              onChange={setStatus} />
-            <SelectFilter label="Sort" value={sort}
-              options={[
-                { value: 'newest', label: 'Newest' },
-                { value: 'oldest', label: 'Oldest' },
-                { value: 'name_asc', label: 'Name A-Z' },
-                { value: 'name_desc', label: 'Name Z-A' },
-              ]}
-              onChange={setSort} />
           </div>
         </div>
 
-        {/* Content */}
         {loading ? (
           <div className="card" style={{ padding: '48px 0', textAlign: 'center' }}>
             <Loader2 size={20} className="animate-spin" style={{ color: 'var(--primary)', margin: '0 auto 10px' }} />
@@ -428,176 +494,113 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
           </div>
         ) : error ? (
           <div className="card" style={{ padding: '40px 0', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius)', background: 'var(--error-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <AlertCircle size={18} style={{ color: 'var(--error)' }} />
-            </div>
+            <AlertCircle size={20} style={{ color: 'var(--error)', margin: '0 auto 10px' }} />
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Something went wrong</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{error}</p>
-            <button onClick={() => fetchUsers(page)} className="btn-primary" style={{ fontSize: 13, padding: '0.5rem 1.25rem' }}>
-              <RefreshCw size={12} /> Retry
-            </button>
+            <button className="btn-primary" onClick={() => fetchUsers(1)}>Retry</button>
           </div>
         ) : users.length === 0 ? (
           <div className="card" style={{ padding: '40px 0', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius)', background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <Users size={18} style={{ color: 'var(--text-muted)' }} />
+            <div className="empty-state-icon" style={{ margin: '0 auto 12px' }}>
+              <Eye size={20} />
             </div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-              {search ? 'No users found' : 'No users yet'}
+              {search ? 'No results found' : 'No users yet'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {search ? `No users matching "${search}"` : 'Users will appear here once they register'}
             </p>
           </div>
         ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="card" style={{ overflow: 'hidden', display: 'none', ['@media (minWidth: 768px)']: { display: 'block' } }}
-              className="hide-mobile">
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', ''].map(h => (
-                        <th key={h} style={{
-                          padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                          color: 'var(--text-muted)', textAlign: 'left',
-                          textTransform: 'uppercase', letterSpacing: '0.05em',
-                          background: 'var(--background)', whiteSpace: 'nowrap',
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u, i) => (
-                      <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                        {/* User */}
-                        <td style={{ padding: '10px 12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Avatar name={u.name} size={30} />
-                            <div>
-                              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{u.name}</p>
-                              <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>#{u.id}</p>
-                            </div>
-                          </div>
-                        </td>
-                        {/* Email */}
-                        <td style={{ padding: '10px 12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {u.email}
-                            </span>
-                            <button
-                              onClick={() => copyEmail(u.email)}
-                              className="btn-icon"
-                              style={{ padding: 2, flexShrink: 0 }}
-                              title="Copy email"
-                            >
-                              {copiedEmail === u.email ? <Check size={11} style={{ color: 'var(--success)' }} /> : <Copy size={11} style={{ color: 'var(--text-muted)' }} />}
-                            </button>
-                          </div>
-                        </td>
-                        {/* Role */}
-                        <td style={{ padding: '10px 12px' }}>
-                          {u.is_admin
-                            ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge>
-                            : <Badge variant="gray">User</Badge>}
-                        </td>
-                        {/* Status */}
-                        <td style={{ padding: '10px 12px' }}>
-                          {u.is_active
-                            ? <Badge variant="green"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />Active</Badge>
-                            : <Badge variant="red"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--error)', display: 'inline-block' }} />Suspended</Badge>}
-                        </td>
-                        {/* Projects */}
-                        <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>
-                          {u.projects_count ?? 0}
-                        </td>
-                        {/* Reviews */}
-                        <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>
-                          {u.reviews_count ?? 0}
-                        </td>
-                        {/* Created */}
-                        <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          {formatDate(u.created_at)}
-                        </td>
-                        {/* Actions */}
-                        <td style={{ padding: '10px 12px' }}>
-                          <button
-                            onClick={() => fetchUserDetail(u.id)}
-                            className="btn-icon"
-                            title="View"
-                            style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
-                          >
-                            <Eye size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} className="show-mobile-only">
-              {users.map(u => (
-                <div key={u.id} className="card" style={{ padding: '0.875rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar name={u.name} size={34} />
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>#{u.id} · {formatDate(u.created_at)}</p>
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', ''].map(h => (
+                    <th key={h} style={{
+                      padding: '10px 12px', fontSize: 10, fontWeight: 600,
+                      color: 'var(--text-muted)', textAlign: 'left',
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                      background: 'var(--background)', whiteSpace: 'nowrap',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    {/* User */}
+                    <td style={{ padding: '11px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar name={u.name} size={30} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{u.name}</span>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                      {u.is_admin ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge> : <Badge variant="gray">User</Badge>}
-                      {u.is_active ? <Badge variant="green">Active</Badge> : <Badge variant="red">Suspended</Badge>}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{u.projects_count ?? 0}</span> projects ·{' '}
-                        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{u.reviews_count ?? 0}</span> reviews
-                      </span>
-                    </div>
-                    <button onClick={() => fetchUserDetail(u.id)} className="btn-primary" style={{ fontSize: 11, padding: '0.3rem 0.75rem' }}>
-                      <Eye size={11} /> View
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                    {/* Email */}
+                    <td style={{ padding: '11px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {u.email}
+                        </span>
+                        <button onClick={() => copyEmail(u.email)} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
+                          {copiedEmail === u.email ? <Check size={11} style={{ color: 'var(--success)' }} /> : <Copy size={11} style={{ color: 'var(--text-muted)' }} />}
+                        </button>
+                      </div>
+                    </td>
+                    {/* Role */}
+                    <td style={{ padding: '11px 12px' }}>
+                      {u.is_admin
+                        ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge>
+                        : <Badge variant="gray">User</Badge>}
+                    </td>
+                    {/* Status */}
+                    <td style={{ padding: '11px 12px' }}>
+                      {u.is_active
+                        ? <Badge variant="green"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />Active</Badge>
+                        : <Badge variant="red"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--error)', display: 'inline-block' }} />Suspended</Badge>}
+                    </td>
+                    {/* Projects */}
+                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
+                      {u.projects_count ?? 0}
+                    </td>
+                    {/* Reviews */}
+                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
+                      {u.reviews_count ?? 0}
+                    </td>
+                    {/* Created */}
+                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {formatDate(u.created_at)}
+                    </td>
+                    {/* Actions */}
+                    <td style={{ padding: '11px 12px' }}>
+                      <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View">
+                        <Eye size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, padding: '0 2px' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   Page {page} of {totalPages} · {total} users
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="btn-secondary"
-                    style={{ padding: '0.4rem 0.75rem', fontSize: 12 }}
-                  >
-                    <ChevronLeft size={13} /> Prev
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                    className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
+                    <ChevronLeft size={12} /> Prev
                   </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                    className="btn-secondary"
-                    style={{ padding: '0.4rem 0.75rem', fontSize: 12 }}
-                  >
-                    Next <ChevronRight size={13} />
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                    className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
+                    Next <ChevronRight size={12} />
                   </button>
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
@@ -624,16 +627,6 @@ console.log("ADMIN_USERS_PAGE_LOADED"); console.log("ADMIN_USERS_PAGE_RENDERING"
         />
       )}
 
-      <style>{`
-        @media (max-width: 767px) {
-          .hide-mobile { display: none !important; }
-          .show-mobile-only { display: flex !important; }
-        }
-        @media (min-width: 768px) {
-          .hide-mobile { display: table !important; }
-          .show-mobile-only { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }

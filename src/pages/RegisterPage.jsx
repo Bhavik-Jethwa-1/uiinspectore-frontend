@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { addToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,9 +26,11 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(name, email, password, confirm);
+      addToast({ type: 'success', message: 'Account created! Welcome to UI Review.' });
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed');
+      addToast({ type: 'error', message: err.message || 'Registration failed' });
     } finally {
       setLoading(false);
     }

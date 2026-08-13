@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import {
   Plus, Search, FolderOpen, Clock,
-  ChevronRight, X, Loader2, Upload, Trash2, Eye, Sparkles,
+  ChevronRight, ChevronLeft, X, Loader2, Upload, Trash2, Eye, Sparkles,
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -24,11 +24,8 @@ function NewReviewModal({ open, onClose, project }) {
   const [error, setError] = useState('');
   const [analysisStep, setAnalysisStep] = useState('');
 
-  // Initialize project name when project prop is provided
   useEffect(() => {
-    if (project) {
-      setProjectName(project.name || '');
-    }
+    if (project) setProjectName(project.name || '');
   }, [project]);
 
   useEffect(() => {
@@ -72,10 +69,8 @@ function NewReviewModal({ open, onClose, project }) {
     try {
       let projectId;
       if (isForExistingProject) {
-        // Use the existing project directly
         projectId = project.id;
       } else {
-        // Look up or create project
         const projectsData = await api.getProjects(token);
         const existing = projectsData.projects.find(p => p.name.toLowerCase() === projectName.trim().toLowerCase());
         if (existing) { projectId = existing.id; }
@@ -201,35 +196,54 @@ export default function DashboardPage() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [showNewForProject, setShowNewForProject] = useState(null); // { id, name } when opened from zero-review project
+  const [showNewForProject, setShowNewForProject] = useState(null);
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [projectsPage, setProjectsPage] = useState(1);
+  const [projectsLastPage, setProjectsLastPage] = useState(1);
+  const [projectsTotal, setProjectsTotal] = useState(0);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsLastPage, setReviewsLastPage] = useState(1);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
 
   useEffect(() => {
     if (!token) return;
-    loadData();
+    loadData(1, 1);
   }, [token]);
 
-  async function loadData() {
+  async function loadData(pPage = 1, rPage = 1) {
     try {
-      const data = await api.getDashboard(token);
-      setProjects(data.projects);
-      setReviews(data.reviews);
+      const data = await api.getDashboard(token, {
+        projects_page: pPage,
+        reviews_page: rPage,
+        projects_per_page: 10,
+        reviews_per_page: 10,
+      });
+      setProjects(Array.isArray(data.projects) ? data.projects : (data.projects?.data ?? []));
+      setProjectsTotal(data.projects_meta?.total ?? 0);
+      setProjectsPage(data.projects_meta?.current_page ?? 1);
+      setProjectsLastPage(data.projects_meta?.last_page ?? 1);
+      setReviews(Array.isArray(data.reviews) ? data.reviews : (data.reviews?.data ?? []));
+      setReviewsTotal(data.reviews_meta?.total ?? 0);
+      setReviewsPage(data.reviews_meta?.current_page ?? 1);
+      setReviewsLastPage(data.reviews_meta?.last_page ?? 1);
     } catch {} finally {
       setLoading(false);
     }
   }
 
-  const totalProjects = projects.length;
-  const totalReviews = reviews.length;
+  const totalProjects = projectsTotal;
+  const totalReviews = reviewsTotal;
   const avg = (() => {
     const scored = reviews.filter(r => r.scores?.overall);
     if (scored.length === 0) return null;
     return Math.round(scored.reduce((s, r) => s + r.scores.overall, 0) / scored.length);
   })();
 
-  const filteredProjects = projects.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
+  const filteredProjects = search
+    ? projects.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()))
+    : projects;
 
   const getScoreColor = (score) => {
     if (!score) return 'var(--text-muted)';
@@ -262,7 +276,7 @@ export default function DashboardPage() {
           <button onClick={() => setShowNew(true)} className="btn-primary"><Plus size={14} /> New Review</button>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..." className="input" style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)' }} />
+            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setProjectsPage(1); }} placeholder="Search projects..." className="input" style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)' }} />
           </div>
         </div>
         {loading ? (
@@ -309,6 +323,31 @@ export default function DashboardPage() {
             })}
           </div>
         )}
+        {!loading && !search && projectsLastPage > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              Page {projectsPage} of {projectsLastPage} &middot; {projectsTotal} project{projectsTotal !== 1 ? 's' : ''}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => { const p = Math.max(1, projectsPage - 1); setProjectsPage(p); loadData(p, reviewsPage); }}
+                disabled={projectsPage <= 1}
+                className="btn-secondary"
+                style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+              >
+                <ChevronLeft size={12} /> Prev
+              </button>
+              <button
+                onClick={() => { const p = Math.min(projectsLastPage, projectsPage + 1); setProjectsPage(p); loadData(p, reviewsPage); }}
+                disabled={projectsPage >= projectsLastPage}
+                className="btn-secondary"
+                style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+              >
+                Next <ChevronRight size={12} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <NewReviewModal open={showNew} onClose={() => setShowNew(false)} project={null} />
       <NewReviewModal open={!!showNewForProject} onClose={() => setShowNewForProject(null)} project={showNewForProject} />
@@ -316,7 +355,7 @@ export default function DashboardPage() {
         <ConfirmModal title={deleteTarget.type === 'project' ? 'Delete Project' : 'Delete Review'}
           message={deleteTarget.type === 'project' ? `Are you sure you want to delete the project "${deleteTarget.name}" and all its reviews? This cannot be undone.` : `Are you sure you want to delete the review for "${deleteTarget.name}"? This action cannot be undone.`}
           confirmLabel="Delete" variant="danger" loading={deleting}
-          onConfirm={async () => { setDeleting(true); try { if (deleteTarget.type === 'project') { await api.deleteProject(deleteTarget.id, token); } else { await api.deleteReview(deleteTarget.id, token); } setDeleteTarget(null); loadData(); } catch { setDeleteTarget(null); } finally { setDeleting(false); } }}
+          onConfirm={async () => { setDeleting(true); try { if (deleteTarget.type === 'project') { await api.deleteProject(deleteTarget.id, token); } else { await api.deleteReview(deleteTarget.id, token); } setDeleteTarget(null); loadData(projectsPage, reviewsPage); } catch { setDeleteTarget(null); } finally { setDeleting(false); } }}
           onCancel={() => setDeleteTarget(null)} />
       )}
     </div>

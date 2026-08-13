@@ -48,7 +48,7 @@ export default function AdminReviewsPage() {
     setError('');
     try {
       // ONE aggregated API call — no N+1 queries
-      const params = { page: pg, per_page: 20 };
+      const params = { page: pg, per_page: 10 };
       if (search) params.search = search;
       if (status !== 'all') params.status = status;
       if (sort) params.sort = sort;
