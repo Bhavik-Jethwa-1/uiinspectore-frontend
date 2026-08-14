@@ -7,7 +7,7 @@ import {
   Search, Loader2, AlertCircle, Eye,
   ChevronLeft, ChevronRight, X, Copy, Check,
   ShieldCheck, RefreshCw,
-  UserX, UserCheck, UserCog, Trash2
+  UserX, UserCheck, UserCog, Trash2, Users
 } from 'lucide-react';
 
 const DEBOUNCE_MS = 300;
@@ -470,20 +470,34 @@ export default function AdminUsersPage() {
       <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%', maxWidth: '100%' }}>
 
         {/* Header */}
-        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%' }}>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-              All Users
-            </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {loading ? '…' : `${total} user${total !== 1 ? 's' : ''} total`}
-            </p>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, width: '100%', padding: '0 4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ background: 'var(--primary)', padding: '8px 12px', borderRadius: 10 }}>
+              <Users size={18} style={{ color: '#fff' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+                All Users
+              </h1>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {loading ? (
+                  <span style={{ color: 'var(--text-muted)' }}>Loading...</span>
+                ) : (
+                  <>
+                    <span style={{ background: 'var(--primary)', color: '#fff', padding: '1px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
+                      {total}
+                    </span>
+                    <span>user{total !== 1 ? 's' : ''} total</span>
+                  </>
+                )}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => fetchUsers(page)}
             className="admin-btn-icon"
             title="Refresh"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 8 }}
           >
             <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
@@ -546,7 +560,9 @@ export default function AdminUsersPage() {
               </thead>
               <tbody>
                 {users.map((u, i) => (
-                  <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'background 0.15s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     {/* User */}
                     <td style={{ padding: '11px 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -557,10 +573,10 @@ export default function AdminUsersPage() {
                     {/* Email */}
                     <td style={{ padding: '11px 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span title={u.email} style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                           {u.email}
                         </span>
-                        <button onClick={() => copyEmail(u.email)} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
+                        <button onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
                           {copiedEmail === u.email ? <Check size={11} style={{ color: 'var(--success)' }} /> : <Copy size={11} style={{ color: 'var(--text-muted)' }} />}
                         </button>
                       </div>
@@ -574,8 +590,8 @@ export default function AdminUsersPage() {
                     {/* Status */}
                     <td style={{ padding: '11px 12px' }}>
                       {u.is_active
-                        ? <Badge variant="green"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />Active</Badge>
-                        : <Badge variant="red"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--error)', display: 'inline-block' }} />Suspended</Badge>}
+                        ? <Badge variant="green"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block', flexShrink: 0 }} />Active</Badge>
+                        : <Badge variant="red"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)', display: 'inline-block', flexShrink: 0 }} />Suspended</Badge>}
                     </td>
                     {/* Projects */}
                     <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
