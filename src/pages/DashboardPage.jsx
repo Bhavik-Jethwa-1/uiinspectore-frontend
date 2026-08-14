@@ -55,6 +55,11 @@ function NewReviewModal({ open, onClose, project }) {
     reader.readAsDataURL(f);
   };
 
+  const handleRemoveFile = () => {
+    setFile(null);
+    setPreview(null);
+  };
+
   const handleSubmit = async () => {
     if (!goal.trim()) { setError('Please describe the page goal'); return; }
     if (!projectName.trim()) { setError('Project name is required'); return; }
@@ -140,6 +145,13 @@ function NewReviewModal({ open, onClose, project }) {
               {preview ? (
                 <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                   <img src={preview} alt="Screenshot preview" style={{ width: '100%', maxHeight: 180, objectFit: 'contain', display: 'block', background: 'var(--background)' }} />
+                  <button
+                    onClick={handleRemoveFile}
+                    style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+                    title="Remove image"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               ) : (
                 <label className="block cursor-pointer rounded-lg text-center" style={{ border: '1.5px dashed var(--border)', background: 'var(--background)', padding: '14px 12px' }}>
@@ -159,6 +171,13 @@ function NewReviewModal({ open, onClose, project }) {
               {preview && (
                 <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                   <img src={preview} alt="Screenshot preview" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block', background: 'var(--background)' }} />
+                  <button
+                    onClick={handleRemoveFile}
+                    style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+                    title="Remove image"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
@@ -171,14 +190,20 @@ function NewReviewModal({ open, onClose, project }) {
           )}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-              {['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'].map((label) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: label === analysisStep ? 'var(--success-light)' : 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 8, color: label === analysisStep ? 'var(--success)' : 'var(--border)' }}>{label === analysisStep ? '●' : '✓'}</span>
+              {['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'].map((label, idx) => {
+                const steps = ['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'];
+                const currentIdx = steps.indexOf(analysisStep);
+                const isCompleted = currentIdx > idx;
+                const isCurrent = label === analysisStep;
+                return (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: isCompleted ? 'var(--success-light)' : isCurrent ? 'var(--primary-light)' : 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 8, color: isCompleted ? 'var(--success)' : isCurrent ? 'var(--primary)' : 'var(--border)' }}>{isCurrent ? '●' : '✓'}</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: isCompleted ? 'var(--success)' : isCurrent ? 'var(--primary)' : 'var(--border)', fontWeight: isCurrent ? '600' : '400' }}>{label}</span>
                   </div>
-                  <span style={{ fontSize: 12, color: label === analysisStep ? 'var(--primary)' : 'var(--border)', fontWeight: label === analysisStep ? '600' : '400' }}>{label}</span>
-                </div>
-              ))}
+                );
+              })}
               <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>This usually takes 15–30 seconds</p>
             </div>
           )}

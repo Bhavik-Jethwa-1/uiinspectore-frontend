@@ -1,11 +1,50 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Search, Loader2, AlertCircle, Eye, FolderOpen, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Eye, FolderOpen, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+
+function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'danger', onConfirm, onCancel, loading }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'rgba(0,0,0,0.5)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <div style={{
+        background: 'var(--surface)', borderRadius: 'var(--radius)',
+        border: '1px solid var(--border)', padding: '1.5rem',
+        maxWidth: 400, width: '100%', boxShadow: 'var(--shadow-md)',
+      }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
+          {title}
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
+          {message}
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} className="btn-secondary" disabled={loading}
+            style={{ padding: '0.5rem 1rem', fontSize: 13 }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            style={{
+              padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)',
+              fontSize: 13, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+              background: variant === 'danger' ? 'var(--error)' : 'var(--primary)',
+              color: '#fff', border: 'none', opacity: loading ? 0.6 : 1,
+            }}>
+            {loading ? <Loader2 size={13} className="animate-spin" /> : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminProjectsPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -13,6 +52,8 @@ export default function AdminProjectsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadProjects = useCallback(async (pg = 1) => {
     if (!token) return;
@@ -41,6 +82,37 @@ export default function AdminProjectsPage() {
     if (!d) return '—';
     const date = new Date(d);
     return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
+  };
+
+  const handleDeleteProject = (project) => {
+    setConfirmModal({
+      type: 'delete_project',
+      title: 'Delete Project',
+      message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      projectId: project.id,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal) return;
+    
+    if (confirmModal.type === 'delete_project') {
+      setActionLoading(true);
+      try {
+        await api.adminDeleteProject(confirmModal.projectId, token);
+        setConfirmModal(null);
+        loadProjects(page);
+      } catch (e) {
+        setConfirmModal({
+          ...confirmModal,
+          message: e.message || 'Failed to delete project. Please try again.',
+        });
+      } finally {
+        setActionLoading(false);
+      }
+    }
   };
 
   return (
@@ -106,16 +178,19 @@ export default function AdminProjectsPage() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Name', 'Owner', 'Reviews', 'Created', ''].map(h => (
-                    <th key={h} style={{
-                      padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                      color: 'var(--text-muted)', textAlign: 'left',
-                      textTransform: 'uppercase', letterSpacing: '0.04em',
-                      background: 'var(--background)', whiteSpace: 'nowrap',
-                    }}>
-                      {h}
-                    </th>
-                  ))}
+                  {['Name', 'Owner', 'Reviews', 'Created', 'Actions'].map(h => {
+                    const centerCols = ['Reviews', 'Actions'];
+                    return (
+                      <th key={h} style={{
+                        padding: '10px 12px', fontSize: 10, fontWeight: 600,
+                        color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
+                        textTransform: 'uppercase', letterSpacing: '0.04em',
+                        background: 'var(--background)', whiteSpace: 'nowrap',
+                      }}>
+                        {h}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +208,7 @@ export default function AdminProjectsPage() {
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: '11px 12px' }}>
+                    <td style={{ padding: '11px 12px', textAlign: 'center' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
                         {p.reviews_count ?? 0}
                       </span>
@@ -141,10 +216,15 @@ export default function AdminProjectsPage() {
                     <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {formatDate(p.created_at)}
                     </td>
-                    <td style={{ padding: '11px 12px' }}>
-                      <Link to={`/projects/${p.id}`} className="btn-icon" title="View project">
-                        <Eye size={13} />
-                      </Link>
+                    <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        <Link to={`/projects/${p.id}`} className="btn-icon" title="View project" style={{ padding: 6 }}>
+                          <Eye size={14} />
+                        </Link>
+                        <button onClick={() => handleDeleteProject(p)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -171,6 +251,19 @@ export default function AdminProjectsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Confirm Modal */}
+        {confirmModal && (
+          <ConfirmModal
+            title={confirmModal.title}
+            message={confirmModal.message}
+            confirmLabel={confirmModal.confirmLabel}
+            variant={confirmModal.variant}
+            loading={actionLoading}
+            onConfirm={handleConfirmAction}
+            onCancel={() => setConfirmModal(null)}
+          />
         )}
       </div>
     </div>

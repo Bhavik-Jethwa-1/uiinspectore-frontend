@@ -568,10 +568,13 @@ export default function AdminUsersPage() {
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     {/* User */}
                     <td style={{ padding: '11px 12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button
+                        onClick={() => navigate(`/admin/users/${u.id}`)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
+                      >
                         <Avatar name={u.name} size={30} />
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{u.name}</span>
-                      </div>
+                      </button>
                     </td>
                     {/* Email */}
                     <td style={{ padding: '11px 12px' }}>

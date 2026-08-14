@@ -53,7 +53,7 @@ export default function Layout({ children }) {
         {/* Mobile close */}
         <button
           onClick={() => setMobileOpen(false)}
-          style={{ position: 'absolute', top: 12, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 4 }}
+          style={{ position: 'absolute', top: 12, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
           className="lg-hidden"
         >
           <X size={16} />

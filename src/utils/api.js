@@ -124,6 +124,7 @@ export const api = {
   adminResetPreferences: (id, token) => request('POST', `/admin/users/${id}/reset-preferences`, null, token),
   adminSettingsMeta: (token) => request('GET', '/admin/settings/meta', null, token),
   adminDeleteUser: (id, token) => request('DELETE', `/admin/users/${id}`, null, token),
+  adminDeleteProject: (id, token) => request('DELETE', `/admin/projects/${id}`, null, token),
 };
 
 export { ApiError };

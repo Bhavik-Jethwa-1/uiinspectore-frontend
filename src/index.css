@@ -299,9 +299,15 @@ body {
 .hide-mobile { display: flex; }
 .show-mobile-only { display: none; }
 
+/* Hide on large screens, show only on mobile */
+.lg-hidden {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .hide-mobile { display: none; }
   .show-mobile-only { display: flex; }
+  .lg-hidden { display: flex; }
 }
 
 /* Admin sidebar responsive */
@@ -1093,7 +1099,7 @@ body {
 /* ===== ADMIN STATS GRID ===== */
 .stat-cards-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 24px;
   width: 100%;
@@ -1123,8 +1129,8 @@ body {
   }
 }
 
-/* Mobile */
-@media (max-width: 640px) {
+/* Mobile - single column for very small screens */
+@media (max-width: 480px) {
   .stat-cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
@@ -1134,7 +1140,7 @@ body {
   }
 }
 
-/* Small mobile */
+/* Extra small mobile */
 @media (max-width: 360px) {
   .stat-cards-grid {
     grid-template-columns: 1fr;
