@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Settings, ShieldCheck, ChevronLeft,
   LogOut, Menu, X, User
 } from 'lucide-react';
-import PullCord from './PullCord';
+import ThemePullCord from './ThemePullCord';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -134,7 +134,7 @@ export default function Layout({ children }) {
             padding: '12px 16px 0',
           }}
         >
-          <PullCord />
+          <ThemePullCord />
         </div>
 
         <main className="main-content">

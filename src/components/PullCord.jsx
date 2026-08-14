@@ -338,15 +338,11 @@ export default function PullCord() {
     cursor: isDragging ? 'grabbing' : 'grab',
     padding: '6px 8px',
     borderRadius: 16,
-    background: isDark ? 'rgba(15,12,30,0.75)' : 'rgba(255,255,255,0.82)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    border: isDark
-      ? '1px solid rgba(124,92,255,0.25)'
-      : '1px solid rgba(100,90,200,0.18)',
-    boxShadow: isDark
-      ? '0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset'
-      : '0 2px 12px rgba(90,80,180,0.12), 0 1px 3px rgba(0,0,0,0.08)',
+    background: 'transparent',
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+    border: 'none',
+    boxShadow: 'none',
     WebkitTapHighlightColor: 'transparent',
     opacity: crossfading ? 0.82 : 1,
     transition: crossfading ? 'opacity 0.35s ease' : 'none',

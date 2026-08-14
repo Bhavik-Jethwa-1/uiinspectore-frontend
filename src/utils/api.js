@@ -68,6 +68,7 @@ export const api = {
     return request('POST', `/reviews/${reviewId}/screenshot`, form, token);
   },
   analyzeReview: (reviewId, token) => request('POST', `/reviews/${reviewId}/analyze`, {}, token),
+  retryReview: (reviewId, token) => request('POST', `/reviews/${reviewId}/retry`, {}, token),
   deleteReview: (id, token) => request('DELETE', `/reviews/${id}`, null, token),
 
   // Profile

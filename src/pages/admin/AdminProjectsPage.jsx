@@ -44,10 +44,10 @@ export default function AdminProjectsPage() {
   };
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%', maxWidth: '100%' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%' }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
               All Projects
@@ -56,22 +56,22 @@ export default function AdminProjectsPage() {
               {loading ? '…' : `${total} project${total !== 1 ? 's' : ''} total`}
             </p>
           </div>
-          <button onClick={() => loadProjects(page)} className="btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <button onClick={() => loadProjects(page)} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%' }}>
+          <div className="admin-search-wrapper" style={{ position: 'relative' }}>
+            <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search projects..."
-              className="input"
-              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13 }}
+              className="admin-search-input"
+              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%' }}
             />
           </div>
         </div>
@@ -101,8 +101,9 @@ export default function AdminProjectsPage() {
             </p>
           </div>
         ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
+            <div className="admin-table-scroll" style={{ overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
+            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['Name', 'Owner', 'Reviews', 'Created', ''].map(h => (
@@ -149,10 +150,11 @@ export default function AdminProjectsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+              <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   Page {page} of {totalPages} · {total} projects
                 </span>

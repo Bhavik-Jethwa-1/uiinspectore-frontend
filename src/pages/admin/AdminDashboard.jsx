@@ -82,11 +82,11 @@ export default function AdminDashboard() {
   ] : [];
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header + Refresh */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
               Overview
@@ -102,16 +102,16 @@ export default function AdminDashboard() {
 
         {/* Stats Cards */}
         {!loading && stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
+          <div className="stat-cards-grid">
             {statCards.map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card" style={{ padding: '14px' }}>
+              <div key={label} className="card stat-card" style={{ padding: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="stat-icon" style={{ width: 24, height: 24, borderRadius: 6, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={12} style={{ color }} />
                   </div>
                 </div>
-                <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</p>
+                <p className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</p>
+                <p className="stat-label" style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</p>
               </div>
             ))}
           </div>
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
 
         {/* Loading stats */}
         {loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
+          <div className="stat-cards-grid" style={{ opacity: 0.5 }}>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="card" style={{ padding: '14px', height: 80 }}>
                 <Loader2 size={16} className="animate-spin" style={{ color: 'var(--border)', margin: 'auto' }} />
@@ -134,16 +134,16 @@ export default function AdminDashboard() {
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div className="admin-search" style={{ marginBottom: 12, width: '100%', maxWidth: '100%' }}>
+          <div className="admin-search-wrapper" style={{ position: 'relative' }}>
+            <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search reviews..."
-              className="input"
-              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)' }}
+              className="admin-search-input"
+              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', width: '100%' }}
             />
           </div>
         </div>
@@ -166,8 +166,9 @@ export default function AdminDashboard() {
             </p>
           </div>
         ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
+            <div className="admin-table-scroll" style={{ overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
+            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['ID', 'Project', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
@@ -214,10 +215,11 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+              <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   Page {page} of {totalPages} · {total} reviews
                 </span>

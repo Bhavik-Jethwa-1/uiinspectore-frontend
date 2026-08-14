@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import PullCord from '../components/PullCord';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
@@ -22,6 +21,7 @@ export default function ReviewPage() {
   const navigate = useNavigate();
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [rightTab, setRightTab] = useState('issues');
   const [showNew, setShowNew] = useState(false);
@@ -50,6 +50,34 @@ export default function ReviewPage() {
     } finally {
       if (String(targetId) !== String(id)) return;
       setLoading(false);
+    }
+  }
+
+  async function handleRetry() {
+    if (!token || retrying) return;
+    setRetrying(true);
+    
+    // Optimistically set status to analyzing so UI updates immediately
+    setReview(prev => prev ? { ...prev, status: 'analyzing' } : null);
+    
+    try {
+      // Call the retry endpoint - this runs a fresh AI analysis on the original screenshot
+      const response = await api.retryReview(id, token);
+      
+      // Update with the new review data from the server
+      if (response.review) {
+        setReview(response.review);
+      } else {
+        // Fallback: reload the full review data
+        await loadReview(id);
+      }
+    } catch (err) {
+      console.error('Retry failed:', err);
+      // Restore the failed status so user can try again
+      setReview(prev => prev ? { ...prev, status: 'failed' } : null);
+      alert(err?.message || err?.error || 'Failed to retry analysis. Please try again.');
+    } finally {
+      setRetrying(false);
     }
   }
 
@@ -127,11 +155,7 @@ export default function ReviewPage() {
           position: 'fixed', top: 12, right: 16, zIndex: 200,
           display: 'flex', justifyContent: 'flex-end',
         }}
-      >
-        <div style={{ cursor: 'pointer' }}>
-          <PullCord />
-        </div>
-      </div>
+      />
 
       {/* Top bar */}
       <div className="review-topbar">
@@ -218,8 +242,9 @@ export default function ReviewPage() {
                       <AlertCircle size={22} style={{ color: 'var(--error)', margin: '0 auto' }} />
                       <p style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Analysis failed</p>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>The AI could not complete this review.</p>
-                      <button onClick={loadReview} className="btn-secondary" style={{ fontSize: 11, height: 30, padding: '0 12px' }}>
-                        <RefreshCw size={11} /> Retry
+                      <button onClick={handleRetry} disabled={retrying} className="btn-primary" style={{ fontSize: 11, height: 30, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {retrying ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                        {retrying ? 'Retrying...' : 'Retry Analysis'}
                       </button>
                     </div>
                   ) : (
@@ -367,8 +392,8 @@ export default function ReviewPage() {
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>Review Actions</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={loadReview} className="btn-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34 }}>
-                <RefreshCw size={12} /> Retry
+              <button onClick={handleRetry} disabled={retrying} className="btn-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34 }}>
+                {retrying ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} {retrying ? 'Retrying...' : 'Retry'}
               </button>
               <button onClick={() => setShowNew(true)} className="btn-primary" style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34 }}>
                 <Plus size={12} /> New

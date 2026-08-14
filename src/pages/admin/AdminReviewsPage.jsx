@@ -163,7 +163,7 @@ export default function AdminReviewsPage() {
             </p>
           </div>
         ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
+          <div className="card admin-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>

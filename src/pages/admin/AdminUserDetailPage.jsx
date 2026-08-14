@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const TABS = ['Overview', 'Projects', 'Activity', 'Settings'];
 
@@ -98,81 +99,55 @@ export default function AdminUserDetailPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: 900 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <button
-          onClick={() => navigate('/admin/users')}
-          className="btn-ghost"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, padding: '6px 0' }}
-        >
-          <ArrowLeft size={14} /> Back to All Users
-        </button>
+    <div className="admin-page-content">
+      {/* Back button */}
+      <button
+        onClick={() => navigate('/admin/users')}
+        className="btn-ghost admin-back-btn"
+        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}
+      >
+        <ArrowLeft size={14} /> Back to All Users
+      </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #5B5FEF, #8B5CF6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: 18, fontWeight: 800, flexShrink: 0,
-          }}>
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{user.name}</h2>
-              {user.is_admin && (
-                <span style={{
-                  background: 'var(--primary-light)', color: 'var(--primary)',
-                  borderRadius: 20, padding: '2px 10px', fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.04em', textTransform: 'uppercase',
-                }}>
-                  Admin
-                </span>
-              )}
-              <span style={{
-                background: user.is_active ? 'var(--success-light)' : 'var(--error-light)',
-                color: user.is_active ? 'var(--success)' : 'var(--error)',
-                borderRadius: 20, padding: '2px 10px', fontSize: 10, fontWeight: 600,
-              }}>
-                {user.is_active ? 'Active' : 'Suspended'}
-              </span>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '3px 0 0' }}>{user.email}</p>
-          </div>
-          <button
-            onClick={fetchUserDetail}
-            className="btn-icon"
-            title="Refresh"
-            style={{ marginLeft: 'auto', flexShrink: 0 }}
-          >
-            <RefreshCw size={15} />
-          </button>
+      {/* User Profile Header */}
+      <div className="admin-user-header">
+        <div className="admin-user-avatar">
+          {user.name.charAt(0).toUpperCase()}
         </div>
+        <div className="admin-user-info">
+          <div className="admin-user-name-row">
+            <h2 className="admin-user-name">{user.name}</h2>
+            {user.is_admin && (
+              <span className="admin-badge admin-badge-purple">Admin</span>
+            )}
+            <span className={`admin-badge ${user.is_active ? 'admin-badge-green' : 'admin-badge-red'}`}>
+              {user.is_active ? 'Active' : 'Suspended'}
+            </span>
+          </div>
+          <p className="admin-user-email">{user.email}</p>
+        </div>
+        <button
+          onClick={fetchUserDetail}
+          className="admin-refresh-btn"
+          title="Refresh"
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
       {/* Tabs */}
-      <div style={{
-        display: 'flex', gap: 2, borderBottom: '1px solid var(--border)',
-        marginBottom: 20,
-      }}>
+      <div className="admin-tabs">
         {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'none', border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
-              color: activeTab === tab ? 'var(--primary)' : 'var(--text-secondary)',
-              transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6,
-            }}
+            className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
           >
             {tab === 'Overview' && <User size={13} />}
             {tab === 'Projects' && <LayoutGrid size={13} />}
             {tab === 'Activity' && <Activity size={13} />}
             {tab === 'Settings' && <Settings size={13} />}
-            {tab}
+            <span>{tab}</span>
           </button>
         ))}
       </div>
@@ -226,7 +201,7 @@ function OverviewTab({ user }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      <div className="admin-user-detail-stats">
         {statCards.map(({ label, value, color }) => (
           <div key={label} className="card" style={{ padding: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
@@ -476,12 +451,39 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
   );
 }
 
+// Modal state shape
+const MODAL_TYPES = {
+  NONE: null,
+  // UPDATE setting
+  CONFIRM_UPDATE: 'CONFIRM_UPDATE',
+  // DELETE setting
+  DELETE_SETTING: 'DELETE_SETTING',
+  // CREATE setting
+  ADD_SETTING: 'ADD_SETTING',
+  // Account status
+  SUSPEND_USER: 'SUSPEND_USER',
+  ACTIVATE_USER: 'ACTIVATE_USER',
+  // Allow Login
+  DISABLE_LOGIN: 'DISABLE_LOGIN',
+  ENABLE_LOGIN: 'ENABLE_LOGIN',
+  // Role change
+  CHANGE_ROLE: 'CHANGE_ROLE',
+  // Password reset
+  RESET_PASSWORD: 'RESET_PASSWORD',
+  // Reset preferences
+  RESET_PREFERENCES: 'RESET_PREFERENCES',
+};
+
 function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdateUser }) {
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [tempPassword, setTempPassword] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  // Confirmation modal state
+  const [modalType, setModalType] = useState(null);
+  const [modalData, setModalData] = useState(null);
 
   const s = settings || {};
 
@@ -495,7 +497,6 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
-        // Fallback for insecure contexts (HTTP)
         const el = document.createElement('textarea');
         el.value = text;
         el.style.position = 'fixed';
@@ -512,6 +513,21 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     }
   }
 
+  // ---- Modal helpers ----
+
+  function openModal(type, data = null) {
+    setModalType(type);
+    setModalData(data);
+  }
+
+  function closeModal() {
+    if (actionLoading) return; // prevent closing while processing
+    setModalType(null);
+    setModalData(null);
+  }
+
+  // ---- API handlers (called only after confirmation) ----
+
   async function saveSetting(key, value) {
     setSaving(true);
     try {
@@ -525,16 +541,99 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     }
   }
 
-  async function handleToggle(key, currentValue) {
+  async function handleToggleConfirm() {
+    const { key, currentValue } = modalData;
     const newVal = currentValue === '1' || currentValue === 'true' ? '0' : '1';
+    closeModal();
     await saveSetting(key, newVal);
   }
 
-  async function handleSelect(key, value) {
+  async function handleSelectConfirm() {
+    const { key, value, currentValue, label } = modalData;
+    closeModal();
     await saveSetting(key, value);
   }
 
-  async function handleRoleToggle() {
+  async function handleAddSettingConfirm() {
+    const { key, value } = modalData;
+    closeModal();
+    await saveSetting(key, value);
+  }
+
+  async function handleDeleteSettingConfirm() {
+    const { key, label } = modalData;
+    closeModal();
+    setActionLoading('delete_' + key);
+    try {
+      await api.adminDeleteUserSetting(userId, key, token);
+      const data = await api.adminGetUser(userId, token, {});
+      onUpdateSettings(data.settings || {});
+      showMsg(`"${label}" setting deleted.`, 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to delete setting.', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleSuspendConfirm() {
+    closeModal();
+    setActionLoading('suspend');
+    try {
+      await api.adminSuspendUser(userId, token);
+      onUpdateUser({ ...user, is_active: false });
+      showMsg('User suspended.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to suspend user.', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleActivateConfirm() {
+    closeModal();
+    setActionLoading('activate');
+    try {
+      await api.adminActivateUser(userId, token);
+      onUpdateUser({ ...user, is_active: true });
+      showMsg('User activated.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to activate user.', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleDisableLoginConfirm() {
+    closeModal();
+    setSaving(true);
+    try {
+      const data = await api.adminUpdateUserSetting(userId, 'allow_login', '0', token);
+      onUpdateSettings(data.settings);
+      showMsg('Login access disabled.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to disable login access.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEnableLoginConfirm() {
+    closeModal();
+    setSaving(true);
+    try {
+      const data = await api.adminUpdateUserSetting(userId, 'allow_login', '1', token);
+      onUpdateSettings(data.settings);
+      showMsg('Login access enabled.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to enable login access.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRoleToggleConfirm() {
+    closeModal();
     setActionLoading('role');
     try {
       const newVal = !user.is_admin;
@@ -548,35 +647,8 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     }
   }
 
-  async function handleSuspend() {
-    if (!confirm(`Suspend ${user?.name}? They will not be able to log in.`)) return;
-    setActionLoading('suspend');
-    try {
-      await api.adminSuspendUser(userId, token);
-      onUpdateUser({ ...user, is_active: false });
-      showMsg('User suspended.', 'success');
-    } catch (err) {
-      showMsg(err.message || 'Failed to suspend user.', 'error');
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleActivate() {
-    setActionLoading('activate');
-    try {
-      await api.adminActivateUser(userId, token);
-      onUpdateUser({ ...user, is_active: true });
-      showMsg('User activated.', 'success');
-    } catch (err) {
-      showMsg(err.message || 'Failed to activate user.', 'error');
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleResetPassword() {
-    if (!confirm(`Reset password for ${user?.name}? A temporary password will be shown.`)) return;
+  async function handleResetPasswordConfirm() {
+    closeModal();
     setActionLoading('reset_password');
     setTempPassword(null);
     try {
@@ -590,8 +662,8 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     }
   }
 
-  async function handleResetPreferences() {
-    if (!confirm(`Reset all preferences for ${user?.name}? This cannot be undone.`)) return;
+  async function handleResetPreferencesConfirm() {
+    closeModal();
     setActionLoading('reset_prefs');
     try {
       await api.adminResetPreferences(userId, token);
@@ -602,6 +674,54 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     } finally {
       setActionLoading(null);
     }
+  }
+
+  // ---- User-facing action triggerers (open modals, don't call APIs) ----
+
+  function handleToggle(key, currentValue) {
+    const newVal = currentValue === '1' || currentValue === 'true' ? '0' : '1';
+    const label = SETTING_LABELS[key] || key;
+    openModal(MODAL_TYPES.CONFIRM_UPDATE, {
+      key,
+      type: 'toggle',
+      currentValue: currentValue === '1' || currentValue === 'true' ? 'Enabled' : 'Disabled',
+      newValue: newVal === '1' || newVal === 'true' ? 'Enabled' : 'Disabled',
+      label,
+      newActualValue: newVal,
+    });
+  }
+
+  function handleSelect(key, value, currentValue) {
+    const label = SETTING_LABELS[key] || key;
+    const currentLabel = SETTING_VALUE_LABELS[key]?.[currentValue] || currentValue || 'Not set';
+    const newLabel = SETTING_VALUE_LABELS[key]?.[value] || value;
+    openModal(MODAL_TYPES.CONFIRM_UPDATE, {
+      key,
+      type: 'select',
+      currentValue: currentLabel,
+      newValue: newLabel,
+      label,
+      newActualValue: value,
+    });
+  }
+
+  function handleAddSetting(key, value) {
+    const label = SETTING_LABELS[key] || key;
+    const newLabel = SETTING_VALUE_LABELS[key]?.[value] || value;
+    openModal(MODAL_TYPES.ADD_SETTING, {
+      key,
+      value,
+      label,
+      valueLabel: newLabel,
+    });
+  }
+
+  function handleDeleteSetting(key, label) {
+    openModal(MODAL_TYPES.DELETE_SETTING, {
+      key,
+      label,
+      currentValue: s[key] || 'Not set',
+    });
   }
 
   const PERSONAS = [
@@ -628,22 +748,63 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     'Australia/Sydney', 'Pacific/Auckland',
   ];
 
+  // ---- Setting metadata: labels + descriptions ----
+  const SETTING_LABELS = {
+    theme: 'Theme',
+    language: 'Language',
+    timezone: 'Timezone',
+    email_notifications: 'Email Notifications',
+    review_notifications: 'Review Completion',
+    ai_review_enabled: 'AI Review',
+    reviewer_persona: 'Reviewer Persona',
+    daily_review_limit: 'Daily Review Limit',
+    allow_retry: 'Allow Retry',
+    allow_login: 'Allow Login',
+  };
+
+  const SETTING_DESCRIPTIONS = {
+    theme: 'Controls the appearance of the user\'s application.',
+    language: 'Controls the language used by this user\'s application.',
+    timezone: 'Controls how dates and times are displayed for this user.',
+    email_notifications: 'Controls whether the user receives application emails.',
+    review_notifications: 'Controls whether the user receives notifications when a review is completed.',
+    ai_review_enabled: 'Controls whether this user can use AI-powered UI review.',
+    reviewer_persona: 'Controls the default reviewer persona used during AI analysis.',
+    daily_review_limit: 'Controls the maximum number of reviews this user can create per day.',
+    allow_retry: 'Controls whether this user can retry failed review uploads.',
+    allow_login: 'Controls whether this user is allowed to log in to the application.',
+  };
+
+  const SETTING_VALUE_LABELS = {
+    theme: { light: 'Light', dark: 'Dark', system: 'System' },
+    language: { en: 'English' },
+    timezone: Object.fromEntries(TIMEZONES.map(tz => [tz, tz])),
+    reviewer_persona: Object.fromEntries(PERSONAS.map(p => [p.value, p.label])),
+  };
+
   const boolLabel = (v) => v === '1' || v === 'true' ? 'Enabled' : 'Disabled';
   const boolIcon = (v) => v === '1' || v === 'true' ? <CheckCircle size={11} style={{ color: 'var(--success)' }} /> : <XCircle size={11} style={{ color: 'var(--text-muted)' }} />;
 
-  function SettingRow({ label, icon, children, borderBottom = true }) {
+  // Modern attractive setting item
+  function SettingItem({ label, description, children, borderBottom = true, className = '' }) {
     return (
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '9px 16px',
-        borderBottom: borderBottom ? '1px solid var(--border)' : 'none',
-        gap: 12,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-          {icon && <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{icon}</span>}
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
+      <div
+        className={`settings-item ${className}`}
+        style={{
+          padding: '14px 20px',
+          borderBottom: borderBottom ? '1px solid var(--border)' : 'none',
+          transition: 'background 0.15s ease',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover, #f8f9fa)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="settings-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{label}</div>
+            {description && <div className="settings-desc" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>{description}</div>}
+          </div>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>{children}</div>
         </div>
-        <div style={{ flexShrink: 0 }}>{children}</div>
       </div>
     );
   }
@@ -652,7 +813,34 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     return (
       <select
         value={value || ''}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => {
+          // Don't call onChange directly — trigger confirmation modal
+        }}
+        onBlur={e => {
+          // Get the value that was selected before blur
+        }}
+        className="select"
+        style={{ fontSize: 11, padding: '3px 22px 3px 6px' }}
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value || ''}>{o.label}</option>
+        ))}
+      </select>
+    );
+  }
+
+  // Wrapped select that triggers confirmation modal on change
+  function ConfirmSelect({ value, options, onChange, disabled, settingKey, currentValue }) {
+    function handleChange(e) {
+      const newVal = e.target.value;
+      if (newVal !== currentValue) {
+        onChange(newVal);
+      }
+    }
+    return (
+      <select
+        value={value || ''}
+        onChange={handleChange}
         disabled={disabled || saving}
         className="select"
         style={{ fontSize: 11, padding: '3px 22px 3px 6px' }}
@@ -664,7 +852,8 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
     );
   }
 
-  function ToggleBtn({ value, onToggle, disabled }) {
+  // Wrapped toggle that triggers confirmation modal on click
+  function ConfirmToggle({ value, onToggle, disabled }) {
     return (
       <button
         onClick={() => onToggle()}
@@ -698,6 +887,200 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
   const userIsActive = user?.is_active;
   const userIsAdmin = user?.is_admin;
   const emailVerified = !!user?.email_verified_at;
+
+  // ---- Render confirmation modals ----
+
+  function renderModal() {
+    if (!modalType) return null;
+
+    switch (modalType) {
+
+      case MODAL_TYPES.CONFIRM_UPDATE: {
+        const { key, type, label, currentValue, newValue } = modalData;
+        return (
+          <ConfirmModal
+            title="Confirm Changes"
+            message={`You are about to update "${label}" for this user.`}
+            details={[
+              { label: 'Setting', value: label },
+              { label: 'Current value', value: currentValue },
+              { label: 'New value', value: newValue },
+            ]}
+            confirmLabel="Save Changes"
+            variant="primary"
+            onConfirm={handleSelectConfirm}
+            onCancel={closeModal}
+            loading={saving}
+          />
+        );
+      }
+
+      case MODAL_TYPES.ADD_SETTING: {
+        const { key, label, valueLabel } = modalData;
+        return (
+          <ConfirmModal
+            title="Add Setting"
+            message={`You are about to add a new setting for this user.`}
+            details={[
+              { label: 'Setting', value: label },
+              { label: 'Value', value: valueLabel },
+            ]}
+            confirmLabel="Create Setting"
+            variant="primary"
+            onConfirm={handleAddSettingConfirm}
+            onCancel={closeModal}
+            loading={saving}
+          />
+        );
+      }
+
+      case MODAL_TYPES.DELETE_SETTING: {
+        const { key, label, currentValue } = modalData;
+        return (
+          <ConfirmModal
+            title="Delete Setting"
+            message={`You are about to permanently delete "${label}" for this user. This action cannot be undone.`}
+            details={[
+              { label: 'Setting', value: label },
+              { label: 'Current value', value: currentValue },
+            ]}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={handleDeleteSettingConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'delete_' + key}
+          />
+        );
+      }
+
+      case MODAL_TYPES.SUSPEND_USER:
+        return (
+          <ConfirmModal
+            title="Suspend User"
+            message={`Are you sure you want to suspend ${user?.name}? The user will no longer be able to access the application.`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Email', value: user?.email },
+            ]}
+            confirmLabel="Suspend User"
+            variant="danger"
+            onConfirm={handleSuspendConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'suspend'}
+          />
+        );
+
+      case MODAL_TYPES.ACTIVATE_USER:
+        return (
+          <ConfirmModal
+            title="Activate User"
+            message={`Are you sure you want to activate ${user?.name}? The user will regain access to the application.`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Email', value: user?.email },
+            ]}
+            confirmLabel="Activate User"
+            variant="primary"
+            onConfirm={handleActivateConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'activate'}
+          />
+        );
+
+      case MODAL_TYPES.DISABLE_LOGIN:
+        return (
+          <ConfirmModal
+            title="Disable Login"
+            message={`Are you sure you want to disable login access for ${user?.name}? The user will not be able to log in while login access is disabled.`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Email', value: user?.email },
+            ]}
+            confirmLabel="Disable Login"
+            variant="warning"
+            onConfirm={handleDisableLoginConfirm}
+            onCancel={closeModal}
+            loading={saving}
+          />
+        );
+
+      case MODAL_TYPES.ENABLE_LOGIN:
+        return (
+          <ConfirmModal
+            title="Enable Login"
+            message={`Are you sure you want to enable login access for ${user?.name}?`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Email', value: user?.email },
+            ]}
+            confirmLabel="Enable Login"
+            variant="primary"
+            onConfirm={handleEnableLoginConfirm}
+            onCancel={closeModal}
+            loading={saving}
+          />
+        );
+
+      case MODAL_TYPES.CHANGE_ROLE: {
+        const newRole = !userIsAdmin;
+        return (
+          <ConfirmModal
+            title="Change User Role"
+            message={`You are about to change the role for ${user?.name}. ${newRole ? 'They will become an Administrator with full access.' : 'They will become a regular User with standard access.'}`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Current Role', value: userIsAdmin ? 'Admin' : 'User' },
+              { label: 'New Role', value: newRole ? 'Admin' : 'User' },
+            ]}
+            confirmLabel="Change Role"
+            variant="warning"
+            onConfirm={handleRoleToggleConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'role'}
+          />
+        );
+      }
+
+      case MODAL_TYPES.RESET_PASSWORD:
+        return (
+          <ConfirmModal
+            title="Reset Password"
+            message={`Are you sure you want to reset the password for ${user?.name}? A temporary password will be generated and displayed.`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Email', value: user?.email },
+            ]}
+            confirmLabel="Reset Password"
+            variant="warning"
+            onConfirm={handleResetPasswordConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'reset_password'}
+          />
+        );
+
+      case MODAL_TYPES.RESET_PREFERENCES: {
+        const affectedSettings = ['Theme', 'Language', 'Timezone', 'Email Notifications', 'Review Completion', 'AI Review', 'Reviewer Persona', 'Daily Review Limit', 'Allow Retry'];
+        return (
+          <ConfirmModal
+            title="Reset User Preferences"
+            message={`This will reset all of this user's preferences to application defaults. This action cannot be undone.`}
+            details={[
+              { label: 'User', value: user?.name },
+              { label: 'Affected settings', value: `${affectedSettings.length} preferences` },
+            ]}
+            confirmLabel="Reset Preferences"
+            variant="danger"
+            onConfirm={handleResetPreferencesConfirm}
+            onCancel={closeModal}
+            loading={actionLoading === 'reset_prefs'}
+          />
+        );
+      }
+
+      default:
+        return null;
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -735,186 +1118,323 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
       )}
 
       {/* ACCOUNT */}
-      <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-        <SectionHeader title="ACCOUNT" />
-        <div style={{ padding: '4px 0' }}>
-          <SettingRow label="Account Status" icon={<CheckCircle size={12} />}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: userIsActive ? 'var(--success)' : 'var(--error)' }}>
+      <div className="settings-section" style={{
+        background: 'white',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        border: '1px solid #e5e7eb',
+      }}>
+        <div style={{
+          padding: '14px 20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={16} color="white" />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>ACCOUNT</span>
+        </div>
+        <div>
+          {/* Account Status */}
+          <SettingItem label="Account Status" description="Controls whether this user can access the application.">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: userIsActive ? 'var(--success)' : 'var(--error)' }}>
                 {userIsActive ? 'Active' : 'Suspended'}
               </span>
               {userIsActive ? (
                 <button
-                  onClick={handleSuspend}
+                  onClick={() => openModal(MODAL_TYPES.SUSPEND_USER)}
                   disabled={actionLoading === 'suspend'}
-                  className="btn-icon"
-                  title="Suspend user"
-                  style={{ color: 'var(--error)' }}
+                  className="btn-secondary"
+                  style={{ fontSize: 11, padding: '4px 10px', color: 'var(--error)', borderColor: 'var(--error)' }}
                 >
-                  {actionLoading === 'suspend' ? <Loader2 size={12} className="animate-spin" /> : <Ban size={13} />}
+                  {actionLoading === 'suspend' ? <Loader2 size={11} className="animate-spin" /> : <Ban size={11} />}
+                  Suspend
                 </button>
               ) : (
                 <button
-                  onClick={handleActivate}
+                  onClick={() => openModal(MODAL_TYPES.ACTIVATE_USER)}
                   disabled={actionLoading === 'activate'}
-                  className="btn-icon"
-                  title="Activate user"
-                  style={{ color: 'var(--success)' }}
+                  className="btn-secondary"
+                  style={{ fontSize: 11, padding: '4px 10px', color: 'var(--success)', borderColor: 'var(--success)' }}
                 >
-                  {actionLoading === 'activate' ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={13} />}
+                  {actionLoading === 'activate' ? <Loader2 size={11} className="animate-spin" /> : <UserCheck size={11} />}
+                  Activate
                 </button>
               )}
             </div>
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Email Verified" icon={<Mail size={12} />}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {boolIcon(emailVerified ? '1' : '0')}
-              <span style={{ fontSize: 11, color: emailVerified ? 'var(--success)' : 'var(--text-muted)' }}>
-                {emailVerified ? 'Verified' : 'Not Verified'}
+          {/* Email Verified - Read Only */}
+          <SettingItem label="Email Verified" description="Shows whether the user's email address has been verified.">
+            <span style={{ fontSize: 12, color: emailVerified ? 'var(--success)' : 'var(--text-muted)' }}>
+              {emailVerified ? 'Verified' : 'Not Verified'}
+            </span>
+          </SettingItem>
+
+          {/* Allow Login */}
+          <SettingItem label="Allow Login" description="Controls whether this user is allowed to log in to the application.">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.allow_login === '1' || s.allow_login === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.allow_login === '1' || s.allow_login === true) ? 'Enabled' : 'Disabled'}
               </span>
+              <button
+                onClick={() => openModal((s.allow_login === '1' || s.allow_login === true) ? MODAL_TYPES.DISABLE_LOGIN : MODAL_TYPES.ENABLE_LOGIN)}
+                disabled={saving}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
+              >
+                {(s.allow_login === '1' || s.allow_login === true) ? 'Disable' : 'Enable'}
+              </button>
             </div>
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Allow Login" icon={<Eye size={12} />}>
-            <ToggleBtn
-              value={userIsActive ? '1' : '0'}
-              onToggle={userIsActive ? handleSuspend : handleActivate}
-            />
-          </SettingRow>
-
-          <SettingRow label="Role" icon={<ShieldCheck size={12} />} borderBottom={false}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: userIsAdmin ? 'var(--accent)' : 'var(--text-secondary)' }}>
+          {/* Role */}
+          <SettingItem label="Role" description="Controls the user's permission level." borderBottom={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: userIsAdmin ? 'var(--accent)' : 'var(--text-secondary)' }}>
                 {userIsAdmin ? 'Admin' : 'User'}
               </span>
               <button
-                onClick={handleRoleToggle}
+                onClick={() => openModal(MODAL_TYPES.CHANGE_ROLE)}
                 disabled={actionLoading === 'role' || saving}
-                className="btn-icon"
-                title={userIsAdmin ? 'Demote to User' : 'Promote to Admin'}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
               >
-                {actionLoading === 'role' ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />}
+                {actionLoading === 'role' ? <Loader2 size={11} className="animate-spin" /> : <Pencil size={11} />}
+                Edit
               </button>
             </div>
-          </SettingRow>
+          </SettingItem>
         </div>
       </div>
 
       {/* PREFERENCES */}
-      <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-        <SectionHeader title="PREFERENCES" />
-        <div style={{ padding: '4px 0' }}>
-          <SettingRow label="Theme" icon={<Palette size={12} />}>
-            <SelectBtn
+      <div className="settings-section" style={{
+        background: 'white',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        border: '1px solid #e5e7eb',
+      }}>
+        <div style={{
+          padding: '14px 20px',
+          background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Settings size={16} color="white" />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>PREFERENCES</span>
+        </div>
+        <div>
+          {/* Theme */}
+          <SettingItem label="Theme" description="Controls the appearance of the user's application.">
+            <ConfirmSelect
               value={s.theme || 'system'}
+              currentValue={s.theme || 'system'}
               options={THEMES}
-              onChange={v => handleSelect('theme', v)}
+              onChange={(val) => handleSelect('theme', val, s.theme || 'system')}
             />
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Language" icon={<Globe size={12} />}>
-            <SelectBtn
-              value={s.language || 'en'}
-              options={[{ value: 'en', label: 'English' }]}
-              onChange={v => handleSelect('language', v)}
-            />
-          </SettingRow>
+          {/* Language - Read Only (only English supported) */}
+          <SettingItem label="Language" description="Controls the language used by this user's application.">
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>English</span>
+          </SettingItem>
 
-          <SettingRow label="Timezone" icon={<Clock8 size={12} />}>
-            <SelectBtn
+          {/* Timezone */}
+          <SettingItem label="Timezone" description="Controls how dates and times are displayed for this user.">
+            <ConfirmSelect
               value={s.timezone || 'UTC'}
+              currentValue={s.timezone || 'UTC'}
               options={TIMEZONES.map(tz => ({ value: tz, label: tz }))}
-              onChange={v => handleSelect('timezone', v)}
+              onChange={(val) => handleSelect('timezone', val, s.timezone || 'UTC')}
             />
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Email Notifications" icon={<Bell size={12} />}>
-            <ToggleBtn
-              value={s.email_notifications ?? '1'}
-              onToggle={() => handleToggle('email_notifications', s.email_notifications)}
-            />
-          </SettingRow>
+          {/* Email Notifications */}
+          <SettingItem label="Email Notifications" description="Controls whether the user receives application emails.">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.email_notifications === '1' || s.email_notifications === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.email_notifications === '1' || s.email_notifications === true) ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={() => handleToggle('email_notifications', s.email_notifications ?? '1')}
+                disabled={saving}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
+              >
+                {(s.email_notifications === '1' || s.email_notifications === true) ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </SettingItem>
 
-          <SettingRow label="Review Completion" icon={<Bell size={12} />} borderBottom={false}>
-            <ToggleBtn
-              value={s.review_notifications ?? '1'}
-              onToggle={() => handleToggle('review_notifications', s.review_notifications)}
-            />
-          </SettingRow>
+          {/* Review Completion */}
+          <SettingItem label="Review Completion" description="Controls whether the user receives notifications when a review is completed." borderBottom={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.review_notifications === '1' || s.review_notifications === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.review_notifications === '1' || s.review_notifications === true) ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={() => handleToggle('review_notifications', s.review_notifications ?? '1')}
+                disabled={saving}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
+              >
+                {(s.review_notifications === '1' || s.review_notifications === true) ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </SettingItem>
         </div>
       </div>
 
       {/* AI REVIEW */}
-      <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-        <SectionHeader title="AI REVIEW" />
-        <div style={{ padding: '4px 0' }}>
-          <SettingRow label="AI Review" icon={<Sparkles size={12} />}>
-            <ToggleBtn
-              value={s.ai_review_enabled ?? '1'}
-              onToggle={() => handleToggle('ai_review_enabled', s.ai_review_enabled)}
-            />
-          </SettingRow>
+      <div className="settings-section" style={{
+        background: 'white',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        border: '1px solid #e5e7eb',
+      }}>
+        <div style={{
+          padding: '14px 20px',
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={16} color="white" />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>AI REVIEW</span>
+        </div>
+        <div>
+          {/* AI Review */}
+          <SettingItem label="AI Review" description="Controls whether this user can use AI-powered UI review.">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.ai_review_enabled === '1' || s.ai_review_enabled === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.ai_review_enabled === '1' || s.ai_review_enabled === true) ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={() => handleToggle('ai_review_enabled', s.ai_review_enabled ?? '1')}
+                disabled={saving}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
+              >
+                {(s.ai_review_enabled === '1' || s.ai_review_enabled === true) ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </SettingItem>
 
-          <SettingRow label="Reviewer Persona" icon={<User size={12} />}>
-            <SelectBtn
+          {/* Reviewer Persona */}
+          <SettingItem label="Reviewer Persona" description="Controls the default reviewer persona used during AI analysis.">
+            <ConfirmSelect
               value={s.reviewer_persona || 'first_time'}
+              currentValue={s.reviewer_persona || 'first_time'}
               options={PERSONAS}
-              onChange={v => handleSelect('reviewer_persona', v)}
+              onChange={(val) => handleSelect('reviewer_persona', val, s.reviewer_persona || 'first_time')}
             />
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Daily Review Limit" icon={<LayoutGrid size={12} />}>
+          {/* Daily Review Limit */}
+          <SettingItem label="Daily Review Limit" description="Controls the maximum number of reviews this user can create per day.">
             <input
               type="number"
               value={s.daily_review_limit || ''}
-              onChange={e => handleSelect('daily_review_limit', e.target.value)}
+              onBlur={e => {
+                const val = e.target.value;
+                const current = s.daily_review_limit || '';
+                if (val !== current) {
+                  handleSelect('daily_review_limit', val, current);
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.target.blur();
+                }
+              }}
               className="input"
-              style={{ width: 60, fontSize: 11, padding: '3px 6px' }}
+              style={{ width: 70, fontSize: 12, padding: '4px 8px' }}
               min="1"
               max="999"
               placeholder="—"
             />
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Allow Retry" icon={<RotateCcw size={12} />} borderBottom={false}>
-            <ToggleBtn
-              value={s.allow_retry ?? '1'}
-              onToggle={() => handleToggle('allow_retry', s.allow_retry)}
-            />
-          </SettingRow>
+          {/* Allow Retry */}
+          <SettingItem label="Allow Retry" description="Controls whether this user can retry failed review uploads." borderBottom={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.allow_retry === '1' || s.allow_retry === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.allow_retry === '1' || s.allow_retry === true) ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={() => handleToggle('allow_retry', s.allow_retry ?? '1')}
+                disabled={saving}
+                className="btn-secondary"
+                style={{ fontSize: 11, padding: '4px 10px' }}
+              >
+                {(s.allow_retry === '1' || s.allow_retry === true) ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </SettingItem>
         </div>
       </div>
 
       {/* ADMIN ACTIONS */}
-      <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-        <SectionHeader title="ADMIN ACTIONS" />
-        <div style={{ padding: '4px 0' }}>
-          <SettingRow label="Reset Password" icon={<RotateCcw size={12} />}>
+      <div className="settings-section" style={{
+        background: 'white',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        border: '1px solid #e5e7eb',
+      }}>
+        <div style={{
+          padding: '14px 20px',
+          background: 'linear-gradient(135deg, #fc466b 0%, #3f5efb 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={16} color="white" />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>ADMIN ACTIONS</span>
+        </div>
+        <div>
+          <SettingItem label="Reset Password" description="Generate a new temporary password for this user.">
             <button
-              onClick={handleResetPassword}
+              onClick={() => openModal(MODAL_TYPES.RESET_PASSWORD)}
               disabled={actionLoading === 'reset_password'}
               className="btn-secondary"
-              style={{ fontSize: 11, padding: '0.25rem 0.6rem' }}
+              style={{ fontSize: 11, padding: '4px 12px' }}
             >
               {actionLoading === 'reset_password' ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
               Reset
             </button>
-          </SettingRow>
+          </SettingItem>
 
-          <SettingRow label="Reset Preferences" icon={<RefreshCw size={12} />} borderBottom={false}>
+          <SettingItem label="Reset Preferences" description="Reset all preferences to application defaults." borderBottom={false}>
             <button
-              onClick={handleResetPreferences}
+              onClick={() => openModal(MODAL_TYPES.RESET_PREFERENCES)}
               disabled={actionLoading === 'reset_prefs'}
               className="btn-secondary"
-              style={{ fontSize: 11, padding: '0.25rem 0.6rem', color: 'var(--error)' }}
+              style={{ fontSize: 11, padding: '4px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}
             >
               {actionLoading === 'reset_prefs' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
               Reset
             </button>
-          </SettingRow>
+          </SettingItem>
         </div>
       </div>
+
+      {/* Render active confirmation modal */}
+      {renderModal()}
 
     </div>
   );
