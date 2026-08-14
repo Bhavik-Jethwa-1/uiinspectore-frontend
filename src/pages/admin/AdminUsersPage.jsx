@@ -548,14 +548,17 @@ export default function AdminUsersPage() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', 'Actions'].map(h => (
-                    <th key={h} style={{
-                      padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                      color: 'var(--text-muted)', textAlign: 'left',
-                      textTransform: 'uppercase', letterSpacing: '0.04em',
-                      background: 'var(--background)', whiteSpace: 'nowrap',
-                    }}>{h}</th>
-                  ))}
+                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', 'Actions'].map(h => {
+                    const centerCols = ['Projects', 'Reviews', 'Actions'];
+                    return (
+                      <th key={h} style={{
+                        padding: '10px 12px', fontSize: 10, fontWeight: 600,
+                        color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
+                        textTransform: 'uppercase', letterSpacing: '0.04em',
+                        background: 'var(--background)', whiteSpace: 'nowrap',
+                      }}>{h}</th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
