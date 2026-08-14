@@ -548,7 +548,7 @@ export default function AdminUsersPage() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', ''].map(h => (
+                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', 'Actions'].map(h => (
                     <th key={h} style={{
                       padding: '10px 12px', fontSize: 10, fontWeight: 600,
                       color: 'var(--text-muted)', textAlign: 'left',
@@ -606,13 +606,13 @@ export default function AdminUsersPage() {
                       {formatDate(u.created_at)}
                     </td>
                     {/* Actions */}
-                    <td style={{ padding: '11px 12px' }}>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View">
-                          <Eye size={13} />
+                    <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View" style={{ padding: 6 }}>
+                          <Eye size={14} />
                         </button>
-                        <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)' }}>
-                          <Trash2 size={13} />
+                        <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
