@@ -296,6 +296,7 @@ export default function AdminUsersPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [copiedEmail, setCopiedEmail] = useState(null);
@@ -338,6 +339,18 @@ export default function AdminUsersPage() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleDeleteFromTable = (user) => {
+    setDeleteUserTarget(user);
+    setConfirmModal({
+      type: 'delete_user',
+      title: 'Delete User',
+      message: `Are you sure you want to delete "${user.name}" (${user.email})? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      userId: user.id,
+    });
   };
 
   const handleUserAction = async (action) => {
@@ -398,10 +411,11 @@ export default function AdminUsersPage() {
       setConfirmModal(null);
       return;
     }
-    if (confirmModal.type === 'delete') {
+    if (confirmModal.type === 'delete' || confirmModal.type === 'delete_user') {
       setActionLoading(true);
       try {
-        const data = await api.adminDeleteUser(selectedUser.id, token);
+        const userId = confirmModal.type === 'delete_user' ? confirmModal.userId : selectedUser.id;
+        const data = await api.adminDeleteUser(userId, token);
         if (data.message?.includes('last administrator')) {
           setConfirmModal({
             type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger',
@@ -410,9 +424,12 @@ export default function AdminUsersPage() {
           return;
         }
         setConfirmModal(null);
-        setSelectedUser(null);
+        if (confirmModal.type === 'delete') {
+          setSelectedUser(null);
+        }
+        setDeleteUserTarget(null);
         fetchUsers(page);
-        addToast({ type: 'success', message: 'User deleted' });
+        addToast({ type: 'success', message: 'User deleted successfully' });
       } catch (e) {
         setConfirmModal({
           type: 'error', title: 'Delete Failed', message: e.message || 'Could not delete user.', confirmLabel: 'OK', variant: 'danger',
@@ -574,9 +591,14 @@ export default function AdminUsersPage() {
                     </td>
                     {/* Actions */}
                     <td style={{ padding: '11px 12px' }}>
-                      <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View">
-                        <Eye size={13} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View">
+                          <Eye size={13} />
+                        </button>
+                        <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)' }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
