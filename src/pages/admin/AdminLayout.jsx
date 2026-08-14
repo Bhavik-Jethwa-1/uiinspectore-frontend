@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import {
   LayoutDashboard, Users, FolderOpen, Star, Settings,
-  ChevronLeft, LogOut, Menu, ArrowLeft
+  LogOut, Menu, ArrowLeft
 } from 'lucide-react';
 import ThemePullCord from '../../components/ThemePullCord';
 
@@ -20,7 +20,6 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -35,7 +34,6 @@ export default function AdminLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleCollapse = () => setCollapsed(c => !c);
   const closeMobile = () => setMobileOpen(false);
 
   const handleBackToApp = () => navigate('/dashboard');
@@ -67,8 +65,8 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* Sidebar - Single div for both desktop and mobile */}
-      <div className={`sidebar admin-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}>
+      {/* Sidebar */}
+      <div className={`sidebar admin-sidebar ${mobileOpen ? 'open' : ''}`}>
         {/* Mobile close button */}
         <button
           onClick={closeMobile}
@@ -128,24 +126,8 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Sidebar Toggle - Desktop only */}
-      {!isMobile && (
-        <button
-          className={`sidebar-toggle ${collapsed ? 'collapsed' : ''}`}
-          onClick={toggleCollapse}
-        >
-          <ChevronLeft
-            size={10}
-            style={{
-              transition: 'transform 0.2s',
-              transform: collapsed ? 'rotate(180deg)' : 'none',
-            }}
-          />
-        </button>
-      )}
-
       {/* Main content area */}
-      <div className={`admin-main ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className="admin-main">
         {/* Floating Theme Control — top right */}
         <div className="admin-theme-pullcord">
           <ThemePullCord />

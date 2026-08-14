@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LayoutDashboard, Settings, ShieldCheck, ChevronLeft,
-  LogOut, Menu, X, User
+  LayoutDashboard, Settings, ShieldCheck,
+  LogOut, Menu, X
 } from 'lucide-react';
 import ThemePullCord from './ThemePullCord';
 
@@ -11,7 +11,6 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
 
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -19,10 +18,13 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
+  const handleGoToAdmin = () => {
+    navigate('/admin');
+  };
+
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/settings', icon: Settings, label: 'Settings' },
-    ...(user?.is_admin ? [{ to: '/admin', icon: ShieldCheck, label: 'Admin' }] : []),
   ];
 
   return (
@@ -47,7 +49,7 @@ export default function Layout({ children }) {
       )}
 
       {/* Sidebar */}
-      <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}>
+      <div className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         {/* Mobile close */}
         <button
           onClick={() => setMobileOpen(false)}
@@ -62,12 +64,10 @@ export default function Layout({ children }) {
           <div className="sidebar-logo">
             <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>UI</span>
           </div>
-          {!collapsed && (
-            <div className="sidebar-brand-text">
-              <div className="sidebar-brand-name">Review</div>
-              <div className="sidebar-brand-sub">AI Screenshot Review</div>
-            </div>
-          )}
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-name">Review</div>
+            <div className="sidebar-brand-sub">AI Screenshot Review</div>
+          </div>
         </div>
 
         {/* Nav */}
@@ -80,49 +80,48 @@ export default function Layout({ children }) {
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={16} className="nav-icon" />
-              {!collapsed && <span>{label}</span>}
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* User section */}
-        <div style={{ padding: '12px 8px', borderTop: '1px solid var(--divider)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+        {/* Footer section */}
+        <div className="sidebar-footer">
+          {/* Admin Panel button - only show for admin users */}
+          {user?.is_admin && (
+            <button
+              onClick={handleGoToAdmin}
+              className="nav-item sidebar-footer-btn"
+            >
+              <ShieldCheck size={15} className="nav-icon" />
+              <span>Admin Panel</span>
+            </button>
+          )}
+
+          {/* User info */}
+          <div className="sidebar-user">
             <div className="avatar">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            {!collapsed && (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user?.name || 'User'}
-                </p>
-                <p title={user?.email || ''} style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', lineHeight: 1.4 }}>
-                  {user?.email || ''}
-                </p>
-              </div>
-            )}
+            <div className="sidebar-user-info">
+              <p className="sidebar-user-name">{user?.name || 'User'}</p>
+              <p className="sidebar-user-email">{user?.email || ''}</p>
+            </div>
           </div>
+
+          {/* Sign out */}
           <button
             onClick={handleLogout}
-            className="nav-item"
-            style={{ width: '100%', marginTop: 2, color: 'var(--text-muted)' }}
+            className="nav-item sidebar-footer-btn"
           >
             <LogOut size={15} className="nav-icon" />
-            {!collapsed && <span>Sign out</span>}
+            <span>Sign out</span>
           </button>
         </div>
       </div>
 
-      {/* Sidebar Toggle */}
-      <button
-        className={`sidebar-toggle ${collapsed ? 'collapsed' : ''}`}
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <ChevronLeft size={10} style={{ transition: 'transform 0.2s', transform: collapsed ? 'rotate(180deg)' : 'none' }} />
-      </button>
-
       {/* Main Area */}
-      <div className={`main-area ${collapsed ? 'sidebar-collapsed' : ''}`} style={{ position: 'relative' }}>
+      <div className="main-area" style={{ position: 'relative' }}>
         {/* Floating Theme Control — top right */}
         <div
           style={{
