@@ -4,19 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import {
   Plus, Search, FolderOpen, Image, Clock,
-  X, Upload, Loader2, BarChart3, Trash2, ChevronRight, ChevronLeft,
+  X, Upload, Loader2, BarChart3, Trash2, ChevronRight, ChevronLeft, Sparkles, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 const PERSONAS = [
   { value: 'first_time', label: 'First-time user' },
-  { value: 'non_technical', label: 'Non-technical user' },
-  { value: 'junior_developer', label: 'Junior developer' },
-  { value: 'developer', label: 'Developer' },
-  { value: 'devops', label: 'DevOps engineer' },
-  { value: 'designer', label: 'Product designer' },
-  { value: 'manager', label: 'Product manager' },
-  { value: 'custom', label: 'Custom' },
+  { value: 'regular', label: 'Regular user' },
+  { value: 'experienced', label: 'Experienced user' },
+  { value: 'designer', label: 'Designer' },
+  { value: 'accessibility', label: 'Accessibility-focused' },
 ];
 
 function NewReviewModal({ open, onClose, project, onSuccess }) {
@@ -41,9 +38,25 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
   const handleFileChange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
+    // Validate file size (10MB max)
+    if (f.size > 10 * 1024 * 1024) {
+      setError('File is too large. Maximum size is 10MB.');
+      return;
+    }
+    // Validate file type
+    if (!f.type.startsWith('image/')) {
+      setError('Please upload an image file (PNG, JPG, WEBP).');
+      return;
+    }
+    setError('');
     setFile(f);
     const reader = new FileReader();
     reader.onload = (ev) => setPreview(ev.target.result);
+    reader.onerror = () => {
+      setError('Failed to read the image file. Please try another.');
+      setFile(null);
+      setPreview(null);
+    };
     reader.readAsDataURL(f);
     setStep(2);
   };
@@ -71,19 +84,28 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
       );
       await api.uploadScreenshot(reviewData.review.id, file, token);
       setStep(3);
-      const steps = ['Understanding page structure...', 'Checking visual hierarchy...',
-        'Analyzing typography...', 'Checking accessibility...', 'Finding UX issues...', 'Generating recommendations...'];
+      const steps = [
+        { text: 'Uploading screenshot', sub: 'Securely uploading your image...' },
+        { text: 'Understanding page structure', sub: 'Analyzing the layout and elements...' },
+        { text: 'Checking visual hierarchy', sub: 'Evaluating importance and flow...' },
+        { text: 'Analyzing accessibility', sub: 'Checking contrast and usability...' },
+        { text: 'Finding UX issues', sub: 'Identifying areas for improvement...' },
+        { text: 'Generating recommendations', sub: 'Creating actionable suggestions...' },
+      ];
       let stepIdx = 0;
       const interval = setInterval(() => {
-        stepIdx = (stepIdx + 1) % steps.length;
-        setAnalysisStep(steps[stepIdx]);
-      }, 2500);
+        if (stepIdx < steps.length) {
+          setAnalysisStep(steps[stepIdx].text);
+          stepIdx++;
+        }
+      }, 2200);
       await api.analyzeReview(reviewData.review.id, token);
       clearInterval(interval);
       onSuccess(reviewData.review);
       onClose();
     } catch (err) {
-      setError(err.message || 'Analysis failed. Please try again.');
+      setError(err.message || 'Something went wrong. Please try again.');
+      setStep(2);
     } finally {
       setUploading(false);
     }
@@ -113,13 +135,16 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => fileRef.current?.click()}
-                style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: '32px 16px', textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: '28px 16px', textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.15s', background: 'var(--background)' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
               >
-                <Upload size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>Click or drag to upload</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>PNG, JPG, JPEG, WEBP (max 10MB)</p>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                  <Upload size={18} style={{ color: 'var(--primary)' }} />
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Upload Screenshot</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Drag & drop your screenshot here</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>PNG, JPG, WEBP · Max 10MB</p>
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} className="hidden" />
               </div>
             </div>
@@ -130,18 +155,25 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
               <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                 <img src={preview} alt="Preview" className="w-full rounded-lg max-h-48 object-contain" style={{ background: 'var(--background)', display: 'block' }} />
                 <button
-                  onClick={() => { setFile(null); setPreview(null); setStep(1); }}
+                  onClick={() => { setFile(null); setPreview(null); setStep(1); setError(''); }}
                   style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
+                  aria-label="Remove image"
                 >
                   <X size={12} />
                 </button>
+                <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: '2px 6px' }}>
+                  <span style={{ fontSize: 9, color: '#fff' }}>{file?.name}</span>
+                </div>
               </div>
 
               <div>
-                <label className="label">Persona</label>
+                <label className="label">Reviewer Persona</label>
                 <select value={persona} onChange={(e) => setPersona(e.target.value)} className="select">
                   {PERSONAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Choose the type of person you want the AI to evaluate this interface for.
+                </p>
               </div>
 
               <div>
@@ -150,7 +182,7 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
                   value={pageGoal}
                   onChange={(e) => setPageGoal(e.target.value)}
                   className="textarea"
-                  placeholder="User should be able to..."
+                  placeholder="What should a user be able to do on this page? Example: User should be able to log in with email and password"
                   style={{ minHeight: 80 }}
                 />
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -173,10 +205,34 @@ function NewReviewModal({ open, onClose, project, onSuccess }) {
           )}
 
           {step === 3 && (
-            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-              <Loader2 size={36} style={{ color: 'var(--primary)', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{analysisStep}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>This usually takes 15–30 seconds</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
+              <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                  <Sparkles size={22} style={{ color: 'var(--primary)' }} />
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Analyzing your UI...</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>This usually takes a few seconds</p>
+              </div>
+              {['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'].map((label, idx) => {
+                const allSteps = ['Uploading screenshot', 'Understanding page structure', 'Checking visual hierarchy', 'Analyzing accessibility', 'Finding UX issues', 'Generating recommendations'];
+                const currentIdx = allSteps.indexOf(analysisStep);
+                const isCompleted = currentIdx > idx;
+                const isCurrent = label === analysisStep;
+                return (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: isCompleted ? 'var(--success-light)' : isCurrent ? 'var(--primary-light)' : 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: isCurrent ? '2px solid var(--primary)' : 'none' }}>
+                      {isCompleted ? (
+                        <CheckCircle2 size={12} style={{ color: 'var(--success)' }} />
+                      ) : isCurrent ? (
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', animation: 'pulse 1s ease-in-out infinite' }} />
+                      ) : (
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border)' }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: 12, color: isCompleted ? 'var(--success)' : isCurrent ? 'var(--primary)' : 'var(--text-muted)', fontWeight: isCurrent ? '600' : '400' }}>{label}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -357,13 +413,20 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <FolderOpen size={36} style={{ color: 'var(--border)', margin: '0 auto 12px' }} />
+          <div className="card" style={{ padding: '40px 24px', textAlign: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <FolderOpen size={24} style={{ color: 'var(--primary)' }} />
+            </div>
             {search ? (
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No projects matching "{search}"</p>
+              <>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No results found</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Try a different search term</p>
+                <button onClick={() => setSearch('')} className="btn-secondary" style={{ fontSize: 12 }}>Clear Search</button>
+              </>
             ) : (
               <>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>No projects yet</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No projects yet</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, maxWidth: 280, margin: '0 auto 16px' }}>Projects help you organize reviews of different pages.</p>
                 <button onClick={() => setShowNewProject(true)} className="btn-primary">
                   <Plus size={15} style={{ display: 'inline', marginRight: 4 }} /> Create Project
                 </button>

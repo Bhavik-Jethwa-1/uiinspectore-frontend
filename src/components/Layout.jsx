@@ -31,7 +31,7 @@ export default function Layout({ children }) {
     <div className="app-layout">
       {/* Mobile Topbar */}
       <div className="mobile-topbar">
-        <button onClick={() => setMobileOpen(true)} className="btn-icon" style={{ marginRight: 4 }}>
+        <button onClick={() => setMobileOpen(true)} className="btn-icon" style={{ marginRight: 4 }} aria-label="Open menu">
           <Menu size={18} />
         </button>
         <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -55,6 +55,7 @@ export default function Layout({ children }) {
           onClick={() => setMobileOpen(false)}
           style={{ position: 'absolute', top: 12, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
           className="lg-hidden"
+          aria-label="Close menu"
         >
           <X size={16} />
         </button>
@@ -113,6 +114,7 @@ export default function Layout({ children }) {
           <button
             onClick={handleLogout}
             className="nav-item sidebar-footer-btn"
+            aria-label="Sign out"
           >
             <LogOut size={15} className="nav-icon" />
             <span>Sign out</span>
