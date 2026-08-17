@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import {
   LayoutDashboard, Users, FolderOpen, Star, Settings,
-  LogOut, Menu, ArrowLeft
+  LogOut, Menu, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import ThemePullCord from '../../components/ThemePullCord';
 
@@ -104,9 +104,10 @@ export default function AdminLayout() {
 
         {/* Bottom section */}
         <div className="sidebar-footer">
-          <button onClick={handleBackToApp} className="nav-item sidebar-footer-btn">
-            <ArrowLeft size={15} className="nav-icon" />
-            <span>Back to User App</span>
+          <button onClick={handleBackToApp} className="nav-item sidebar-footer-btn" style={{ justifyContent: 'space-between' }}>
+            <ArrowLeft size={14} className="nav-icon" style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Back to User App</span>
+            <ChevronRight size={13} className="nav-icon" style={{ opacity: 0.5, flexShrink: 0 }} />
           </button>
 
           <div className="sidebar-user">
@@ -119,9 +120,9 @@ export default function AdminLayout() {
             </div>
           </div>
 
-          <button onClick={handleLogout} className="nav-item sidebar-footer-btn">
-            <LogOut size={15} className="nav-icon" />
-            <span>Sign out</span>
+          <button onClick={handleLogout} className="nav-item sidebar-footer-btn" style={{ justifyContent: 'space-between' }}>
+            <LogOut size={14} className="nav-icon" style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Sign out</span>
           </button>
         </div>
       </div>
