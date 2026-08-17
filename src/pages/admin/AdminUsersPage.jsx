@@ -573,7 +573,7 @@ export default function AdminUsersPage() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
                       >
                         <Avatar name={u.name} size={30} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{u.name}</span>
+                        <span title={u.name} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140, display: 'block' }}>{u.name}</span>
                       </button>
                     </td>
                     {/* Email */}
