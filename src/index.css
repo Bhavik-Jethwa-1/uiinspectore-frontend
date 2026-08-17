@@ -857,9 +857,11 @@ body {
     font-size: 11px !important;
   }
   .admin-btn-icon {
-    padding: 6px !important;
+    padding: 0 !important;
     min-width: 32px !important;
     min-height: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
   }
 }
 
@@ -1526,6 +1528,9 @@ body {
   height: 36px;
   padding: 0;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 640px) {
