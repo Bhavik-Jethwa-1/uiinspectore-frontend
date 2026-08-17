@@ -230,7 +230,7 @@ export default function AdminReviewDetailPage() {
             <ScoreCard label="Visual" value={review.scores.visualHierarchy} />
             <ScoreCard label="Clarity" value={review.scores.clarity} />
             <ScoreCard label="Access" value={review.scores.accessibility} />
-            <ScoreCard label="Consist" value={review.scores.consistency} />
+            <ScoreCard label="Consistency" value={review.scores.consistency} />
             <ScoreCard label="Layout" value={review.scores.layout} />
             <ScoreCard label="Typography" value={review.scores.typography} />
             <ScoreCard label="UX" value={review.scores.ux} />

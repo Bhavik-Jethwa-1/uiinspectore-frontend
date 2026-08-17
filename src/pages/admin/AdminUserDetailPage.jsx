@@ -4,7 +4,7 @@ import {
   ArrowLeft, User, Mail, ShieldCheck, Clock, CheckCircle,
   XCircle, Loader2, AlertCircle, ExternalLink, Eye, FileText,
   Activity, Settings, LayoutGrid, Star, RefreshCw, Plus, Pencil, Trash2, Save, X,
-  Ban, UserCheck, RotateCcw, EyeOff, Bell, BellOff, Palette, Globe, Clock8, Sparkles, Copy, Check
+  Ban, UserCheck, UserX, RotateCcw, EyeOff, Bell, BellOff, Palette, Globe, Clock8, Sparkles, Copy, Check, FolderX
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
@@ -405,7 +405,36 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
     review_created: <FileText size={13} style={{ color: 'var(--secondary)' }} />,
     screenshot_uploaded: <FileText size={13} style={{ color: 'var(--text-muted)' }} />,
     settings_changed: <Settings size={13} style={{ color: 'var(--accent)' }} />,
+    admin_user_updated: <ShieldCheck size={13} style={{ color: 'var(--primary)' }} />,
+    admin_user_deleted: <UserX size={13} style={{ color: 'var(--error)' }} />,
+    admin_project_deleted: <FolderX size={13} style={{ color: 'var(--error)' }} />,
+    admin_user_suspended: <UserX size={13} style={{ color: 'var(--warning)' }} />,
+    admin_user_activated: <UserCheck size={13} style={{ color: 'var(--success)' }} />,
   };
+
+  function formatMeta(activity) {
+    if (!activity.meta || Object.keys(activity.meta).length === 0) return null;
+    const m = activity.meta;
+    const parts = [];
+    if (m.setting_key) {
+      const key = m.setting_key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (m.value !== undefined) parts.push(`${key}: ${m.value}`);
+      else if (m.new_value !== undefined) parts.push(`${key}: ${m.new_value} → ${m.old_value}`);
+      else parts.push(key);
+    }
+    if (m.target_user_id && !activity.description?.includes(`User #${m.target_user_id}`)) {
+      parts.push(`User #${m.target_user_id}`);
+    }
+    if (m.project_id) parts.push(`Project #${m.project_id}`);
+    if (m.review_id) parts.push(`Review #${m.review_id}`);
+    if (m.remaining_admins !== undefined) parts.push(`${m.remaining_admins} admin(s) remaining`);
+    if (parts.length === 0) {
+      // fallback: show key non-empty values
+      const filtered = Object.entries(m).filter(([, v]) => v !== null && v !== undefined).slice(0, 3);
+      return filtered.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(' · ');
+    }
+    return parts.join(' · ');
+  }
 
   if (activities.length === 0) {
     return (
@@ -435,9 +464,9 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
               <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginBottom: 2 }}>
                 {activity.description || activity.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </p>
-              {activity.meta && Object.keys(activity.meta).length > 0 && (
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
-                  {JSON.stringify(activity.meta)}
+              {formatMeta(activity) && (
+                <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic' }}>
+                  {formatMeta(activity)}
                 </p>
               )}
             </div>
