@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Loader2, AlertCircle, Eye, FolderOpen, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 
 function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'danger', onConfirm, onCancel, loading }) {
   return (
@@ -128,9 +129,7 @@ export default function AdminProjectsPage() {
               {loading ? '…' : `${total} project${total !== 1 ? 's' : ''} total`}
             </p>
           </div>
-          <button onClick={() => loadProjects(page)} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
-          </button>
+          <AdminReloadBtn onClick={() => loadProjects(page)} title="Refresh projects" />
         </div>
 
         {/* Search */}

@@ -9,6 +9,7 @@ import {
   ShieldCheck, RefreshCw,
   UserX, UserCheck, UserCog, Trash2, Users
 } from 'lucide-react';
+import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 
 const DEBOUNCE_MS = 300;
 
@@ -493,14 +494,7 @@ export default function AdminUsersPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => fetchUsers(page)}
-            className="admin-btn-icon"
-            title="Refresh"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
-          </button>
+          <AdminReloadBtn onClick={() => fetchUsers(page)} title="Refresh users" />
         </div>
 
         {/* Search */}

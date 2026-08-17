@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Eye, Loader2, AlertCircle, RefreshCw, Users, FolderOpen, Star, AlertTriangle } from 'lucide-react';
+import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 
 export default function AdminDashboard() {
   const { token } = useAuth();
@@ -95,9 +96,7 @@ export default function AdminDashboard() {
               {stats ? `${stats.total_users} users · ${stats.total_projects} projects · ${stats.total_reviews} reviews` : 'Loading...'}
             </p>
           </div>
-          <button onClick={loadStats} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
-          </button>
+          <AdminReloadBtn onClick={loadStats} title="Refresh dashboard" />
         </div>
 
         {/* Stats Cards */}

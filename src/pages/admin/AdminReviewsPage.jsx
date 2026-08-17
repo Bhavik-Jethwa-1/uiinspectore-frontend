@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Loader2, AlertCircle, Eye, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 
 function SelectFilter({ label, value, options, onChange }) {
   return (
@@ -109,9 +110,7 @@ export default function AdminReviewsPage() {
               {loading ? '…' : `${total} review${total !== 1 ? 's' : ''} total`}
             </p>
           </div>
-          <button onClick={() => loadReviews(page)} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
-          </button>
+          <AdminReloadBtn onClick={() => loadReviews(page)} title="Refresh reviews" />
         </div>
 
         {/* Search + Filters */}
