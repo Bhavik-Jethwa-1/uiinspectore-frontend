@@ -307,11 +307,12 @@ export default function AdminUsersPage() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [copiedEmail, setCopiedEmail] = useState(null);
+  const [sort, setSort] = useState('newest');
 
   const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
 
-  // Reset page when search changes
-  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  // Reset page when search or sort changes
+  useEffect(() => { setPage(1); }, [debouncedSearch, sort]);
 
   const fetchUsers = useCallback(async (pageNum = 1) => {
     if (!token) return;
@@ -320,6 +321,7 @@ export default function AdminUsersPage() {
     try {
       const params = {
         search: debouncedSearch,
+        sort,
         page: pageNum,
       };
       const data = await api.adminGetUsers(token, params);
@@ -503,9 +505,9 @@ export default function AdminUsersPage() {
           <AdminReloadBtn onClick={() => fetchUsers(page)} title="Refresh users" />
         </div>
 
-        {/* Search */}
-        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%' }}>
-          <div className="admin-search-wrapper" style={{ position: 'relative' }}>
+        {/* Search + Sort */}
+        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="admin-search-wrapper" style={{ position: 'relative', flex: 1 }}>
             <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -515,6 +517,32 @@ export default function AdminUsersPage() {
               className="admin-search-input"
               style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%' }}
             />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sort:</span>
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              style={{
+                appearance: 'none',
+                padding: '6px 28px 6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text-primary)',
+                fontSize: 12, fontWeight: 600,
+                cursor: 'pointer',
+                outline: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239496a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+              }}
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="name_asc">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
+            </select>
           </div>
         </div>
 
@@ -620,9 +648,11 @@ export default function AdminUsersPage() {
                         <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View" style={{ padding: 6 }}>
                           <Eye size={14} />
                         </button>
-                        <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
-                          <Trash2 size={14} />
-                        </button>
+                        {currentUser?.id !== u.id && (
+                          <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

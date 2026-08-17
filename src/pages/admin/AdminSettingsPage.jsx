@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const { token, user } = useAuth();
+  const { addToast } = useToast();
   const [openaiKey, setOpenaiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -44,10 +46,9 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ openai_key: openaiKey }),
       });
       if (!res.ok) throw new Error('Failed to save settings');
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      addToast({ type: 'success', message: 'Settings saved successfully.' });
     } catch (e) {
-      setError(e.message || 'Failed to save');
+      addToast({ type: 'error', message: e.message || 'Failed to save settings.' });
     } finally {
       setSaving(false);
     }

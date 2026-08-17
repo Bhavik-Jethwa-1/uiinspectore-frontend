@@ -16,7 +16,7 @@ const TABS = ['Overview', 'Projects', 'Activity', 'Settings'];
 export default function AdminUserDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user: currentAuthUser } = useAuth();
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -101,14 +101,30 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="admin-page-content">
-      {/* Back button */}
-      <button
-        onClick={() => navigate('/admin/users')}
-        className="btn-ghost admin-back-btn"
-        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}
-      >
-        <ArrowLeft size={14} /> Back to All Users
-      </button>
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 16 }}>
+        <button
+          onClick={() => navigate('/admin')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          Admin
+        </button>
+        <span style={{ color: 'var(--text-muted)' }}>/</span>
+        <button
+          onClick={() => navigate('/admin/users')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          Users
+        </button>
+        <span style={{ color: 'var(--text-muted)' }}>/</span>
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+          {user.name}
+        </span>
+        <span style={{ color: 'var(--text-muted)' }}>/</span>
+        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+          {activeTab}
+        </span>
+      </nav>
 
       {/* User Profile Header */}
       <div className="admin-user-header">
@@ -176,7 +192,7 @@ export default function AdminUserDetailPage() {
           onPage={fetchActivitiesPage}
         />
       )}
-      {activeTab === 'Settings' && <SettingsTab user={user} settings={settings} token={token} userId={id} onUpdateSettings={setSettings} onUpdateUser={setUser} />}
+      {activeTab === 'Settings' && <SettingsTab user={user} settings={settings} token={token} userId={id} isSelf={currentAuthUser?.id === user?.id} onUpdateSettings={setSettings} onUpdateUser={setUser} />}
     </div>
   );
 }
@@ -504,7 +520,7 @@ const MODAL_TYPES = {
   RESET_PREFERENCES: 'RESET_PREFERENCES',
 };
 
-function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdateUser }) {
+function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, onUpdateUser }) {
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [tempPassword, setTempPassword] = useState(null);
@@ -1167,19 +1183,57 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
           </div>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>ACCOUNT</span>
         </div>
+
+        {/* Self-protection banner */}
+        {isSelf && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            padding: '12px 16px',
+            background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, marginTop: 1,
+            }}>
+              <User size={13} style={{ color: 'var(--primary)' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', marginBottom: 2 }}>
+                This is your current admin account.
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                Self-destructive and privilege-changing actions are disabled for your own account.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div>
           {/* Account Status */}
-          <SettingItem label="Account Status" description="Controls whether this user can access the application.">
+          <SettingItem
+            label="Account Status"
+            description="Controls whether this account is active or suspended. An active account can be enabled or disabled by an admin at any time."
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Status dot */}
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: userIsActive ? 'var(--success)' : 'var(--error)',
+                flexShrink: 0,
+              }} />
               <span style={{ fontSize: 12, fontWeight: 600, color: userIsActive ? 'var(--success)' : 'var(--error)' }}>
                 {userIsActive ? 'Active' : 'Suspended'}
               </span>
               {userIsActive ? (
                 <button
                   onClick={() => openModal(MODAL_TYPES.SUSPEND_USER)}
-                  disabled={actionLoading === 'suspend'}
+                  disabled={actionLoading === 'suspend' || isSelf}
                   className="btn-secondary"
-                  style={{ fontSize: 11, padding: '4px 10px', color: 'var(--error)', borderColor: 'var(--error)' }}
+                  title={isSelf ? 'Cannot suspend your own account' : 'Suspend this account'}
+                  style={{ fontSize: 11, padding: '4px 10px', color: 'var(--error)', borderColor: 'var(--error)', opacity: isSelf ? 0.5 : 1 }}
                 >
                   {actionLoading === 'suspend' ? <Loader2 size={11} className="animate-spin" /> : <Ban size={11} />}
                   Suspend
@@ -1198,6 +1252,33 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
             </div>
           </SettingItem>
 
+          {/* Allow Login */}
+          <SettingItem
+            label="Allow Login"
+            description="Controls whether this user is allowed to sign in. This is independent of Account Status — a suspended account can still be allowed to log in (for testing) and vice versa."
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Status dot */}
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: (s.allow_login === '1' || s.allow_login === true) ? 'var(--success)' : 'var(--text-muted)',
+                flexShrink: 0,
+              }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: (s.allow_login === '1' || s.allow_login === true) ? 'var(--success)' : 'var(--text-muted)' }}>
+                {(s.allow_login === '1' || s.allow_login === true) ? 'Allowed' : 'Blocked'}
+              </span>
+              <button
+                onClick={() => openModal((s.allow_login === '1' || s.allow_login === true) ? MODAL_TYPES.DISABLE_LOGIN : MODAL_TYPES.ENABLE_LOGIN)}
+                disabled={saving || isSelf}
+                className="btn-secondary"
+                title={isSelf ? 'Cannot modify your own login settings' : ((s.allow_login === '1' || s.allow_login === true) ? 'Block login' : 'Allow login')}
+                style={{ fontSize: 11, padding: '4px 10px', opacity: isSelf ? 0.5 : 1 }}
+              >
+                {(s.allow_login === '1' || s.allow_login === true) ? 'Block' : 'Allow'}
+              </button>
+            </div>
+          </SettingItem>
+
           {/* Email Verified - Read Only */}
           <SettingItem label="Email Verified" description="Shows whether the user's email address has been verified.">
             <span style={{ fontSize: 12, color: emailVerified ? 'var(--success)' : 'var(--text-muted)' }}>
@@ -1205,34 +1286,18 @@ function SettingsTab({ user, settings, token, userId, onUpdateSettings, onUpdate
             </span>
           </SettingItem>
 
-          {/* Allow Login */}
-          <SettingItem label="Allow Login" description="Controls whether this user is allowed to log in to the application.">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: (s.allow_login === '1' || s.allow_login === true) ? 'var(--success)' : 'var(--text-muted)' }}>
-                {(s.allow_login === '1' || s.allow_login === true) ? 'Enabled' : 'Disabled'}
-              </span>
-              <button
-                onClick={() => openModal((s.allow_login === '1' || s.allow_login === true) ? MODAL_TYPES.DISABLE_LOGIN : MODAL_TYPES.ENABLE_LOGIN)}
-                disabled={saving}
-                className="btn-secondary"
-                style={{ fontSize: 11, padding: '4px 10px' }}
-              >
-                {(s.allow_login === '1' || s.allow_login === true) ? 'Disable' : 'Enable'}
-              </button>
-            </div>
-          </SettingItem>
-
           {/* Role */}
-          <SettingItem label="Role" description="Controls the user's permission level." borderBottom={false}>
+          <SettingItem label="Role" description="Controls the user's permission level. Admins have full access to the Admin Panel." borderBottom={false}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: userIsAdmin ? 'var(--accent)' : 'var(--text-secondary)' }}>
                 {userIsAdmin ? 'Admin' : 'User'}
               </span>
               <button
                 onClick={() => openModal(MODAL_TYPES.CHANGE_ROLE)}
-                disabled={actionLoading === 'role' || saving}
+                disabled={actionLoading === 'role' || saving || isSelf}
                 className="btn-secondary"
-                style={{ fontSize: 11, padding: '4px 10px' }}
+                title={isSelf ? 'Cannot change your own role' : 'Change role'}
+                style={{ fontSize: 11, padding: '4px 10px', opacity: isSelf ? 0.5 : 1 }}
               >
                 {actionLoading === 'role' ? <Loader2 size={11} className="animate-spin" /> : <Pencil size={11} />}
                 Edit

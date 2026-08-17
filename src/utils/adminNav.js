@@ -15,3 +15,12 @@
 export function openAdminReview(navigate, reviewId) {
   navigate(`/admin/reviews/${reviewId}`);
 }
+
+/**
+ * Navigate to the admin project detail page.
+ * @param {import('react-router-dom').NavigateFunction} navigate
+ * @param {number|string} projectId
+ */
+export function openAdminProject(navigate, projectId) {
+  navigate(`/admin/projects/${projectId}`);
+}

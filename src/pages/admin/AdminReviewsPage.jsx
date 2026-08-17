@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Search, Loader2, AlertCircle, Eye, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Eye, RefreshCw, ChevronLeft, ChevronRight, Filter, Star } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 import { openAdminReview } from '../../utils/adminNav';
 
@@ -35,10 +35,11 @@ function SelectFilter({ label, value, options, onChange }) {
 export default function AdminReviewsPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [status, setStatus] = useState(searchParams.get('status') || 'all');
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -70,11 +71,8 @@ export default function AdminReviewsPage() {
   useEffect(() => { setPage(1); }, [search, status, sort]);
   useEffect(() => { loadReviews(page); }, [loadReviews, page]);
 
-  const filtered = reviews.filter(r =>
-    r.project_name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.page_goal?.toLowerCase().includes(search.toLowerCase()) ||
-    String(r.id)?.includes(search)
-  );
+  // Search is handled server-side via API params.search (no client-side filtering needed)
+  const filtered = reviews;
 
   const getStatusBadge = (status) => {
     switch (status) {

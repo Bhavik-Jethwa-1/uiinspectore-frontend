@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Loader2, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 
 export default function ConfirmModal({
@@ -40,6 +41,16 @@ export default function ConfirmModal({
     : variant === 'warning' ? AlertTriangle
     : variant === 'info' ? Info
     : CheckCircle;
+
+  // Close on Escape key
+  useEffect(() => {
+    if (loading || disabled) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [loading, disabled, onCancel]);
 
   return (
     <div

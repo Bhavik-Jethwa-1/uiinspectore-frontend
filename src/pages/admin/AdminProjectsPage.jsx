@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../utils/api';
 import { Search, Loader2, AlertCircle, Eye, FolderOpen, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import { openAdminProject } from '../../utils/adminNav';
 
 function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'danger', onConfirm, onCancel, loading }) {
   return (
@@ -46,6 +48,7 @@ function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'dan
 export default function AdminProjectsPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -55,6 +58,7 @@ export default function AdminProjectsPage() {
   const [total, setTotal] = useState(0);
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [sort, setSort] = useState('newest');
 
   const loadProjects = useCallback(async (pg = 1) => {
     if (!token) return;
@@ -62,7 +66,7 @@ export default function AdminProjectsPage() {
     setError('');
     try {
       // ONE aggregated API call — admin-only endpoint with user data (no N+1)
-      const params = { page: pg, per_page: 10 };
+      const params = { page: pg, per_page: 10, sort };
       if (search) params.search = search;
       const data = await api.adminGetProjects(token, params);
       setProjects(data.projects);
@@ -76,7 +80,7 @@ export default function AdminProjectsPage() {
     }
   }, [token, search]);
 
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [search, sort]);
   useEffect(() => { loadProjects(page); }, [loadProjects, page]);
 
   const formatDate = (d) => {
@@ -89,10 +93,12 @@ export default function AdminProjectsPage() {
     setConfirmModal({
       type: 'delete_project',
       title: 'Delete Project',
-      message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete "${project.name}"?${project.reviews_count ? ` This project has ${project.reviews_count} review${project.reviews_count !== 1 ? 's' : ''} that will become orphaned.` : ''} This action cannot be undone.`,
       confirmLabel: 'Delete',
       variant: 'danger',
       projectId: project.id,
+      projectName: project.name,
+      reviewsCount: project.reviews_count,
     });
   };
 
@@ -105,11 +111,10 @@ export default function AdminProjectsPage() {
         await api.adminDeleteProject(confirmModal.projectId, token);
         setConfirmModal(null);
         loadProjects(page);
+        addToast({ type: 'success', message: `Project "${confirmModal.projectName}" deleted successfully.` });
       } catch (e) {
-        setConfirmModal({
-          ...confirmModal,
-          message: e.message || 'Failed to delete project. Please try again.',
-        });
+        addToast({ type: 'error', message: e.message || 'Failed to delete project.' });
+        setConfirmModal(null);
       } finally {
         setActionLoading(false);
       }
@@ -132,9 +137,9 @@ export default function AdminProjectsPage() {
           <AdminReloadBtn onClick={() => loadProjects(page)} title="Refresh projects" />
         </div>
 
-        {/* Search */}
-        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%' }}>
-          <div className="admin-search-wrapper" style={{ position: 'relative' }}>
+        {/* Search + Sort */}
+        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="admin-search-wrapper" style={{ position: 'relative', flex: 1 }}>
             <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -144,6 +149,34 @@ export default function AdminProjectsPage() {
               className="admin-search-input"
               style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%' }}
             />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sort:</span>
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              style={{
+                appearance: 'none',
+                padding: '6px 28px 6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text-primary)',
+                fontSize: 12, fontWeight: 600,
+                cursor: 'pointer',
+                outline: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239496a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+              }}
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="name_asc">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
+              <option value="reviews_desc">Most Reviews</option>
+              <option value="reviews_asc">Fewest Reviews</option>
+            </select>
           </div>
         </div>
 
@@ -217,9 +250,9 @@ export default function AdminProjectsPage() {
                     </td>
                     <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                        <Link to={`/projects/${p.id}`} className="btn-icon" title="View project" style={{ padding: 6 }}>
+                        <button onClick={() => openAdminProject(navigate, p.id)} className="btn-icon" title="View project" style={{ padding: 6 }}>
                           <Eye size={14} />
-                        </Link>
+                        </button>
                         <button onClick={() => handleDeleteProject(p)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
                           <Trash2 size={14} />
                         </button>

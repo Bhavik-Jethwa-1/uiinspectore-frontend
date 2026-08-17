@@ -15,6 +15,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
+import AdminProjectDetailPage from './pages/admin/AdminProjectDetailPage';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminReviewDetailPage from './pages/admin/AdminReviewDetailPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
             <Route path="/admin/projects" element={<AdminProjectsPage />} />
+            <Route path="/admin/projects/:id" element={<AdminProjectDetailPage />} />
             <Route path="/admin/reviews" element={<AdminReviewsPage />} />
             <Route path="/admin/reviews/:id" element={<AdminReviewDetailPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />

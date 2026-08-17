@@ -101,6 +101,9 @@ export const api = {
     return request('GET', `/admin/projects${query ? '?' + query : ''}`, null, token);
   },
 
+  // Admin — Single Project
+  adminGetProject: (id, token) => request('GET', `/admin/projects/${id}`, null, token),
+
   // Admin — Users
   adminGetUsers: (token, params = {}) => {
     const qs = new URLSearchParams();

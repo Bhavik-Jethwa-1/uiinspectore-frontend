@@ -76,12 +76,12 @@ export default function AdminDashboard() {
   };
 
   const statCards = stats ? [
-    { label: 'Total Users', value: stats.total_users, icon: Users, color: 'var(--primary)' },
-    { label: 'Total Projects', value: stats.total_projects, icon: FolderOpen, color: 'var(--success)' },
-    { label: 'Total Reviews', value: stats.total_reviews, icon: Star, color: 'var(--warning)' },
-    { label: 'Avg Score', value: stats.avg_score ?? '—', icon: Star, color: 'var(--primary)' },
-    { label: 'Pending', value: stats.pending_reviews, icon: AlertTriangle, color: 'var(--warning)' },
-    { label: 'Failed', value: stats.failed_reviews, icon: AlertCircle, color: 'var(--error)' },
+    { label: 'Total Users', value: stats.total_users, icon: Users, color: 'var(--primary)', link: '/admin/users', tooltip: 'View all users' },
+    { label: 'Total Projects', value: stats.total_projects, icon: FolderOpen, color: 'var(--success)', link: '/admin/projects', tooltip: 'View all projects' },
+    { label: 'Total Reviews', value: stats.total_reviews, icon: Star, color: 'var(--warning)', link: '/admin/reviews', tooltip: 'View all reviews' },
+    { label: 'Avg Score', value: stats.avg_score ?? '—', icon: Star, color: 'var(--primary)', link: null, tooltip: 'Average score (all time)' },
+    { label: 'Pending', value: stats.pending_reviews, icon: AlertTriangle, color: 'var(--warning)', link: '/admin/reviews?status=pending', tooltip: 'View pending reviews' },
+    { label: 'Failed', value: stats.failed_reviews, icon: AlertCircle, color: 'var(--error)', link: '/admin/reviews?status=failed', tooltip: 'View failed reviews' },
   ] : [];
 
   return (
@@ -104,17 +104,43 @@ export default function AdminDashboard() {
         {/* Stats Cards */}
         {!loading && stats && (
           <div className="stat-cards-grid">
-            {statCards.map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card stat-card" style={{ padding: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <div className="stat-icon" style={{ width: 24, height: 24, borderRadius: 6, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={12} style={{ color }} />
+            {statCards.map(({ label, value, icon: Icon, color, link, tooltip }) => {
+              const card = (
+                <div
+                  key={label}
+                  className="card stat-card"
+                  style={{
+                    padding: '14px',
+                    cursor: link ? 'pointer' : 'default',
+                    transition: 'box-shadow 0.15s, transform 0.15s',
+                  }}
+                  onMouseEnter={link ? (e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(91,95,239,0.15)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  } : undefined}
+                  onMouseLeave={link ? (e) => {
+                    e.currentTarget.style.boxShadow = '';
+                    e.currentTarget.style.transform = '';
+                  } : undefined}
+                  title={tooltip}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div className="stat-icon" style={{ width: 24, height: 24, borderRadius: 6, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={12} style={{ color }} />
+                    </div>
                   </div>
+                  <p className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</p>
+                  <p className="stat-label" style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</p>
                 </div>
-                <p className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</p>
-                <p className="stat-label" style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</p>
-              </div>
-            ))}
+              );
+              return link
+                ? <div
+                    key={label}
+                    onClick={() => navigate(link)}
+                    style={{ textDecoration: 'none' }}
+                  >{card}</div>
+                : <div key={label}>{card}</div>;
+            })}
           </div>
         )}
 
