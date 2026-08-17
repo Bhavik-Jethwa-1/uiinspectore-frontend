@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Search, Eye, Loader2, AlertCircle, RefreshCw, Users, FolderOpen, Star, AlertTriangle } from 'lucide-react';
+import { Search, Eye, Loader2, AlertCircle, RefreshCw, Users, FolderOpen, Star, AlertTriangle, ChevronRight, XCircle } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 import { openAdminReview } from '../../utils/adminNav';
 
@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [failedReviews, setFailedReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
     try {
       const data = await api.adminGetDashboard(token);
       setStats(data.stats);
+      setFailedReviews(data.failed_reviews_list || []);
     } catch {} finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export default function AdminDashboard() {
       <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header + Refresh */}
-        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
               Overview
@@ -99,6 +101,13 @@ export default function AdminDashboard() {
             </p>
           </div>
           <AdminReloadBtn onClick={loadStats} title="Refresh dashboard" />
+        </div>
+
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
+          <span>/</span>
+          <span>Overview</span>
         </div>
 
         {/* Stats Cards */}
@@ -152,6 +161,63 @@ export default function AdminDashboard() {
                 <Loader2 size={16} className="animate-spin" style={{ color: 'var(--border)', margin: 'auto' }} />
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Needs Attention — Failed Reviews */}
+        {!loading && failedReviews.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--error)', flexShrink: 0 }} />
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Needs Attention
+              </h2>
+              <span style={{ fontSize: 11, fontWeight: 600, background: 'var(--error-light)', color: 'var(--error)', padding: '1px 7px', borderRadius: 9999, marginLeft: 2 }}>
+                {failedReviews.length}
+              </span>
+            </div>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto', width: '100%' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      {['Review', 'Project', 'Status', 'Score', 'Date', ''].map(h => (
+                        <th key={h} style={{
+                          padding: '9px 12px', fontSize: 10, fontWeight: 600,
+                          color: 'var(--text-muted)', textAlign: 'left',
+                          textTransform: 'uppercase', letterSpacing: '0.04em',
+                          background: 'var(--background)', whiteSpace: 'nowrap',
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {failedReviews.map((r, i) => (
+                      <tr key={r.id} style={{ borderBottom: i < failedReviews.length - 1 ? '1px solid var(--border)' : 'none', background: 'color-mix(in srgb, var(--error) 3%, transparent)' }}>
+                        <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--error)', fontWeight: 600 }}>#{r.id}</td>
+                        <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.project_name || '—'}</td>
+                        <td style={{ padding: '10px 12px' }}><span className="badge badge-red">Failed</span></td>
+                        <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--error)' }}>{r.scores?.overall ?? '—'}</td>
+                        <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(r.created_at)}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          <button onClick={() => openAdminReview(navigate, r.id)} className="btn-icon" title="View" style={{ padding: 5 }}>
+                            <Eye size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => navigate('/admin/reviews?status=failed')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, fontWeight: 600, padding: 0 }}
+                >
+                  View all failed reviews <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

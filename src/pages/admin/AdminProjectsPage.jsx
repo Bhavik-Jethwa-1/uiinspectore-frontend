@@ -1,72 +1,48 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../utils/api';
-import { Search, Loader2, AlertCircle, Eye, FolderOpen, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import {
+  Search, Loader2, AlertCircle, Eye, FolderOpen,
+  RefreshCw, ChevronLeft, ChevronRight, Trash2
+} from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import ConfirmModal from '../../components/ConfirmModal';
 import { openAdminProject } from '../../utils/adminNav';
-
-function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'danger', onConfirm, onCancel, loading }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0,0,0,0.5)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
-    }}>
-      <div style={{
-        background: 'var(--surface)', borderRadius: 'var(--radius)',
-        border: '1px solid var(--border)', padding: '1.5rem',
-        maxWidth: 400, width: '100%', boxShadow: 'var(--shadow-md)',
-      }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
-          {title}
-        </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
-          {message}
-        </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onCancel} className="btn-secondary" disabled={loading}
-            style={{ padding: '0.5rem 1rem', fontSize: 13 }}>
-            Cancel
-          </button>
-          <button onClick={onConfirm} disabled={loading}
-            style={{
-              padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)',
-              fontSize: 13, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-              background: variant === 'danger' ? 'var(--error)' : 'var(--primary)',
-              color: '#fff', border: 'none', opacity: loading ? 0.6 : 1,
-            }}>
-            {loading ? <Loader2 size={13} className="animate-spin" /> : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function AdminProjectsPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [sort, setSort] = useState('newest');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
 
-  const loadProjects = useCallback(async (pg = 1) => {
+  const syncToUrl = useCallback((overrides = {}) => {
+    const params = {};
+    if (search) params.search = search;
+    if (sort !== 'newest') params.sort = sort;
+    if ((overrides.page || page) > 1) params.page = overrides.page || page;
+    setSearchParams(params, { replace: true });
+  }, [search, sort, page]);
+
+  useEffect(() => { setPage(1); syncToUrl({ page: 1 }); }, [search, sort]);
+
+  const loadProjects = useCallback(async (pageNum = 1) => {
     if (!token) return;
     setLoading(true);
     setError('');
     try {
-      // ONE aggregated API call — admin-only endpoint with user data (no N+1)
-      const params = { page: pg, per_page: 10, sort };
+      const params = { page: pageNum, per_page: 10, sort };
       if (search) params.search = search;
       const data = await api.adminGetProjects(token, params);
       setProjects(data.projects);
@@ -78,10 +54,13 @@ export default function AdminProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search]);
+  }, [token, search, sort]);
 
-  useEffect(() => { setPage(1); }, [search, sort]);
-  useEffect(() => { loadProjects(page); }, [loadProjects, page]);
+  useEffect(() => {
+    const pageFromUrl = Number(searchParams.get('page')) || 1;
+    setPage(pageFromUrl);
+    loadProjects(pageFromUrl);
+  }, [searchParams]);
 
   const formatDate = (d) => {
     if (!d) return '—';
@@ -104,7 +83,6 @@ export default function AdminProjectsPage() {
 
   const handleConfirmAction = async () => {
     if (!confirmModal) return;
-    
     if (confirmModal.type === 'delete_project') {
       setActionLoading(true);
       try {
@@ -123,9 +101,10 @@ export default function AdminProjectsPage() {
 
   return (
     <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%', maxWidth: '100%' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+
         {/* Header */}
-        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
               All Projects
@@ -137,17 +116,28 @@ export default function AdminProjectsPage() {
           <AdminReloadBtn onClick={() => loadProjects(page)} title="Refresh projects" />
         </div>
 
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
+          <span>/</span>
+          <span>Projects</span>
+        </div>
+
         {/* Search + Sort */}
-        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div className="admin-search-wrapper" style={{ position: 'relative', flex: 1 }}>
-            <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div style={{ marginBottom: 14, width: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search projects..."
-              className="admin-search-input"
-              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%' }}
+              placeholder="Search projects…"
+              style={{
+                paddingLeft: 32, paddingRight: 12, borderRadius: 'var(--radius-sm)',
+                fontSize: 13, width: '100%', height: 36,
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--text-primary)', outline: 'none',
+              }}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -157,17 +147,13 @@ export default function AdminProjectsPage() {
               onChange={e => setSort(e.target.value)}
               style={{
                 appearance: 'none',
-                padding: '6px 28px 6px 10px',
+                padding: '0.35rem 2rem 0.35rem 0.625rem',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
                 background: 'var(--surface)',
                 color: 'var(--text-primary)',
                 fontSize: 12, fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239496a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 8px center',
+                cursor: 'pointer', outline: 'none',
               }}
             >
               <option value="newest">Newest</option>
@@ -205,78 +191,118 @@ export default function AdminProjectsPage() {
             </p>
           </div>
         ) : (
-          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
-            <div className="admin-table-scroll" style={{ overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
-            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Name', 'Owner', 'Reviews', 'Created', 'Actions'].map(h => {
-                    const centerCols = ['Reviews', 'Actions'];
-                    return (
-                      <th key={h} style={{
-                        padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                        color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
-                        textTransform: 'uppercase', letterSpacing: '0.04em',
-                        background: 'var(--background)', whiteSpace: 'nowrap',
-                      }}>
-                        {h}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p, i) => (
-                  <tr key={p.id} style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <td style={{ padding: '11px 12px' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {p.name}
-                      </span>
-                    </td>
-                    <td style={{ padding: '11px 12px' }}>
-                      {p.user ? (
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.user.name}</span>
-                      ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '11px 12px', textAlign: 'center' }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
-                        {p.reviews_count ?? 0}
-                      </span>
-                    </td>
-                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {formatDate(p.created_at)}
-                    </td>
-                    <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                        <button onClick={() => openAdminProject(navigate, p.id)} className="btn-icon" title="View project" style={{ padding: 6 }}>
-                          <Eye size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteProject(p)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    {['Name', 'Owner', 'Reviews', 'Created', 'Actions'].map(h => {
+                      const centerCols = ['Reviews', 'Actions'];
+                      return (
+                        <th key={h} style={{
+                          padding: '10px 12px', fontSize: 10, fontWeight: 600,
+                          color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
+                          textTransform: 'uppercase', letterSpacing: '0.04em',
+                          background: 'var(--background)', whiteSpace: 'nowrap',
+                        }}>
+                          {h}
+                        </th>
+                      );
+                    })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {projects.map((p, i) => (
+                    <tr key={p.id} style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      {/* Name */}
+                      <td style={{ padding: '11px 12px' }}>
+                        <span
+                          title={p.name}
+                          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {p.name}
+                        </span>
+                      </td>
+                      {/* Owner — clickable to user detail */}
+                      <td style={{ padding: '11px 12px' }}>
+                        {p.user ? (
+                          <button
+                            onClick={() => navigate(`/admin/users/${p.user.id}`)}
+                            title={`View ${p.user.name}'s profile`}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              padding: 0, font: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+                            }}
+                          >
+                            <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>
+                              {p.user.name}
+                            </span>
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                      {/* Reviews count */}
+                      <td style={{ padding: '11px 12px', textAlign: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
+                          {p.reviews_count ?? 0}
+                        </span>
+                      </td>
+                      {/* Created */}
+                      <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {formatDate(p.created_at)}
+                      </td>
+                      {/* Actions */}
+                      <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                          <button
+                            onClick={() => openAdminProject(navigate, p.id)}
+                            className="btn-icon"
+                            title="View project"
+                            style={{ padding: 5 }}
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(p)}
+                            className="btn-icon"
+                            title="Delete project"
+                            style={{ color: 'var(--error)', padding: 5 }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Page {page} of {totalPages} · {total} projects
+                  Showing {((page - 1) * 10) + 1}–{Math.min(page * 10, total)} of {total} projects
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                    className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
+                  <button
+                    onClick={() => { const p = Math.max(1, page - 1); setPage(p); syncToUrl({ page: p }); }}
+                    disabled={page <= 1}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+                  >
                     <ChevronLeft size={12} /> Prev
                   </button>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                    className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: 12, color: 'var(--text-secondary)' }}>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); syncToUrl({ page: p }); }}
+                    disabled={page >= totalPages}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
+                  >
                     Next <ChevronRight size={12} />
                   </button>
                 </div>
@@ -284,20 +310,20 @@ export default function AdminProjectsPage() {
             )}
           </div>
         )}
-
-        {/* Confirm Modal */}
-        {confirmModal && (
-          <ConfirmModal
-            title={confirmModal.title}
-            message={confirmModal.message}
-            confirmLabel={confirmModal.confirmLabel}
-            variant={confirmModal.variant}
-            loading={actionLoading}
-            onConfirm={handleConfirmAction}
-            onCancel={() => setConfirmModal(null)}
-          />
-        )}
       </div>
+
+      {/* Confirm Modal — uses shared ConfirmModal with ESC support */}
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmLabel={confirmModal.confirmLabel}
+          variant={confirmModal.variant || 'danger'}
+          loading={actionLoading}
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

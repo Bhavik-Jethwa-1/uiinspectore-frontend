@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 import {
   Search, Loader2, AlertCircle, Eye,
-  ChevronLeft, ChevronRight, X, Copy, Check,
-  ShieldCheck, RefreshCw,
-  UserX, UserCheck, UserCog, Trash2, Users
+  ChevronLeft, ChevronRight, Copy, Check,
+  ShieldCheck, RefreshCw, X,
+  UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, Filter, User
 } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const DEBOUNCE_MS = 300;
 
@@ -38,67 +39,50 @@ function Avatar({ name, size = 32 }) {
   );
 }
 
-function Badge({ children, variant = 'gray' }) {
+function Badge({ children, variant = 'gray', dot = false }) {
   const styles = {
     gray:   { background: 'var(--hover)',        color: 'var(--text-secondary)' },
     green:  { background: 'var(--success-light)',  color: 'var(--success)' },
     red:    { background: 'var(--error-light)',   color: 'var(--error)' },
     purple: { background: 'var(--primary-light)', color: 'var(--primary)' },
+    yellow: { background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)' },
   };
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
+      display: 'inline-flex', alignItems: 'center', gap: dot ? 5 : 4,
       padding: '2px 8px', borderRadius: 9999,
       fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
       ...(styles[variant] || styles.gray),
     }}>
+      {dot && <span style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: 'currentColor', flexShrink: 0,
+      }} />}
       {children}
     </span>
-  );
-}
-
-function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'danger', onConfirm, onCancel, loading }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0,0,0,0.5)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
-    }}>
-      <div style={{
-        background: 'var(--surface)', borderRadius: 'var(--radius)',
-        border: '1px solid var(--border)', padding: '1.5rem',
-        maxWidth: 400, width: '100%', boxShadow: 'var(--shadow-md)',
-      }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
-          {title}
-        </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
-          {message}
-        </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onCancel} className="btn-secondary" disabled={loading}
-            style={{ padding: '0.5rem 1rem', fontSize: 13 }}>
-            Cancel
-          </button>
-          <button onClick={onConfirm} disabled={loading}
-            style={{
-              padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)',
-              fontSize: 13, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-              background: variant === 'danger' ? 'var(--error)' : 'var(--primary)',
-              color: '#fff', border: 'none', opacity: loading ? 0.6 : 1,
-            }}>
-            {loading ? <Loader2 size={13} className="animate-spin" /> : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
 function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId }) {
   if (!user) return null;
   const isSelf = currentUserId === user.id;
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
+
+  const formatRelative = (d) => {
+    if (!d) return '—';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDate(d);
+  };
 
   return (
     <div style={{
@@ -111,18 +95,15 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
         background: 'var(--surface)',
         borderRadius: 16,
         border: '1px solid var(--border)',
-        width: '100%', maxWidth: 400,
+        width: '100%', maxWidth: 420,
         boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1)',
         overflow: 'hidden',
       }}>
-
         {/* Gradient header */}
         <div style={{
           background: 'linear-gradient(135deg, #5B5FEF 0%, #8B5CF6 100%)',
           padding: '24px 20px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
+          display: 'flex', alignItems: 'center', gap: 14,
         }}>
           <Avatar name={user.name} size={52} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -131,28 +112,20 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
               {user.is_admin && (
                 <div style={{
                   background: 'rgba(255,255,255,0.25)',
-                  borderRadius: 9999,
-                  padding: '1px 7px',
-                  fontSize: 10, fontWeight: 700,
-                  color: 'white', letterSpacing: '0.04em',
+                  borderRadius: 9999, padding: '1px 7px',
+                  fontSize: 10, fontWeight: 700, color: 'white', letterSpacing: '0.04em',
                 }}>ADMIN</div>
               )}
             </div>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', margin: 0 }}>{user.email}</p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', flexShrink: 0,
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          >
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', flexShrink: 0,
+            transition: 'background 0.15s',
+          }}>
             <X size={14} />
           </button>
         </div>
@@ -165,32 +138,31 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
           {[
             { label: 'Projects', value: user.projects_count ?? 0, color: 'var(--primary)' },
             { label: 'Reviews', value: user.reviews_count ?? 0, color: 'var(--primary)' },
-            { label: 'Status', value: user.is_active ? 'Active' : 'Suspended', color: user.is_active ? 'var(--success)' : 'var(--error)' },
-          ].map(({ label, value, color }) => (
+            {
+              label: 'Last Active',
+              value: formatRelative(user.last_activity),
+              color: 'var(--text-secondary)'
+            },
+          ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{
-              padding: '14px 12px',
-              textAlign: 'center',
-              borderRight: label !== 'Status' ? '1px solid var(--border)' : 'none',
+              padding: '14px 12px', textAlign: 'center',
+              borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
             }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 2, letterSpacing: '-0.02em' }}>{value}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color, marginBottom: 2, letterSpacing: '-0.02em' }}>{value}</div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
             </div>
           ))}
         </div>
 
-        {/* Info */}
-        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {/* Info rows */}
+        <div style={{ padding: '4px 20px 14px', display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
-            { label: 'User ID',    value: `#${user.id}` },
+            { label: 'User ID',     value: `#${user.id}` },
             { label: 'Created',    value: formatDate(user.created_at) },
-            ...(user.last_activity ? [{ label: 'Last Active', value: formatDate(user.last_activity) }] : []),
           ].map(({ label, value }, i, arr) => (
             <div key={label} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '8px 0',
-              borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '9px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
             }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
@@ -198,91 +170,90 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
           ))}
         </div>
 
+        {/* Status badges row */}
+        <div style={{ padding: '0 20px 14px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {user.is_active
+            ? <Badge variant="green" dot>Active</Badge>
+            : <Badge variant="red" dot>Suspended</Badge>}
+          {user.allow_login !== false
+            ? <Badge variant="green" dot>Login Allowed</Badge>
+            : <Badge variant="yellow" dot>Login Blocked</Badge>}
+        </div>
+
+        {/* Self-protection banner */}
+        {isSelf && (
+          <div style={{
+            margin: '0 16px 12px',
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
+          }}>
+            <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 2 }}>
+              This is your current admin account
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>
+              Self-destructive and privilege-changing actions are disabled.
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div style={{
           padding: '14px 16px 16px',
           display: 'flex', gap: 8, flexWrap: 'wrap',
         }}>
           {user.is_active ? (
-            <button
-              onClick={() => onAction('suspend')}
-              disabled={actionLoading || isSelf}
+            <button onClick={() => onAction('suspend')} disabled={actionLoading || isSelf}
               title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
-                flex: 1, minWidth: 80,
-                padding: '0.5rem',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                color: 'var(--text-secondary)',
-                fontSize: 12, fontWeight: 600,
-                cursor: actionLoading ? 'not-allowed' : 'pointer',
+                flex: 1, minWidth: 80, padding: '0.5rem',
+                borderRadius: 8, border: '1px solid var(--border)',
+                background: 'var(--surface)', color: 'var(--text-secondary)',
+                fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                opacity: actionLoading ? 0.5 : 1,
-                transition: 'all 0.15s',
-              }}
-            >
+                opacity: actionLoading || isSelf ? 0.5 : 1,
+              }}>
               <UserX size={13} /> Suspend
             </button>
           ) : (
-            <button
-              onClick={() => onAction('activate')}
-              disabled={actionLoading || isSelf}
+            <button onClick={() => onAction('activate')} disabled={actionLoading || isSelf}
               title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
-                flex: 1, minWidth: 80,
-                padding: '0.5rem',
-                borderRadius: 8,
-                border: '1px solid var(--success)',
-                background: 'var(--success-light)',
-                color: 'var(--success)',
-                fontSize: 12, fontWeight: 600,
-                cursor: actionLoading ? 'not-allowed' : 'pointer',
+                flex: 1, minWidth: 80, padding: '0.5rem',
+                borderRadius: 8, border: '1px solid var(--success)',
+                background: 'var(--success-light)', color: 'var(--success)',
+                fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                opacity: actionLoading ? 0.5 : 1,
-              }}
-            >
+                opacity: actionLoading || isSelf ? 0.5 : 1,
+              }}>
               <UserCheck size={13} /> Activate
             </button>
           )}
-          <button
-            onClick={() => onAction('toggle_role')}
-            disabled={actionLoading || isSelf}
+          <button onClick={() => onAction('toggle_role')} disabled={actionLoading || isSelf}
             title={isSelf ? 'You cannot change your own role' : undefined}
             style={{
-              flex: 1, minWidth: 80,
-              padding: '0.5rem',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: 'var(--surface)',
-              color: 'var(--text-secondary)',
-              fontSize: 12, fontWeight: 600,
-              cursor: actionLoading ? 'not-allowed' : 'pointer',
+              flex: 1, minWidth: 80, padding: '0.5rem',
+              borderRadius: 8, border: '1px solid var(--border)',
+              background: 'var(--surface)', color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              opacity: actionLoading ? 0.5 : 1,
-            }}
-          >
+              opacity: actionLoading || isSelf ? 0.5 : 1,
+            }}>
             <UserCog size={13} /> {user.is_admin ? 'Make User' : 'Make Admin'}
           </button>
           {!isSelf && (
-            <button
-            onClick={() => onAction('delete')}
-            disabled={actionLoading}
-            style={{
-              flex: 1, minWidth: 80,
-              padding: '0.5rem',
-              borderRadius: 8,
-              border: '1px solid rgba(239,68,68,0.3)',
-              background: 'var(--error-light)',
-              color: 'var(--error)',
-              fontSize: 12, fontWeight: 600,
-              cursor: actionLoading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              opacity: actionLoading ? 0.5 : 1,
-            }}
-          >
-            <Trash2 size={13} /> Delete
-          </button>
+            <button onClick={() => onAction('delete')} disabled={actionLoading}
+              style={{
+                flex: 1, minWidth: 80, padding: '0.5rem',
+                borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                background: 'var(--error-light)', color: 'var(--error)',
+                fontSize: 12, fontWeight: 600, cursor: actionLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                opacity: actionLoading ? 0.5 : 1,
+              }}>
+              <Trash2 size={13} /> Delete
+            </button>
           )}
         </div>
       </div>
@@ -290,53 +261,106 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
   );
 }
 
+function SelectFilter({ label, value, options, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {label && <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</span>}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            appearance: 'none',
+            padding: '0.35rem 2rem 0.35rem 0.625rem',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text-primary)',
+            fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', outline: 'none',
+          }}
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={10} style={{
+          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--text-muted)', pointerEvents: 'none',
+        }} />
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const { token, user: currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [role, setRole] = useState(searchParams.get('role') || 'all');
+  const [status, setStatus] = useState(searchParams.get('status') || 'all');
+  const [login, setLogin] = useState(searchParams.get('login') || 'all');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
-  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
-  const navigate = useNavigate();
   const { addToast } = useToast();
   const [copiedEmail, setCopiedEmail] = useState(null);
-  const [sort, setSort] = useState('newest');
 
   const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
 
-  // Reset page when search or sort changes
-  useEffect(() => { setPage(1); }, [debouncedSearch, sort]);
+  // Sync state → URL params
+  const syncToUrl = useCallback((overrides = {}) => {
+    const params = {};
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (role !== 'all') params.role = role;
+    if (status !== 'all') params.status = status;
+    if (login !== 'all') params.login = login;
+    if (sort !== 'newest') params.sort = sort;
+    if ((overrides.page || page) > 1) params.page = overrides.page || page;
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, role, status, login, sort, page]);
+
+  // Sync state → URL on filter/sort/search changes
+  useEffect(() => {
+    setPage(1);
+    syncToUrl({ page: 1 });
+  }, [debouncedSearch, role, status, login, sort]);
 
   const fetchUsers = useCallback(async (pageNum = 1) => {
     if (!token) return;
     setLoading(true);
     setError('');
     try {
-      const params = {
-        search: debouncedSearch,
-        sort,
-        page: pageNum,
-      };
+      const params = { page: pageNum };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (role !== 'all') params.role = role;
+      if (status !== 'all') params.status = status;
+      if (login !== 'all') params.login = login;
+      if (sort !== 'newest') params.sort = sort;
       const data = await api.adminGetUsers(token, params);
       setUsers(data.users);
       setTotal(data.total);
       setTotalPages(data.last_page);
       setPage(data.current_page);
     } catch (e) {
-      setError(e.message || 'Unable to load users. Try again.');
+      setError(e.message || 'Unable to load users.');
     } finally {
       setLoading(false);
     }
-  }, [token, debouncedSearch]);
+  }, [token, debouncedSearch, role, status, login, sort]);
 
-  useEffect(() => { fetchUsers(page); }, [fetchUsers, page]);
+  useEffect(() => {
+    const pageFromUrl = Number(searchParams.get('page')) || 1;
+    setPage(pageFromUrl);
+    fetchUsers(pageFromUrl);
+  }, [searchParams]); // Re-fetch when URL changes
 
   const fetchUserDetail = async (id) => {
     setDetailLoading(true);
@@ -344,71 +368,70 @@ export default function AdminUsersPage() {
       const data = await api.adminGetUser(id, token);
       setSelectedUser(data.user);
     } catch (e) {
-      setError(e.message || 'Unable to load user details.');
+      addToast({ type: 'error', message: 'Unable to load user details.' });
     } finally {
       setDetailLoading(false);
     }
   };
 
   const handleDeleteFromTable = (user) => {
-    setDeleteUserTarget(user);
     setConfirmModal({
       type: 'delete_user',
       title: 'Delete User',
-      message: `Are you sure you want to delete "${user.name}" (${user.email})? This action cannot be undone.`,
+      message: `Are you sure you want to delete "${user.name}"? This action cannot be undone.`,
       confirmLabel: 'Delete',
       variant: 'danger',
       userId: user.id,
+      userName: user.name,
     });
   };
 
   const handleUserAction = async (action) => {
     if (!selectedUser) return;
+    if (action === 'delete') {
+      setConfirmModal({
+        type: 'delete',
+        title: 'Delete User',
+        message: `Are you sure you want to delete "${selectedUser.name}"? This will permanently remove this account and all associated data. This action cannot be undone.`,
+        confirmLabel: 'Delete',
+        variant: 'danger',
+      });
+      return;
+    }
+    if (action === 'toggle_allow_login') {
+      const willBlock = selectedUser.allow_login !== false;
+      setConfirmModal({
+        type: 'allow_login',
+        title: willBlock ? 'Block Login?' : 'Allow Login?',
+        message: willBlock
+          ? `"${selectedUser.name}" will no longer be able to sign in. They can be unblocked at any time.`
+          : `"${selectedUser.name}" will be able to sign in again.`,
+        confirmLabel: willBlock ? 'Block Login' : 'Allow Login',
+        variant: 'danger',
+        action,
+        userName: selectedUser.name,
+      });
+      return;
+    }
     setActionLoading(true);
     try {
-      if (action === 'delete') {
-        setConfirmModal({
-          type: 'delete',
-          title: 'Delete User',
-          message: 'This will permanently delete the user and associated data.',
-          confirmLabel: 'Delete',
-          variant: 'danger',
-        });
-        setActionLoading(false);
-        return;
-      }
       const payload = {};
       if (action === 'suspend') payload.is_active = false;
       else if (action === 'activate') payload.is_active = true;
       else if (action === 'toggle_role') payload.is_admin = !selectedUser.is_admin;
-
       const data = await api.adminUpdateUser(selectedUser.id, payload, token);
-
       if (data.message?.includes('last administrator')) {
-        setConfirmModal({
-          type: 'error',
-          title: 'Action Blocked',
-          message: data.message,
-          confirmLabel: 'OK',
-          variant: 'danger',
-        });
+        setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
         setActionLoading(false);
         return;
       }
-
       setSelectedUser(data.user);
       setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
-      if (action === 'suspend') addToast({ type: 'success', message: 'User suspended' });
-      else if (action === 'activate') addToast({ type: 'success', message: 'User activated' });
-      else if (action === 'toggle_role') addToast({ type: 'success', message: data.user.is_admin ? 'User promoted to admin' : 'Admin demoted to user' });
+      if (action === 'suspend') addToast({ type: 'success', message: `"${data.user.name}" suspended` });
+      else if (action === 'activate') addToast({ type: 'success', message: `"${data.user.name}" activated` });
+      else if (action === 'toggle_role') addToast({ type: 'success', message: data.user.is_admin ? `"${data.user.name}" promoted to admin` : `"${data.user.name}" demoted to user` });
     } catch (e) {
-      setConfirmModal({
-        type: 'error',
-        title: 'Action Failed',
-        message: e.message || 'Something went wrong.',
-        confirmLabel: 'OK',
-        variant: 'danger',
-      });
+      setConfirmModal({ type: 'error', title: 'Action Failed', message: e.message || 'Something went wrong.', confirmLabel: 'OK', variant: 'danger' });
     } finally {
       setActionLoading(false);
     }
@@ -416,52 +439,43 @@ export default function AdminUsersPage() {
 
   const handleConfirmAction = async () => {
     if (!confirmModal) return;
-    if (confirmModal.type === 'error') {
-      setConfirmModal(null);
-      return;
-    }
-    if (confirmModal.type === 'delete' || confirmModal.type === 'delete_user') {
-      setActionLoading(true);
-      try {
-        const userId = confirmModal.type === 'delete_user' ? confirmModal.userId : selectedUser.id;
+    if (confirmModal.type === 'error') { setConfirmModal(null); return; }
+    setActionLoading(true);
+    try {
+      if (confirmModal.type === 'delete' || confirmModal.type === 'delete_user') {
+        const userId = confirmModal.type === 'delete_user' ? confirmModal.userId : selectedUser?.id;
         const data = await api.adminDeleteUser(userId, token);
         if (data.message?.includes('last administrator')) {
-          setConfirmModal({
-            type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger',
-          });
+          setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
           setActionLoading(false);
           return;
         }
         setConfirmModal(null);
-        if (confirmModal.type === 'delete') {
-          setSelectedUser(null);
-        }
-        setDeleteUserTarget(null);
+        setSelectedUser(null);
         fetchUsers(page);
-        addToast({ type: 'success', message: 'User deleted successfully' });
-      } catch (e) {
-        setConfirmModal({
-          type: 'error', title: 'Delete Failed', message: e.message || 'Could not delete user.', confirmLabel: 'OK', variant: 'danger',
-        });
-      } finally {
-        setActionLoading(false);
+        addToast({ type: 'success', message: `User deleted successfully.` });
+        return;
       }
+      if (confirmModal.type === 'allow_login') {
+        const data = await api.adminUpdateUser(selectedUser.id, { allow_login: selectedUser.allow_login === false ? true : false }, token);
+        setSelectedUser(data.user);
+        setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
+        setConfirmModal(null);
+        const wasBlocked = selectedUser.allow_login === false;
+        addToast({ type: 'success', message: wasBlocked ? `"${selectedUser.name}" can now log in` : `"${selectedUser.name}" is now blocked from logging in` });
+        return;
+      }
+    } catch (e) {
+      setConfirmModal({ type: 'error', title: 'Action Failed', message: e.message || 'Something went wrong.', confirmLabel: 'OK', variant: 'danger' });
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const copyEmail = (email) => {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(email).catch(() => {});
-      } else {
-        const el = document.createElement('textarea');
-        el.value = email;
-        el.style.position = 'fixed';
-        el.style.opacity = '0';
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
       }
     } catch {}
     setCopiedEmail(email);
@@ -473,13 +487,30 @@ export default function AdminUsersPage() {
     return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
   };
 
-  // ===== RENDER =====
+  const formatRelative = (d) => {
+    if (!d) return '—';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDate(d);
+  };
+
+  const activeFilterCount = [role !== 'all', status !== 'all', login !== 'all'].filter(Boolean).length;
+  const clearAllFilters = () => { setRole('all'); setStatus('all'); setLogin('all'); setSearch(''); };
+
+  const hasActiveFilters = debouncedSearch || activeFilterCount > 0;
+
   return (
     <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%', maxWidth: '100%' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
 
         {/* Header */}
-        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, width: '100%', padding: '0 4px' }}>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ background: 'var(--primary)', padding: '8px 12px', borderRadius: 10 }}>
               <Users size={18} style={{ color: '#fff' }} />
@@ -488,15 +519,15 @@ export default function AdminUsersPage() {
               <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
                 All Users
               </h1>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {loading ? (
-                  <span style={{ color: 'var(--text-muted)' }}>Loading...</span>
+                  <span>Loading…</span>
                 ) : (
                   <>
                     <span style={{ background: 'var(--primary)', color: '#fff', padding: '1px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
                       {total}
                     </span>
-                    <span>user{total !== 1 ? 's' : ''} total</span>
+                    {' '}user{total !== 1 ? 's' : ''} total
                   </>
                 )}
               </p>
@@ -505,46 +536,83 @@ export default function AdminUsersPage() {
           <AdminReloadBtn onClick={() => fetchUsers(page)} title="Refresh users" />
         </div>
 
-        {/* Search + Sort */}
-        <div className="admin-search" style={{ marginBottom: 14, width: '100%', maxWidth: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div className="admin-search-wrapper" style={{ position: 'relative', flex: 1 }}>
-            <Search size={13} className="admin-search-icon" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
+          <span>/</span>
+          <span>Users</span>
+        </div>
+
+        {/* Search + Filters */}
+        <div style={{ marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Search */}
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search users..."
-              className="admin-search-input"
-              style={{ paddingLeft: 36, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%' }}
+              placeholder="Search users…"
+              style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%', padding: '0.45rem 0.75rem 0.45rem 32px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sort:</span>
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value)}
-              style={{
-                appearance: 'none',
-                padding: '6px 28px 6px 10px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                color: 'var(--text-primary)',
-                fontSize: 12, fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239496a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 8px center',
-              }}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="name_asc">Name A–Z</option>
-              <option value="name_desc">Name Z–A</option>
-            </select>
+
+          {/* Filters */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Filter size={12} style={{ color: 'var(--text-muted)' }} />
+            <SelectFilter label="Role" value={role}
+              options={[{ value: 'all', label: 'All Roles' }, { value: 'admin', label: 'Admin' }, { value: 'user', label: 'User' }]}
+              onChange={v => { setRole(v); setPage(1); syncToUrl({ page: 1 }); }} />
+            <SelectFilter label="Status" value={status}
+              options={[{ value: 'all', label: 'All Status' }, { value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]}
+              onChange={v => { setStatus(v); setPage(1); syncToUrl({ page: 1 }); }} />
+            <SelectFilter label="Login" value={login}
+              options={[{ value: 'all', label: 'All Login' }, { value: 'allowed', label: 'Allowed' }, { value: 'blocked', label: 'Blocked' }]}
+              onChange={v => { setLogin(v); setPage(1); syncToUrl({ page: 1 }); }} />
+            <SelectFilter label="Sort" value={sort}
+              options={[{ value: 'newest', label: 'Newest' }, { value: 'oldest', label: 'Oldest' }, { value: 'name_asc', label: 'Name A–Z' }, { value: 'name_desc', label: 'Name Z–A' }]}
+              onChange={v => { setSort(v); setPage(1); syncToUrl({ page: 1 }); }} />
           </div>
+
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <button onClick={clearAllFilters} style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '0.35rem 0.625rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-secondary)',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            }}>
+              <X size={11} /> Clear
+            </button>
+          )}
         </div>
+
+        {/* Active filter pills */}
+        {activeFilterCount > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {role !== 'all' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                Role: {role === 'admin' ? 'Admin' : 'User'}
+                <button onClick={() => { setRole('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
+              </span>
+            )}
+            {status !== 'all' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: status === 'active' ? 'var(--success-light)' : 'var(--error-light)', color: status === 'active' ? 'var(--success)' : 'var(--error)' }}>
+                Status: {status === 'active' ? 'Active' : 'Suspended'}
+                <button onClick={() => { setStatus('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
+              </span>
+            )}
+            {login !== 'all' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: login === 'allowed' ? 'var(--success-light)' : 'color-mix(in srgb, var(--warning) 15%, transparent)', color: login === 'allowed' ? 'var(--success)' : 'var(--warning)' }}>
+                Login: {login === 'allowed' ? 'Allowed' : 'Blocked'}
+                <button onClick={() => { setLogin('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
+              </span>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="card" style={{ padding: '48px 0', textAlign: 'center' }}>
@@ -561,118 +629,124 @@ export default function AdminUsersPage() {
         ) : users.length === 0 ? (
           <div className="card" style={{ padding: '40px 0', textAlign: 'center' }}>
             <div className="empty-state-icon" style={{ margin: '0 auto 12px' }}>
-              <Eye size={20} />
+              <User size={20} />
             </div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-              {search ? 'No results found' : 'No users yet'}
+              {search || activeFilterCount > 0 ? 'No results found' : 'No users yet'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {search ? `No users matching "${search}"` : 'Users will appear here once they register'}
+              {search || activeFilterCount > 0 ? 'Try changing your search or filters' : 'Users will appear here once they register'}
             </p>
           </div>
         ) : (
-          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
-            <div className="admin-table-scroll" style={{ overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
-            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['User', 'Email', 'Role', 'Status', 'Projects', 'Reviews', 'Created', 'Actions'].map(h => {
-                    const centerCols = ['Projects', 'Reviews', 'Actions'];
-                    return (
-                      <th key={h} style={{
-                        padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                        color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
-                        textTransform: 'uppercase', letterSpacing: '0.04em',
-                        background: 'var(--background)', whiteSpace: 'nowrap',
-                      }}>{h}</th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u, i) => (
-                  <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'background 0.15s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                    {/* User */}
-                    <td style={{ padding: '11px 12px' }}>
-                      <button
-                        onClick={() => navigate(`/admin/users/${u.id}`)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
-                      >
-                        <Avatar name={u.name} size={30} />
-                        <span title={u.name} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140, display: 'block' }}>{u.name}</span>
-                      </button>
-                    </td>
-                    {/* Email */}
-                    <td style={{ padding: '11px 12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span
-                          title={u.email}
-                          style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', cursor: 'default' }}
-                        >
-                          {u.email}
-                        </span>
-                        <button onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
-                          {copiedEmail === u.email ? <Check size={11} style={{ color: 'var(--success)' }} /> : <Copy size={11} style={{ color: 'var(--text-muted)' }} />}
-                        </button>
-                      </div>
-                    </td>
-                    {/* Role */}
-                    <td style={{ padding: '11px 12px' }}>
-                      {u.is_admin
-                        ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge>
-                        : <Badge variant="gray">User</Badge>}
-                    </td>
-                    {/* Status */}
-                    <td style={{ padding: '11px 12px' }}>
-                      {u.is_active
-                        ? <Badge variant="green"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block', flexShrink: 0 }} />Active</Badge>
-                        : <Badge variant="red"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)', display: 'inline-block', flexShrink: 0 }} />Suspended</Badge>}
-                    </td>
-                    {/* Projects */}
-                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
-                      {u.projects_count ?? 0}
-                    </td>
-                    {/* Reviews */}
-                    <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
-                      {u.reviews_count ?? 0}
-                    </td>
-                    {/* Created */}
-                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {formatDate(u.created_at)}
-                    </td>
-                    {/* Actions */}
-                    <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                        <button onClick={() => navigate(`/admin/users/${u.id}`)} className="btn-icon" title="View" style={{ padding: 6 }}>
-                          <Eye size={14} />
-                        </button>
-                        {currentUser?.id !== u.id && (
-                          <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete" style={{ color: 'var(--error)', padding: 6 }}>
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    {['User', 'Email', 'Role', 'Account', 'Login', 'Projects', 'Reviews', 'Last Active', 'Actions'].map(h => {
+                      const centerCols = ['Projects', 'Reviews', 'Actions'];
+                      return (
+                        <th key={h} style={{
+                          padding: '10px 12px', fontSize: 10, fontWeight: 600,
+                          color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
+                          textTransform: 'uppercase', letterSpacing: '0.04em',
+                          background: 'var(--background)', whiteSpace: 'nowrap',
+                        }}>{h}</th>
+                      );
+                    })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.map((u, i) => (
+                    <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'background 0.12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      {/* User */}
+                      <td style={{ padding: '10px 12px' }}>
+                        <button
+                          onClick={() => navigate(`/admin/users/${u.id}`)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
+                        >
+                          <Avatar name={u.name} size={30} />
+                          <span title={u.name} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140, display: 'block' }}>{u.name}</span>
+                        </button>
+                      </td>
+                      {/* Email */}
+                      <td style={{ padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span title={u.email} style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                            {u.email}
+                          </span>
+                          <button onClick={e => { e.stopPropagation(); copyEmail(u.email); }} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
+                            {copiedEmail === u.email ? <Check size={11} style={{ color: 'var(--success)' }} /> : <Copy size={11} style={{ color: 'var(--text-muted)' }} />}
+                          </button>
+                        </div>
+                      </td>
+                      {/* Role */}
+                      <td style={{ padding: '10px 12px' }}>
+                        {u.is_admin
+                          ? <Badge variant="purple"><ShieldCheck size={10} />Admin</Badge>
+                          : <Badge variant="gray">User</Badge>}
+                      </td>
+                      {/* Account Status */}
+                      <td style={{ padding: '10px 12px' }}>
+                        {u.is_active
+                          ? <Badge variant="green" dot>Active</Badge>
+                          : <Badge variant="red" dot>Suspended</Badge>}
+                      </td>
+                      {/* Login Status */}
+                      <td style={{ padding: '10px 12px' }}>
+                        {u.allow_login === false
+                          ? <Badge variant="yellow" dot>Blocked</Badge>
+                          : <Badge variant="green" dot>Allowed</Badge>}
+                      </td>
+                      {/* Projects */}
+                      <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
+                        {u.projects_count ?? 0}
+                      </td>
+                      {/* Reviews */}
+                      <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
+                        {u.reviews_count ?? 0}
+                      </td>
+                      {/* Last Active */}
+                      <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {formatRelative(u.last_activity)}
+                      </td>
+                      {/* Actions */}
+                      <td style={{ padding: '10px 12px', minWidth: 80, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                          <button onClick={() => { setSelectedUser(u); setDetailLoading(false); }} className="btn-icon" title="Quick view" style={{ padding: 5 }}>
+                            <Eye size={13} />
+                          </button>
+                          {currentUser?.id !== u.id && (
+                            <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete user" style={{ color: 'var(--error)', padding: 5 }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Page {page} of {totalPages} · {total} users
+                  Showing {((page - 1) * 20) + 1}–{Math.min(page * 20, total)} of {total} users
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                  <button onClick={() => { const p = Math.max(1, page - 1); setPage(p); syncToUrl({ page: p }); }} disabled={page <= 1}
                     className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
                     <ChevronLeft size={12} /> Prev
                   </button>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: 12, color: 'var(--text-secondary)' }}>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); syncToUrl({ page: p }); }} disabled={page >= totalPages}
                     className="btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}>
                     Next <ChevronRight size={12} />
                   </button>
@@ -694,19 +768,18 @@ export default function AdminUsersPage() {
         />
       )}
 
-      {/* Confirm / Error Modal */}
+      {/* Confirm / Error Modal — uses shared ConfirmModal with ESC support */}
       {confirmModal && (
         <ConfirmModal
           title={confirmModal.title}
           message={confirmModal.message}
           confirmLabel={confirmModal.confirmLabel}
-          variant={confirmModal.variant}
+          variant={confirmModal.variant || 'danger'}
           loading={actionLoading}
           onConfirm={handleConfirmAction}
           onCancel={() => setConfirmModal(null)}
         />
       )}
-
     </div>
   );
 }

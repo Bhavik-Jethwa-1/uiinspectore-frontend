@@ -60,17 +60,19 @@ export default function AdminProjectDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, flexDirection: 'column', gap: 12, background: 'var(--background)', minHeight: '100vh', padding: 24 }}>
-        <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--primary)' }} />
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading project...</p>
+      <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: 24 }}>
+        <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, flexDirection: 'column', gap: 12 }}>
+          <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--primary)' }} />
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading project...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !project) {
     return (
-      <div style={{ background: 'var(--background)', minHeight: '100vh', padding: 24 }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: 24 }}>
+        <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto' }}>
           <button
             onClick={() => navigate('/admin/projects')}
             className="btn-ghost"
@@ -93,8 +95,8 @@ export default function AdminProjectDetailPage() {
   }
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>

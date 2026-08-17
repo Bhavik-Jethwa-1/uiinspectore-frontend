@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const { token, user } = useAuth();
   const { addToast } = useToast();
   const [openaiKey, setOpenaiKey] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -34,7 +33,6 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setSaving(true);
     setError('');
-    setSaved(false);
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -47,6 +45,7 @@ export default function AdminSettingsPage() {
       });
       if (!res.ok) throw new Error('Failed to save settings');
       addToast({ type: 'success', message: 'Settings saved successfully.' });
+      setError('');
     } catch (e) {
       addToast({ type: 'error', message: e.message || 'Failed to save settings.' });
     } finally {
@@ -55,11 +54,11 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
+      <div className="admin-page-content" style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
               Settings
@@ -68,6 +67,13 @@ export default function AdminSettingsPage() {
               Configure system-wide settings for UI Review
             </p>
           </div>
+        </div>
+
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
+          <span>/</span>
+          <span>Settings</span>
         </div>
 
         {/* AI Configuration */}
@@ -117,18 +123,6 @@ export default function AdminSettingsPage() {
                 }}>
                   <AlertCircle size={13} />
                   {error}
-                </div>
-              )}
-
-              {saved && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '10px 12px', borderRadius: 'var(--radius-sm)',
-                  background: 'color-mix(in srgb, var(--success) 10%, transparent)',
-                  color: 'var(--success)', fontSize: 12, marginBottom: 12,
-                }}>
-                  <CheckCircle size={13} />
-                  Settings saved successfully
                 </div>
               )}
 

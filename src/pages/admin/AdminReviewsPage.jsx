@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Loader2, AlertCircle, Eye, RefreshCw, ChevronLeft, ChevronRight, Filter, Star } from 'lucide-react';
@@ -98,8 +98,9 @@ export default function AdminReviewsPage() {
   };
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
+      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
@@ -111,6 +112,13 @@ export default function AdminReviewsPage() {
             </p>
           </div>
           <AdminReloadBtn onClick={() => loadReviews(page)} title="Refresh reviews" />
+        </div>
+
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
+          <span>/</span>
+          <span>Reviews</span>
         </div>
 
         {/* Search + Filters */}
