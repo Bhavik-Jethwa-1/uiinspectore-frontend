@@ -167,7 +167,7 @@ export default function AdminReviewsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['ID', 'Project', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
+                  {['ID', 'Project', 'User', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
                     <th key={h} style={{
                       padding: '10px 12px', fontSize: 10, fontWeight: 600,
                       color: 'var(--text-muted)', textAlign: 'left',
@@ -186,8 +186,20 @@ export default function AdminReviewsPage() {
                     <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                       {r.project_name}
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 140 }}>
-                      <span className="truncate" style={{ display: 'block' }}>{r.page_goal || '—'}</span>
+                    {/* User */}
+                    <td style={{ padding: '11px 12px' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }} title={r.user_name || ''}>
+                        {r.user_name || '—'}
+                      </span>
+                    </td>
+                    {/* Goal */}
+                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 160 }}>
+                      <span
+                        title={r.page_goal || ''}
+                        style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {r.page_goal || '—'}
+                      </span>
                     </td>
                     <td style={{ padding: '11px 12px' }}>{getStatusBadge(r.status)}</td>
                     <td style={{ padding: '11px 12px' }}>
