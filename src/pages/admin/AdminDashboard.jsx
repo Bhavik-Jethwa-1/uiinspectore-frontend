@@ -95,7 +95,7 @@ export default function AdminDashboard() {
               {stats ? `${stats.total_users} users · ${stats.total_projects} projects · ${stats.total_reviews} reviews` : 'Loading...'}
             </p>
           </div>
-          <button onClick={loadStats} className="btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <button onClick={loadStats} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>

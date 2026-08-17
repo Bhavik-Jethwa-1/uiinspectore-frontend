@@ -109,7 +109,7 @@ export default function AdminReviewsPage() {
               {loading ? '…' : `${total} review${total !== 1 ? 's' : ''} total`}
             </p>
           </div>
-          <button onClick={() => loadReviews(page)} className="btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <button onClick={() => loadReviews(page)} className="admin-btn-icon" title="Refresh" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>

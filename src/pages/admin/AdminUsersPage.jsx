@@ -497,7 +497,7 @@ export default function AdminUsersPage() {
             onClick={() => fetchUsers(page)}
             className="admin-btn-icon"
             title="Refresh"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 8 }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           >
             <RefreshCw size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
