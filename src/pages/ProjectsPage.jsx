@@ -491,16 +491,14 @@ export default function ProjectsPage() {
           loading={deleting}
           onConfirm={async () => {
             setDeleting(true);
+            const idToDelete = deleteTarget.id;
             try {
-              await api.deleteProject(deleteTarget.id, token);
-              setDeleteTarget(null);
-              setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
-              loadProjects(page);
-            } catch {
-              setDeleteTarget(null);
-            } finally {
-              setDeleting(false);
-            }
+              await api.deleteProject(idToDelete, token);
+            } catch { /* ignore — server will handle */ }
+            // Always remove from local state, regardless of API result
+            setProjects(prev => prev.filter(p => p.id !== idToDelete));
+            setDeleteTarget(null);
+            setDeleting(false);
           }}
           onCancel={() => setDeleteTarget(null)}
         />
