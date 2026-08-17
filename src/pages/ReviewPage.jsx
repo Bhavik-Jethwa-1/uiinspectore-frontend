@@ -70,87 +70,134 @@ const SCORE_STATUS = {
   attention:    'Needs attention — prioritize fixing this.',
 };
 
-// ─── "How to Read This Report" Guide ───────────────────────────────────────
-function ReportGuide({ onClose }) {
-  const [open, setOpen] = useState(true);
+// ─── "Understanding Your Report" Guide ──────────────────────────────────────
+// Shown prominently on first view of a completed review. Never hidden in an obscure
+// collapsible section. Returning users can collapse it; first-time users always see it expanded.
+function ReportGuide({ reviewId }) {
+  const storageKey = `review_guide_${reviewId || 'default'}_dismissed`;
+  const wasDismissed = (() => {
+    try { return localStorage.getItem(storageKey) === 'true'; } catch { return false; }
+  })();
 
-  if (!open) {
+  const [open, setOpen] = useState(!wasDismissed); // first-time = always open
+  const [dismissed, setDismissed] = useState(wasDismissed);
+
+  const handleDismiss = () => {
+    setOpen(false);
+    setDismissed(true);
+    try { localStorage.setItem(storageKey, 'true'); } catch {}
+  };
+
+  // Collapsed state — always visible as a button, never hidden
+  if (dismissed) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); setDismissed(false); }}
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '6px 12px', borderRadius: 8,
           background: 'var(--primary-light)', border: '1px solid var(--primary)30',
           cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)',
-          marginBottom: 12,
+          marginBottom: 12, width: '100%', textAlign: 'left',
         }}
       >
         <HelpCircle size={13} />
-        How to read this report
+        Understanding your report
       </button>
     );
   }
 
+  // Expanded state
   return (
     <div style={{
       padding: '14px 16px', borderRadius: 10,
-      background: 'var(--primary-light)',
+      background: 'linear-gradient(135deg, var(--primary-light) 0%, #ede9fe 100%)',
       border: '1px solid var(--primary)30',
       marginBottom: 14,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <HelpCircle size={14} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>How to read this report</span>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <HelpCircle size={15} style={{ color: 'var(--primary)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+            Understanding your report
+          </span>
         </div>
-        <button onClick={() => setOpen(false)} className="btn-icon" style={{ width: 20, height: 20 }} aria-label="Close guide">
-          <X size={12} />
+        <button
+          onClick={handleDismiss}
+          style={{
+            background: 'rgba(91,95,239,0.12)', border: 'none', borderRadius: 6,
+            padding: '3px 8px', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+            color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          Got it
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {[
-          {
-            step: '1',
-            title: 'Start with your overall score',
-            desc: 'Aim for 80 or above. Your overall score is the weighted average of all category scores.',
-            color: 'var(--primary)',
-          },
-          {
-            step: '2',
-            title: 'Check your lowest category scores',
-            desc: 'Your biggest improvement opportunities are the lowest-scoring categories. Focus there first.',
-            color: 'var(--warning)',
-          },
-          {
-            step: '3',
-            title: 'Review annotations in order',
-            desc: 'Issues are sorted by severity: Critical → High → Medium → Low. Fix critical issues first.',
-            color: 'var(--error)',
-          },
-          {
-            step: '4',
-            title: 'Each suggestion has a "How to fix"',
-            desc: 'Expand any suggestion to see specific steps you can take to improve your score.',
-            color: 'var(--success)',
-          },
-        ].map(({ step, title, desc, color }) => (
-          <div key={step} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-              background: color, color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 800, marginTop: 1,
-            }}>
-              {step}
+      {/* Score ranges */}
+      <div style={{ marginBottom: 14 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Overall Score
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+          {[
+            { range: '90–100', label: 'Excellent',  color: 'var(--success)', bg: 'var(--success-light)' },
+            { range: '80–89',  label: 'Good',       color: 'var(--success)', bg: 'var(--success-light)' },
+            { range: '65–79',  label: 'Average',    color: 'var(--warning)', bg: 'var(--warning-light)' },
+            { range: '50–64',  label: 'Below Avg',  color: 'var(--warning)', bg: 'var(--warning-light)' },
+            { range: '0–49',   label: 'Needs Work', color: 'var(--error)',   bg: 'var(--error-light)' },
+          ].map(({ range, label, color, bg }) => (
+            <div key={label} style={{ padding: '6px 4px', borderRadius: 6, background: bg, textAlign: 'center' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 1 }}>{label}</p>
+              <p style={{ fontSize: 9, color, opacity: 0.8 }}>{range}</p>
             </div>
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{title}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</p>
+          ))}
+        </div>
+      </div>
+
+      {/* Severity levels */}
+      <div style={{ marginBottom: 14 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Issue Severity
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {[
+            { label: 'Critical', color: 'var(--error)',    bg: 'var(--error-light)',   desc: 'Usability or accessibility problems that seriously hurt the user experience.' },
+            { label: 'High',      color: 'var(--warning)',  bg: 'var(--warning-light)', desc: 'Important problems that should be fixed soon — they significantly impact usability.' },
+            { label: 'Medium',    color: 'var(--secondary)',bg: 'var(--primary-light)',desc: 'Problems that improve usability when fixed, but are not urgent.' },
+            { label: 'Low',       color: 'var(--text-muted)',bg: 'var(--hover)',        desc: 'Minor polish improvements — nice to have but not essential.' },
+          ].map(({ label, color, bg, desc }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4, background: bg, color, flexShrink: 0, marginTop: 1 }}>
+                {label}
+              </span>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{desc}</p>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* What to do next */}
+      <div>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          What to do next
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {[
+            { num: '1', text: 'Start with Critical issues — they have the biggest impact on your users.' },
+            { num: '2', text: "Click any numbered pin on the screenshot to jump to that issue's details." },
+            { num: '3', text: 'Expand "How to fix" on any issue to see specific steps to improve.' },
+            { num: '4', text: 'After fixing issues, run another review to see your improved score.' },
+          ].map(({ num, text }) => (
+            <div key={num} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, marginTop: 1 }}>
+                {num}
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{text}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -158,48 +205,107 @@ function ReportGuide({ onClose }) {
 
 // ─── Annotation Pin on Screenshot ────────────────────────────────────────────
 // annotation: { id, x, y, width, height, issue: { id, title, severity, ... } }
-// x, y, width, height are PIXEL values relative to the ORIGINAL image dimensions.
-// displayedImgRef: ref to the <img> element for coordinate conversion.
+// x, y are passed as PERCENTAGE values (0-100) already converted by parent.
 function AnnotationPin({ annotation, isSelected, isPulsing, onClick }) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const issue = annotation.issue || {};
   const sevColor = issue.severity === 'critical' ? 'var(--error)'
     : issue.severity === 'high' ? 'var(--warning)'
     : issue.severity === 'medium' ? 'var(--secondary)'
     : 'var(--primary)';
+  const sevBg = issue.severity === 'critical' ? 'var(--error-light)'
+    : issue.severity === 'high' ? 'var(--warning-light)'
+    : issue.severity === 'medium' ? 'var(--primary-light)'
+    : 'var(--hover)';
 
   return (
-    <button
-      onClick={onClick}
-      aria-label={`Annotation ${annotation.id}: ${issue.title || 'Issue'}`}
-      title={issue.title || 'Issue'}
-      style={{
-        position: 'absolute',
-        // x, y are passed as PERCENTAGE values (0-100) already converted by parent
-        left: `${annotation.x}%`,
-        top: `${annotation.y}%`,
-        transform: `translate(-50%, -50%) scale(${isSelected ? 1.25 : 1})`,
-        width: isSelected ? 30 : 26,
-        height: isSelected ? 30 : 26,
-        borderRadius: '50%',
-        background: sevColor,
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: isSelected ? 12 : 10,
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: isSelected
-          ? `0 0 0 3px #fff, 0 0 0 6px ${sevColor}, 0 0 16px ${sevColor}60`
-          : '0 2px 8px rgba(0,0,0,0.4)',
-        border: '2.5px solid #fff',
-        transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease',
-        zIndex: isSelected ? 15 : 6,
-        animation: isPulsing ? 'pin-pulse 1.5s ease-out 3' : 'none',
-      }}
+    <div
+      style={{ position: 'absolute', left: `${annotation.x}%`, top: `${annotation.y}%`, transform: 'translate(-50%, -50%)' }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
-      {annotation._displayNum}
-    </button>
+      {/* Tooltip */}
+      {showTooltip && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 8px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(23,27,58,0.95)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: 8,
+          padding: '8px 10px',
+          minWidth: 160,
+          maxWidth: 220,
+          zIndex: 20,
+          pointerEvents: 'none',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          whiteSpace: 'nowrap',
+        }}>
+          {/* Pin number + severity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+              background: sevBg, color: sevColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 800,
+            }}>
+              {annotation._displayNum}
+            </div>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: sevColor }}>
+              {issue.severity || 'Issue'}
+            </span>
+          </div>
+          {/* Title */}
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#fff', margin: 0, lineHeight: 1.4 }}>
+            {issue.title || 'Issue'}
+          </p>
+          {/* Description preview */}
+          {issue.description && (
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', margin: '4px 0 0', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {issue.description}
+            </p>
+          )}
+          {/* Arrow */}
+          <div style={{
+            position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+            width: 0, height: 0,
+            borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+            borderTop: '5px solid rgba(23,27,58,0.95)',
+          }} />
+        </div>
+      )}
+
+      {/* Pin button */}
+      <button
+        onClick={onClick}
+        aria-label={`Annotation ${annotation._displayNum}: ${issue.title || 'Issue'} — ${issue.severity || 'Issue'}`}
+        style={{
+          position: 'relative',
+          transform: `scale(${isSelected ? 1.25 : 1})`,
+          width: isSelected ? 30 : 26,
+          height: isSelected ? 30 : 26,
+          borderRadius: '50%',
+          background: sevColor,
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: isSelected ? 12 : 10,
+          fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: isSelected
+            ? `0 0 0 3px #fff, 0 0 0 6px ${sevColor}, 0 0 16px ${sevColor}60`
+            : '0 2px 8px rgba(0,0,0,0.4)',
+          border: '2.5px solid #fff',
+          transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease',
+          zIndex: isSelected ? 15 : 6,
+          animation: isPulsing ? 'pin-pulse 1.5s ease-out 3' : 'none',
+        }}
+      >
+        {annotation._displayNum}
+      </button>
+    </div>
   );
 }
 
@@ -371,121 +477,188 @@ function AnnotatedScreenshot({
 }
 
 // ─── Suggestion Card ────────────────────────────────────────────────────────
+// suggestion: { id, title, description, severity, priority, recommendation, fix,
+//               steps, problem, why_matters, user_impact, expected_impact, status }
 function SuggestionCard({ suggestion, index, isSelected, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const pStyle = getPriorityStyle(suggestion.priority);
+  const sevColor = pStyle.color;
+  const sevBg = pStyle.bg;
 
-  const hasFix = suggestion.recommendation || suggestion.fix || (suggestion.steps && suggestion.steps.length > 0);
-  const hasDetails = suggestion.problem || suggestion.why_matters || suggestion.expected_impact;
+  const hasFix       = suggestion.recommendation || suggestion.fix || (suggestion.steps && suggestion.steps.length > 0);
+  const hasDetails   = suggestion.problem || suggestion.why_matters || suggestion.user_impact || suggestion.expected_impact;
+  const title        = suggestion.title || suggestion.category || 'Suggestion';
+  const description  = suggestion.description || suggestion.suggestion || '';
 
   return (
     <div
       className="card"
       style={{
         padding: 0, overflow: 'hidden',
-        border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+        border: isSelected ? `2px solid ${sevColor}` : '1px solid var(--border)',
         cursor: 'pointer',
-        transition: 'border-color 0.15s',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+        boxShadow: isSelected ? `0 0 0 3px ${sevColor}20` : 'none',
       }}
       onClick={() => onSelect && onSelect(index)}
     >
+      {/* Top accent bar */}
+      <div style={{ height: 3, background: sevColor, borderRadius: '2px 2px 0 0' }} />
+
       <div style={{ padding: '14px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        {/* Header: number + title + severity */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: 'var(--primary-light)',
+            width: 26, height: 26, borderRadius: 7, flexShrink: 0, marginTop: 1,
+            background: sevBg, color: sevColor,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, marginTop: 1,
-            fontSize: 11, fontWeight: 700, color: 'var(--primary)',
+            fontSize: 10, fontWeight: 800,
           }}>
             {index + 1}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Title + Priority */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                {suggestion.title || suggestion.category || 'Suggestion'}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap', marginBottom: description ? 6 : 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                {title}
               </p>
-              {suggestion.priority && (
-                <span style={{
-                  fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                  padding: '2px 6px', borderRadius: 4,
-                  background: pStyle.bg, color: pStyle.color,
-                }}>
-                  {pStyle.label}
-                </span>
-              )}
-            </div>
-
-            {/* Description */}
-            {(suggestion.description || suggestion.suggestion) && (
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: hasDetails ? 8 : 0 }}>
-                {suggestion.description || suggestion.suggestion}
-              </p>
-            )}
-
-            {/* Detail sections */}
-            {hasDetails && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-                {suggestion.problem && (
-                  <DetailLine label="Problem" text={suggestion.problem} color="var(--error)" />
-                )}
-                {suggestion.why_matters && (
-                  <DetailLine label="Why it matters" text={suggestion.why_matters} color="var(--warning)" />
-                )}
-                {suggestion.expected_impact && (
-                  <DetailLine label="Expected impact" text={suggestion.expected_impact} color="var(--success)" />
-                )}
-              </div>
-            )}
-
-            {/* How to fix */}
-            {hasFix && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '6px 10px', borderRadius: 6,
-                  border: '1px solid var(--border)',
-                  background: expanded ? 'var(--primary-light)' : 'var(--background)',
-                  cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                  color: 'var(--primary)', transition: 'all 0.15s',
-                  marginTop: 4,
-                }}
-              >
-                {expanded ? <ChevronUp size={12} /> : <ChevronRight size={12} />}
-                {expanded ? 'Hide' : 'How to fix'}
-              </button>
-            )}
-
-            {expanded && (
-              <div style={{
-                marginTop: 10, padding: '10px 12px', borderRadius: 6,
-                background: 'var(--success-light)',
-                border: '1px solid var(--success)20',
+              <span style={{
+                fontSize: 9, fontWeight: 800, textTransform: 'uppercase', flexShrink: 0,
+                padding: '2px 7px', borderRadius: 4,
+                background: sevBg, color: sevColor,
               }}>
-                {suggestion.recommendation && (
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: suggestion.steps ? 8 : 0 }}>
-                    {suggestion.recommendation}
-                  </p>
-                )}
-                {suggestion.fix && (
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: suggestion.steps ? 8 : 0 }}>
-                    {suggestion.fix}
-                  </p>
-                )}
-                {suggestion.steps && suggestion.steps.length > 0 && (
-                  <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 16, margin: 0 }}>
-                    {suggestion.steps.map((step, i) => (
-                      <li key={i} style={{ marginBottom: 4 }}>{step}</li>
-                    ))}
-                  </ol>
-                )}
-              </div>
+                {pStyle.label}
+              </span>
+            </div>
+            {description && (
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                {description}
+              </p>
             )}
           </div>
         </div>
+
+        {/* AI Analysis: structured explanation grid */}
+        {hasDetails && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 8, marginBottom: 10,
+          }}>
+            {suggestion.problem && (
+              <AICard icon="❌" label="Problem" text={suggestion.problem} color="var(--error)" bg="var(--error-light)" />
+            )}
+            {suggestion.why_matters && (
+              <AICard icon="⚠️" label="Why it matters" text={suggestion.why_matters} color="var(--warning)" bg="var(--warning-light)" />
+            )}
+            {suggestion.user_impact && (
+              <AICard icon="👤" label="User impact" text={suggestion.user_impact} color="var(--primary)" bg="var(--primary-light)" />
+            )}
+            {suggestion.expected_impact && (
+              <AICard icon="✅" label="Expected impact" text={suggestion.expected_impact} color="var(--success)" bg="var(--success-light)" />
+            )}
+          </div>
+        )}
+
+        {/* How to fix — always visible as toggle */}
+        {hasFix && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 12px', borderRadius: 7,
+              border: `1.5px solid ${expanded ? sevColor : 'var(--border)'}`,
+              background: expanded ? sevBg : 'var(--background)',
+              cursor: 'pointer', fontSize: 11, fontWeight: 700,
+              color: expanded ? sevColor : 'var(--text-secondary)',
+              transition: 'all 0.15s',
+              width: '100%', justifyContent: 'center',
+            }}
+          >
+            {expanded ? <ChevronUp size={13} /> : <Lightbulb size={13} />}
+            {expanded ? 'Hide fix' : 'How to fix'}
+          </button>
+        )}
+
+        {/* Expanded: Recommendation + Steps */}
+        {expanded && hasFix && (
+          <div style={{
+            marginTop: 10, padding: '12px 14px', borderRadius: 8,
+            background: 'var(--background)',
+            border: '1px solid var(--border)',
+          }}>
+            {/* Recommendation */}
+            {suggestion.recommendation && (
+              <div style={{ marginBottom: suggestion.steps ? 10 : 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Recommendation
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {suggestion.recommendation}
+                </p>
+              </div>
+            )}
+            {/* Fix text */}
+            {suggestion.fix && (
+              <div style={{ marginBottom: suggestion.steps ? 10 : 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  How to fix
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {suggestion.fix}
+                </p>
+              </div>
+            )}
+            {/* Steps */}
+            {suggestion.steps && suggestion.steps.length > 0 && (
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Steps to fix
+                </p>
+                <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {suggestion.steps.map((step, i) => (
+                    <li key={i} style={{ lineHeight: 1.55 }}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+// ─── AI Explanation Card (sub-component) ─────────────────────────────────────
+function AICard({ icon, label, text, color, bg }) {
+  const [expanded, setExpanded] = useState(false);
+  // Truncate text if too long
+  const isLong = text && text.length > 80;
+  const display = isLong && !expanded ? text.slice(0, 80) + '…' : text;
+
+  return (
+    <div
+      style={{
+        padding: '9px 11px', borderRadius: 8,
+        background: bg,
+        border: `1px solid ${color}20`,
+        cursor: 'pointer',
+        transition: 'border-color 0.15s',
+      }}
+      onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+        <span style={{ fontSize: 10 }}>{icon}</span>
+        <span style={{ fontSize: 9, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {label}
+        </span>
+        {isLong && (
+          <span style={{ fontSize: 9, color, marginLeft: 'auto' }}>
+            {expanded ? 'less' : 'more'}
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+        {display}
+      </p>
     </div>
   );
 }
@@ -762,6 +935,8 @@ export default function ReviewPage() {
   const [retrying, setRetrying] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [rightTab, setRightTab] = useState('issues');
+  const [severityFilter, setSeverityFilter] = useState('all');  // all | critical | high | medium | low
+  const [sortOrder, setSortOrder] = useState('severity');       // severity | newest | oldest
   const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [pulsingAnnotationId, setPulsingAnnotationId] = useState(null);
@@ -828,6 +1003,33 @@ export default function ReviewPage() {
   // ─── Navigation helpers ────────────────────────────────────────────────
   const annotations = review?.annotations || [];
   const issues = review?.issues || [];
+
+  // Derived: filtered and sorted issues for the right panel
+  const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+  const filteredIssues = (() => {
+    let result = issues;
+    if (severityFilter !== 'all') {
+      result = result.filter(iss => (iss.severity || '').toLowerCase() === severityFilter);
+    }
+    if (sortOrder === 'severity') {
+      result = [...result].sort((a, b) => {
+        const ord = (s) => SEVERITY_ORDER[(s || '').toLowerCase()] ?? 99;
+        return ord(a.severity) - ord(b.severity);
+      });
+    } else if (sortOrder === 'newest') {
+      result = [...result].sort((a, b) => (b.id || 0) - (a.id || 0));
+    } else if (sortOrder === 'oldest') {
+      result = [...result].sort((a, b) => (a.id || 0) - (b.id || 0));
+    }
+    return result;
+  })();
+
+  // Count per severity for filter badges
+  const sevCounts = issues.reduce((acc, iss) => {
+    const s = (iss.severity || 'low').toLowerCase();
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {});
 
   // Find the annotation that belongs to a given issueId
   function findAnnotationByIssueId(issueId) {
@@ -999,7 +1201,7 @@ export default function ReviewPage() {
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
                 {/* How to read this report */}
-                {isCompleted && <ReportGuide />}
+                {isCompleted && <ReportGuide reviewId={review?.id} />}
 
                 {/* Screenshot with annotations */}
                 {review.screenshot_url && (
@@ -1159,6 +1361,33 @@ export default function ReviewPage() {
             {/* ── ANNOTATIONS TAB ────────────────────────────────────── */}
             {activeTab === 'annotations' && (
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                {/* Severity legend */}
+                <div style={{
+                  padding: '10px 14px', borderRadius: 8,
+                  background: 'var(--background)',
+                  border: '1px solid var(--border)',
+                  display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Severity:</span>
+                  {[
+                    { label: 'Critical', color: 'var(--error)',   bg: 'var(--error-light)' },
+                    { label: 'High',      color: 'var(--warning)', bg: 'var(--warning-light)' },
+                    { label: 'Medium',    color: 'var(--secondary)',bg: 'var(--primary-light)' },
+                    { label: 'Low',       color: 'var(--text-muted)',bg: 'var(--hover)' },
+                  ].map(({ label, color, bg }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3, background: bg, color, textTransform: 'uppercase' }}>
+                        {label}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        {label === 'Critical' ? 'Fix now' :
+                         label === 'High'      ? 'Next sprint' :
+                         label === 'Medium'    ? 'Nice to have' : 'Polish'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
 
                 {/* Show visual annotation notice */}
                 {annotations.some(a => a.x != null || a.y != null) && (
@@ -1402,7 +1631,7 @@ export default function ReviewPage() {
           <div style={{ padding: '0 14px' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
               {[
-                { key: 'issues', label: `Issues (${issues.length})` },
+                { key: 'issues', label: `Issues (${severityFilter !== 'all' ? `${filteredIssues.length}/${issues.length}` : issues.length})` },
                 { key: 'tips',  label: `Tips (${issues.length})` },
               ].map(t => (
                 <button
@@ -1418,7 +1647,64 @@ export default function ReviewPage() {
 
             {rightTab === 'issues' && (
               <div style={{ paddingBottom: 16 }}>
-                {issues.length === 0 ? (
+                {/* Filter bar */}
+                {issues.length > 0 && (
+                  <div style={{ marginBottom: 10 }}>
+                    {/* Severity filters */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {[
+                        { key: 'all',      label: `All (${issues.length})` },
+                        { key: 'critical', label: `Critical${sevCounts.critical ? ` (${sevCounts.critical})` : ''}`,  color: 'var(--error)' },
+                        { key: 'high',     label: `High${sevCounts.high ? ` (${sevCounts.high})` : ''}`,         color: 'var(--warning)' },
+                        { key: 'medium',   label: `Medium${sevCounts.medium ? ` (${sevCounts.medium})` : ''}`,     color: 'var(--secondary)' },
+                        { key: 'low',      label: `Low${sevCounts.low ? ` (${sevCounts.low})` : ''}`,            color: 'var(--text-muted)' },
+                      ].map(({ key, label, color }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSeverityFilter(key)}
+                          style={{
+                            padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                            fontSize: 10, fontWeight: 600,
+                            background: severityFilter === key
+                              ? (color || 'var(--primary)')
+                              : 'var(--hover)',
+                            color: severityFilter === key
+                              ? '#fff'
+                              : (color || 'var(--text-secondary)'),
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Sort control */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Sort:</span>
+                      {[
+                        { key: 'severity', label: 'Most severe' },
+                        { key: 'newest',   label: 'Newest first' },
+                        { key: 'oldest',   label: 'Oldest first' },
+                      ].map(({ key, label }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSortOrder(key)}
+                          style={{
+                            padding: '2px 7px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                            fontSize: 10, fontWeight: 500,
+                            background: sortOrder === key ? 'var(--primary-light)' : 'transparent',
+                            color: sortOrder === key ? 'var(--primary)' : 'var(--text-muted)',
+                            textDecoration: sortOrder === key ? 'underline' : 'none',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredIssues.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '24px 12px' }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
@@ -1428,15 +1714,27 @@ export default function ReviewPage() {
                     }}>
                       <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
                     </div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', marginBottom: 4 }}>All clear!</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>No issues detected in this review.</p>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', marginBottom: 4 }}>
+                      {severityFilter === 'all' ? 'All clear!' : 'None found'}
+                    </p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {severityFilter === 'all'
+                        ? 'No issues detected in this review.'
+                        : `No ${severityFilter} issues found.`}
+                    </p>
+                    {severityFilter !== 'all' && (
+                      <button
+                        onClick={() => setSeverityFilter('all')}
+                        style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}
+                      >
+                        Show all issues
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {issues.map((iss) => {
-                      // Find corresponding annotation using stable IDs
+                    {filteredIssues.map((iss) => {
                       const matchingAnn = findAnnotationByIssueId(iss.id);
-                      const hasVisualAnn = matchingAnn && (matchingAnn.x != null || matchingAnn.y != null);
                       const displayNum = matchingAnn ? getAnnotationDisplayNum(matchingAnn.id) : null;
                       const isSelected = selectedIssueId === iss.id;
 
