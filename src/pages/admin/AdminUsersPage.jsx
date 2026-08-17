@@ -95,8 +95,9 @@ function ConfirmModal({ title, message, confirmLabel = 'Confirm', variant = 'dan
   );
 }
 
-function UserDetailModal({ user, onClose, onAction, actionLoading }) {
+function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId }) {
   if (!user) return null;
+  const isSelf = currentUserId === user.id;
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (
@@ -205,7 +206,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
           {user.is_active ? (
             <button
               onClick={() => onAction('suspend')}
-              disabled={actionLoading}
+              disabled={actionLoading || isSelf}
+              title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
                 flex: 1, minWidth: 80,
                 padding: '0.5rem',
@@ -225,7 +227,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
           ) : (
             <button
               onClick={() => onAction('activate')}
-              disabled={actionLoading}
+              disabled={actionLoading || isSelf}
+              title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
                 flex: 1, minWidth: 80,
                 padding: '0.5rem',
@@ -244,7 +247,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
           )}
           <button
             onClick={() => onAction('toggle_role')}
-            disabled={actionLoading}
+            disabled={actionLoading || isSelf}
+            title={isSelf ? 'You cannot change your own role' : undefined}
             style={{
               flex: 1, minWidth: 80,
               padding: '0.5rem',
@@ -260,7 +264,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
           >
             <UserCog size={13} /> {user.is_admin ? 'Make User' : 'Make Admin'}
           </button>
-          <button
+          {!isSelf && (
+            <button
             onClick={() => onAction('delete')}
             disabled={actionLoading}
             style={{
@@ -278,6 +283,7 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
           >
             <Trash2 size={13} /> Delete
           </button>
+          )}
         </div>
       </div>
     </div>
@@ -285,7 +291,7 @@ function UserDetailModal({ user, onClose, onAction, actionLoading }) {
 }
 
 export default function AdminUsersPage() {
-  const { token } = useAuth();
+  const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -654,6 +660,7 @@ export default function AdminUsersPage() {
           onClose={() => setSelectedUser(null)}
           onAction={handleUserAction}
           actionLoading={actionLoading}
+          currentUserId={currentUser?.id}
         />
       )}
 
