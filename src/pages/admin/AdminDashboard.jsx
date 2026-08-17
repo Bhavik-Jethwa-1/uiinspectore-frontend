@@ -170,7 +170,7 @@ export default function AdminDashboard() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['ID', 'Project', 'User', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
+                  {['ID', 'Project', 'User', 'Goal', 'Status', 'Score', 'Date', 'Action'].map(h => (
                     <th key={h} style={{
                       padding: '10px 12px', fontSize: 10, fontWeight: 600,
                       color: 'var(--text-muted)', textAlign: 'left',
