@@ -107,28 +107,30 @@ function ReportGuide({ reviewId }) {
     );
   }
 
-  // Expanded state
+  // Expanded state — theme-aware: uses surface bg + primary accent in both light and dark modes
   return (
     <div style={{
       padding: '14px 16px', borderRadius: 10,
-      background: 'linear-gradient(135deg, var(--primary-light) 0%, #ede9fe 100%)',
-      border: '1px solid var(--primary)30',
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
       marginBottom: 14,
+      boxShadow: 'var(--shadow-sm)',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <HelpCircle size={15} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
             Understanding your report
           </span>
         </div>
         <button
           onClick={handleDismiss}
           style={{
-            background: 'rgba(91,95,239,0.12)', border: 'none', borderRadius: 6,
-            padding: '3px 8px', cursor: 'pointer', fontSize: 10, fontWeight: 600,
-            color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4,
+            background: 'var(--primary-light)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, color: 'var(--primary)',
+            display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
           Got it
@@ -165,7 +167,7 @@ function ReportGuide({ reviewId }) {
           {[
             { label: 'Critical', color: 'var(--error)',    bg: 'var(--error-light)',   desc: 'Usability or accessibility problems that seriously hurt the user experience.' },
             { label: 'High',      color: 'var(--warning)',  bg: 'var(--warning-light)', desc: 'Important problems that should be fixed soon — they significantly impact usability.' },
-            { label: 'Medium',    color: 'var(--secondary)',bg: 'var(--primary-light)',desc: 'Problems that improve usability when fixed, but are not urgent.' },
+            { label: 'Medium',    color: 'var(--warning)',  bg: 'var(--warning-light)',desc: 'Problems that improve usability when fixed, but are not urgent.' },
             { label: 'Low',       color: 'var(--text-muted)',bg: 'var(--hover)',        desc: 'Minor polish improvements — nice to have but not essential.' },
           ].map(({ label, color, bg, desc }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
@@ -211,11 +213,11 @@ function AnnotationPin({ annotation, isSelected, isPulsing, onClick }) {
   const issue = annotation.issue || {};
   const sevColor = issue.severity === 'critical' ? 'var(--error)'
     : issue.severity === 'high' ? 'var(--warning)'
-    : issue.severity === 'medium' ? 'var(--secondary)'
-    : 'var(--primary)';
+    : issue.severity === 'medium' ? 'var(--warning)'
+    : 'var(--text-muted)';
   const sevBg = issue.severity === 'critical' ? 'var(--error-light)'
     : issue.severity === 'high' ? 'var(--warning-light)'
-    : issue.severity === 'medium' ? 'var(--primary-light)'
+    : issue.severity === 'medium' ? 'var(--warning-light)'
     : 'var(--hover)';
 
   return (
@@ -688,13 +690,16 @@ function DetailLine({ label, text, color }) {
 function IssueCard({ issue, issueId, annotationId, displayNum, isSelected, onViewAnnotation, onHighlight }) {
   const sevColor = issue.severity === 'critical' ? 'var(--error)'
     : issue.severity === 'high' ? 'var(--warning)'
-    : 'var(--secondary)';
+    : issue.severity === 'medium' ? 'var(--warning)'
+    : 'var(--text-muted)';
   const sevBg = issue.severity === 'critical' ? 'var(--error-light)'
     : issue.severity === 'high' ? 'var(--warning-light)'
-    : 'var(--primary-light)';
+    : issue.severity === 'medium' ? 'var(--warning-light)'
+    : 'var(--hover)';
   const badgeBg = issue.severity === 'critical' ? 'var(--error)'
     : issue.severity === 'high' ? 'var(--warning)'
-    : 'var(--secondary)';
+    : issue.severity === 'medium' ? 'var(--warning)'
+    : 'var(--text-muted)';
 
   return (
     <div
@@ -1528,14 +1533,14 @@ export default function ReviewPage() {
                       const hasCoords = ann.x != null || ann.y != null;
                       const sevColor = issue.severity === 'critical' ? 'var(--error)'
                         : issue.severity === 'high' ? 'var(--warning)'
-                        : issue.severity === 'medium' ? 'var(--secondary)'
+                        : issue.severity === 'medium' ? 'var(--warning)'
                         : 'var(--text-muted)';
                       const sevBg = issue.severity === 'critical' ? 'var(--error-light)'
                         : issue.severity === 'high' ? 'var(--warning-light)'
-                        : issue.severity === 'medium' ? 'var(--primary-light)'
+                        : issue.severity === 'medium' ? 'var(--warning-light)'
                         : 'var(--hover)';
                       const isSelected = selectedAnnotationId === ann.id;
-                      const displayNum = i + 1;
+                      const displayNum = issue.id ?? (i + 1);
 
                       return (
                         <div
