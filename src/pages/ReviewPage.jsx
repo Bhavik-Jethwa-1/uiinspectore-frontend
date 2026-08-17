@@ -382,7 +382,7 @@ function AnnotatedScreenshot({
   }, [onRequestScroll]);
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden', position: 'relative' }} ref={containerRef}>
+    <div className="card annotated-screenshot-scroll" style={{ padding: 0, overflowY: 'auto', maxHeight: '70vh', position: 'relative' }} ref={containerRef}>
       {/* Screenshot image */}
       {imgVisible && !imgError ? (
         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
@@ -390,6 +390,7 @@ function AnnotatedScreenshot({
             ref={imgRef}
             src={screenshotUrl}
             alt="UI Screenshot"
+            className="annotated-screenshot-img"
             style={{
               width: '100%',
               maxHeight: 420,
@@ -687,38 +688,38 @@ function DetailLine({ label, text, color }) {
 function IssueCard({ issue, issueId, annotationId, displayNum, isSelected, onViewAnnotation, onHighlight }) {
   const sevColor = issue.severity === 'critical' ? 'var(--error)'
     : issue.severity === 'high' ? 'var(--warning)'
-    : issue.severity === 'medium' ? 'var(--secondary)'
-    : 'var(--text-muted)';
+    : 'var(--secondary)';
   const sevBg = issue.severity === 'critical' ? 'var(--error-light)'
     : issue.severity === 'high' ? 'var(--warning-light)'
-    : issue.severity === 'medium' ? 'var(--primary-light)'
-    : 'var(--hover)';
+    : 'var(--primary-light)';
+  const badgeBg = issue.severity === 'critical' ? 'var(--error)'
+    : issue.severity === 'high' ? 'var(--warning)'
+    : 'var(--secondary)';
 
   return (
     <div
       style={{
         padding: '10px 12px',
         borderRadius: 8,
-        background: isSelected ? sevBg : sevBg,
-        border: isSelected
-          ? `2px solid ${sevColor}`
-          : `1px solid ${sevColor}30`,
-        borderLeft: isSelected ? `4px solid ${sevColor}` : `3px solid ${sevColor}`,
+        background: sevBg,
+        border: `1px solid ${sevColor}${isSelected ? '' : '30'}`,
+        borderLeft: `4px solid ${sevColor}`,
         boxShadow: isSelected ? `0 0 0 2px ${sevColor}20, 0 2px 8px rgba(0,0,0,0.08)` : 'none',
         transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
         cursor: 'pointer',
+        overflow: 'hidden',  // prevent content overflow
       }}
       onClick={onHighlight}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, color: sevColor, textTransform: 'uppercase' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: sevColor, textTransform: 'uppercase', lineHeight: 1.2 }}>
           {issue.severity || 'Issue'}
         </span>
         {displayNum != null && (
           <span style={{
             fontSize: 9, fontWeight: 700,
             padding: '1px 5px', borderRadius: 3,
-            background: sevColor, color: '#fff',
+            background: badgeBg, color: '#fff',
           }}>
             #{displayNum}
           </span>
@@ -729,11 +730,13 @@ function IssueCard({ issue, issueId, annotationId, displayNum, isSelected, onVie
             style={{
               display: 'flex', alignItems: 'center', gap: 3,
               padding: '1px 6px', borderRadius: 4,
-              background: 'rgba(255,255,255,0.75)', border: 'none',
+              background: 'rgba(255,255,255,0.8)', border: 'none',
               cursor: 'pointer', fontSize: 9, fontWeight: 600,
               color: sevColor,
               transition: 'background 0.15s',
             }}
+            onMouseEnter={e => e.currentTarget.style.background = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.8)'}
           >
             <MapPin size={9} /> View on image
           </button>
@@ -747,16 +750,25 @@ function IssueCard({ issue, issueId, annotationId, displayNum, isSelected, onVie
           </span>
         )}
       </div>
-      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+      <p style={{
+        fontSize: 12, fontWeight: 600,
+        color: 'var(--text-primary)',
+        marginBottom: 2,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
         {issue.title || 'Issue'}
       </p>
       {issue.description && (
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+          title={issue.description}
+        >
           {issue.description}
         </p>
       )}
       {issue.recommendation && (
-        <p style={{ fontSize: 10, color: 'var(--primary)', marginTop: 4, fontWeight: 500 }}>
+        <p style={{ fontSize: 10, color: 'var(--primary)', marginTop: 4, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          title={issue.recommendation}
+        >
           Fix: {issue.recommendation}
         </p>
       )}
@@ -942,6 +954,8 @@ export default function ReviewPage() {
   const [pulsingAnnotationId, setPulsingAnnotationId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [errorCode, setErrorCode] = useState('');
+  // Annotation that needs to be scrolled into view after the Overview tab renders
+  const [pendingAnnotationScroll, setPendingAnnotationScroll] = useState(null);  // annotation id or null
 
   // Refs for scrolling
   const screenshotRef = useRef(null);
@@ -1059,6 +1073,85 @@ export default function ReviewPage() {
     setTimeout(() => setPulsingAnnotationId(null), 4500);
   }
 
+  // ─── Scroll to annotation ─────────────────────────────────────────────────
+  // Two separate effects handle the two scroll scenarios without interfering:
+  //
+  // Effect 1 — fires when activeTab changes to 'overview'.
+  // Reads pendingAnnotationScroll from a ref so cleanup doesn't cancel queued rAFs.
+  // Effect 2 — fires when pendingAnnotationScroll changes (already on Overview tab).
+  //
+  // Using refs (not state) for annId in Effect 1 to prevent cleanup-cancellation
+  // of the scroll rAF chain when the user rapidly clicks different cards.
+  const pendingAnnIdRef = useRef(null);
+  useEffect(() => {
+    pendingAnnIdRef.current = pendingAnnotationScroll;
+  }, [pendingAnnotationScroll]);
+
+  // Effect 1: Tab switch → scroll screenshot to top, then scroll to annotation
+  useEffect(() => {
+    if (activeTab !== 'overview') return;
+    const annId = pendingAnnIdRef.current;
+    if (!annId) return;
+
+    const ann = annotations.find(a => a.id === annId) || null;
+    const doScroll = (annToScroll) => {
+      if (!annToScroll || (annToScroll.x == null && annToScroll.y == null)) {
+        if (screenshotRef.current) {
+          screenshotRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+      if (screenshotRef.current) {
+        screenshotRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
+      requestAnimationFrame(() => {
+        const img = document.querySelector('.annotated-screenshot-img');
+        const container = document.querySelector('.annotated-screenshot-scroll');
+        if (!img || !container) return;
+        const { naturalWidth, naturalHeight } = img;
+        if (!naturalWidth || !naturalHeight) return;
+        const fractionY = annToScroll.y / naturalHeight;
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        const topMargin = Math.round((container.clientHeight || window.innerHeight) * 0.30);
+        const targetScrollTop = Math.round(fractionY * maxScroll) - topMargin;
+        const clamped = Math.max(0, Math.min(maxScroll, targetScrollTop));
+        container.scrollTo({ top: clamped, behavior: 'smooth' });
+      });
+    };
+    doScroll(ann);
+    // NOTE: we do NOT clear pendingAnnotationScroll here.
+    // Effect 2 (or the handler) clears it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // Effect 2: pendingAnnotationScroll changed (already on Overview) → scroll to new annotation
+  useEffect(() => {
+    if (!pendingAnnotationScroll || activeTab !== 'overview') return;
+    const ann = annotations.find(a => a.id === pendingAnnotationScroll) || null;
+    if (!ann || (ann.x == null && ann.y == null)) {
+      if (screenshotRef.current) {
+        screenshotRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      setPendingAnnotationScroll(null);
+      return;
+    }
+    requestAnimationFrame(() => {
+      const img = document.querySelector('.annotated-screenshot-img');
+      const container = document.querySelector('.annotated-screenshot-scroll');
+      if (!img || !container) return;
+      const { naturalWidth, naturalHeight } = img;
+      if (!naturalWidth || !naturalHeight) return;
+      const fractionY = ann.y / naturalHeight;
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      const topMargin = Math.round((container.clientHeight || window.innerHeight) * 0.30);
+      const targetScrollTop = Math.round(fractionY * maxScroll) - topMargin;
+      const clamped = Math.max(0, Math.min(maxScroll, targetScrollTop));
+      container.scrollTo({ top: clamped, behavior: 'smooth' });
+    });
+    setPendingAnnotationScroll(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAnnotationScroll]);
+
   // ─── Pin click ─────────────────────────────────────────────────────────
   // User clicked a numbered pin on the screenshot
   function handlePinClick(annotationId) {
@@ -1077,34 +1170,38 @@ export default function ReviewPage() {
 
   // ─── "View on image" click ─────────────────────────────────────────────
   // User clicked "View on image" on an issue card
-  function handleIssueViewAnnotation(issueId) {
+  // ─── Navigate to issue from Annotations tab → Overview ─────────────────
+  // Both card-body click and "View on image" use this shared function.
+  // Sets selected state, switches to Overview tab, and queues annotation scroll.
+  function navigateToIssueAnnotation(issueId) {
     const ann = findAnnotationByIssueId(issueId);
-    if (!ann) return;
+    const hasCoords = ann && (ann.x != null || ann.y != null);
 
-    const hasCoords = (a) => a.x != null || a.y != null;
-    if (!hasCoords(ann)) return; // No location available
-
-    setSelectedAnnotationId(ann.id);
     setSelectedIssueId(issueId);
+    if (ann) setSelectedAnnotationId(ann.id);
 
-    // Switch to Overview tab so screenshot is visible
+    // Always switch to Overview (even if no coords — shows screenshot)
+    const wasAlreadyOverview = activeTab === 'overview';
     setActiveTab('overview');
 
-    // Scroll the screenshot container into view
-    if (screenshotRef.current) {
+    if (hasCoords) {
+      // Queue the annotation-specific scroll (handled by scroll effects)
+      setPendingAnnotationScroll(ann.id);
+      triggerPulse(ann.id);
+    } else if (!wasAlreadyOverview && screenshotRef.current) {
+      // No coords: just scroll the screenshot section into view
       screenshotRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    triggerPulse(ann.id);
   }
 
-  // ─── Issue card highlight (click on card body) ──────────────────────────
+  // ─── "View on image" button on issue card ────────────────────────────────
+  function handleIssueViewAnnotation(issueId) {
+    navigateToIssueAnnotation(issueId);
+  }
+
+  // ─── Issue card body click ───────────────────────────────────────────────
   function handleIssueHighlight(issueId) {
-    setSelectedIssueId(prev => prev === issueId ? null : issueId);
-    const ann = findAnnotationByIssueId(issueId);
-    if (ann) {
-      setSelectedAnnotationId(prev => prev === ann.id ? null : ann.id);
-    }
+    navigateToIssueAnnotation(issueId);
   }
 
   // ─── Derived state ───────────────────────────────────────────────────────
@@ -1778,29 +1875,22 @@ export default function ReviewPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {issues.slice(0, 5).map((iss) => {
                       const matchingAnn = findAnnotationByIssueId(iss.id);
+                      const displayNum = matchingAnn ? getAnnotationDisplayNum(matchingAnn.id) : null;
+                      const isSelected = selectedIssueId === iss.id;
                       return (
                         <div
                           key={iss.id}
-                          style={{
-                            padding: '10px 12px', borderRadius: 8,
-                            background: selectedIssueId === iss.id ? 'var(--primary-light)' : 'var(--primary-light)',
-                            border: selectedIssueId === iss.id ? '1px solid var(--primary)' : '1px solid var(--primary)20',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                          onClick={() => {
-                            setSelectedIssueId(prev => prev === iss.id ? null : iss.id);
-                            if (matchingAnn) setSelectedAnnotationId(prev => prev === matchingAnn.id ? null : matchingAnn.id);
-                            setActiveTab('overview');
-                            if (screenshotRef.current) screenshotRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }}
+                          ref={el => { if (el) issueRefs.current[`tip-${iss.id}`] = el; }}
                         >
-                          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-                            {iss.title || 'Suggestion'}
-                          </p>
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                            {iss.recommendation || iss.description || ''}
-                          </p>
+                          <IssueCard
+                            issue={iss}
+                            issueId={iss.id}
+                            annotationId={matchingAnn?.id || null}
+                            displayNum={displayNum}
+                            isSelected={isSelected}
+                            onViewAnnotation={() => handleIssueViewAnnotation(iss.id)}
+                            onHighlight={() => handleIssueHighlight(iss.id)}
+                          />
                         </div>
                       );
                     })}
