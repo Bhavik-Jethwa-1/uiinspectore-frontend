@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Loader2, AlertCircle, Eye, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import { openAdminReview } from '../../utils/adminNav';
 
 function SelectFilter({ label, value, options, onChange }) {
   return (
@@ -33,6 +34,7 @@ function SelectFilter({ label, value, options, onChange }) {
 
 export default function AdminReviewsPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -214,9 +216,9 @@ export default function AdminReviewsPage() {
                       {formatDate(r.created_at)}
                     </td>
                     <td style={{ padding: '11px 12px' }}>
-                      <Link to={`/review/${r.id}`} className="btn-icon" title="View review">
+                      <button onClick={() => openAdminReview(navigate, r.id)} className="btn-icon" title="View review">
                         <Eye size={13} />
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Search, Eye, Loader2, AlertCircle, RefreshCw, Users, FolderOpen, Star, AlertTriangle } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import { openAdminReview } from '../../utils/adminNav';
 
 export default function AdminDashboard() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -221,9 +223,9 @@ export default function AdminDashboard() {
                       {formatDate(r.created_at)}
                     </td>
                     <td style={{ padding: '11px 12px' }}>
-                      <Link to={`/review/${r.id}`} className="btn-icon" title="View">
+                      <button onClick={() => openAdminReview(navigate, r.id)} className="btn-icon" title="View">
                         <Eye size={13} />
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
+import { openAdminReview } from '../../utils/adminNav';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const TABS = ['Overview', 'Projects', 'Activity', 'Settings'];
@@ -162,7 +163,7 @@ export default function AdminUserDetailPage() {
           total={projectsTotal}
           perPage={10}
           onPage={fetchProjectsPage}
-          onViewReview={(reviewId) => navigate(`/admin/reviews?review=${reviewId}`)}
+          onViewReview={(reviewId) => openAdminReview(navigate, reviewId)}
         />
       )}
       {activeTab === 'Activity' && (
