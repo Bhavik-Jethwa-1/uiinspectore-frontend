@@ -171,7 +171,7 @@ export default function AdminDashboard() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 0 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['ID', 'Project', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
+                  {['ID', 'Project', 'User', 'Goal', 'Status', 'Score', 'Date', ''].map(h => (
                     <th key={h} style={{
                       padding: '10px 12px', fontSize: 10, fontWeight: 600,
                       color: 'var(--text-muted)', textAlign: 'left',
@@ -190,8 +190,23 @@ export default function AdminDashboard() {
                     <td style={{ padding: '11px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 120 }}>
                       <span className="truncate" style={{ display: 'block' }}>{r.project_name || '—'}</span>
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 140 }}>
-                      <span className="truncate" style={{ display: 'block' }}>{r.page_goal || '—'}</span>
+                    {/* User */}
+                    <td style={{ padding: '11px 12px' }}>
+                      <span
+                        title={r.user_name || ''}
+                        style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', cursor: 'default' }}
+                      >
+                        {r.user_name || '—'}
+                      </span>
+                    </td>
+                    {/* Goal */}
+                    <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 160 }}>
+                      <span
+                        title={r.page_goal || ''}
+                        style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'default' }}
+                      >
+                        {r.page_goal || '—'}
+                      </span>
                     </td>
                     <td style={{ padding: '11px 12px' }}>{getStatusBadge(r.status)}</td>
                     <td style={{ padding: '11px 12px' }}>
