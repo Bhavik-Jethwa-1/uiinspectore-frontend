@@ -1041,7 +1041,7 @@ body {
   /* Inner container */
   .admin-page-content {
     max-width: 100% !important;
-    padding: 0 !important;
+    padding: 12px;
   }
   /* Table container */
   .admin-table-container {
@@ -1192,6 +1192,12 @@ body {
   }
   .admin-header h1 {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-main-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -1853,6 +1859,10 @@ body {
     padding: 16px;
     gap: 12px;
   }
+  .admin-user-header > div:last-child {
+    margin-left: 0 !important;
+    justify-content: center;
+  }
   .admin-user-avatar {
     width: 64px;
     height: 64px;
@@ -2103,7 +2113,7 @@ body {
 }
 
 .admin-sidebar .nav-item {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.82);
   margin: 2px 8px;
   padding: 10px 12px;
 }
@@ -2119,11 +2129,11 @@ body {
 }
 
 .admin-sidebar .nav-item.active svg {
-  color: #8B5CF6;
+  color: #a78bfa;
 }
 
 .admin-sidebar .nav-icon {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .admin-sidebar .nav-item:hover .nav-icon,
@@ -2153,7 +2163,7 @@ body {
 }
 
 .admin-sidebar .sidebar-user-email {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .admin-sidebar .sidebar-user-info {

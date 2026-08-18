@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, User, Mail, ShieldCheck, Clock, CheckCircle,
-  XCircle, Loader2, AlertCircle, ExternalLink, Eye, FileText,
-  Activity, Settings, LayoutGrid, Star, RefreshCw, Plus, Pencil, Trash2, Save, X,
-  Ban, UserCheck, UserX, RotateCcw, EyeOff, Bell, BellOff, Palette, Globe, Clock8, Sparkles, Copy, Check, FolderX
+  ArrowLeft, User, ShieldCheck, Clock, CheckCircle,
+  XCircle, Loader2, AlertCircle, Eye, FileText,
+  Activity, Settings, LayoutGrid, Star, RefreshCw, FolderOpen,
+  Ban, UserCheck, RotateCcw, Copy, Check, Palette, FolderX, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { openAdminReview } from '../../utils/adminNav';
 import ConfirmModal from '../../components/ConfirmModal';
+import UserDetailSkeleton from '../../components/admin/UserDetailSkeleton';
 
 const TABS = ['Overview', 'Projects', 'Activity', 'Settings'];
 
@@ -23,6 +24,12 @@ export default function AdminUserDetailPage() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [activeTab, setActiveTab] = useState('Overview');
 
   // Pagination state
@@ -32,9 +39,7 @@ export default function AdminUserDetailPage() {
   const [activitiesPage, setActivitiesPage] = useState(1);
   const [activitiesTotal, setActivitiesTotal] = useState(0);
   const [activitiesLastPage, setActivitiesLastPage] = useState(1);
-  const [tabLoading, setTabLoading] = useState(false);
 
-  // Fetch full user data (overview + current page of projects + activities)
   async function fetchUserDetail(pPage, aPage) {
     setLoading(true);
     setError(null);
@@ -73,141 +78,286 @@ export default function AdminUserDetailPage() {
 
   function handleTabChange(tab) {
     setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
+
+  const formatRelative = (d) => {
+    if (!d) return '—';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDate(d);
+  };
+
+  const isSelf = currentAuthUser?.id === user?.id;
+
+  /* ── Loading ── */
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, flexDirection: 'column', gap: 12 }}>
-        <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite', color: 'var(--primary)' }} />
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading user details...</p>
+      <div className="admin-page">
+        <div className="admin-page-content">
+          <UserDetailSkeleton />
+        </div>
       </div>
     );
   }
 
+  /* ── Error ── */
   if (error) {
     return (
-      <div style={{ padding: 24 }}>
-        <button onClick={() => navigate('/admin/users')} className="btn-ghost" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-          <ArrowLeft size={14} /> Back to Users
-        </button>
-        <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-          <AlertCircle size={32} style={{ color: 'var(--error)', marginBottom: 12 }} />
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{error}</p>
-          <button onClick={fetchUserDetail} className="btn-primary" style={{ marginTop: 12 }}>Retry</button>
+      <div className="admin-page">
+        <div className="admin-page-content">
+          <button
+            onClick={() => navigate('/admin/users')}
+            className="btn-ghost"
+            style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          >
+            <ArrowLeft size={14} /> Back to Users
+          </button>
+          <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+            <AlertCircle size={32} style={{ color: 'var(--error)', marginBottom: 12 }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{error}</p>
+            <button onClick={() => fetchUserDetail(1, 1)} className="btn-primary" style={{ marginTop: 12 }}>Retry</button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const avatarInitial = user.name.charAt(0).toUpperCase();
+
   return (
-    <div className="admin-page-content">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 16 }}>
-        <button
-          onClick={() => navigate('/admin')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          Admin
-        </button>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <button
-          onClick={() => navigate('/admin/users')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          Users
-        </button>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <span style={{ color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
-          {user.name}
-        </span>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-          {activeTab}
-        </span>
-      </nav>
+    <div className="admin-page">
+      <div className="admin-page-content">
 
-      {/* User Profile Header */}
-      <div className="admin-user-header">
-        <div className="admin-user-avatar">
-          {user.name.charAt(0).toUpperCase()}
-        </div>
-        <div className="admin-user-info">
-          <div className="admin-user-name-row">
-            <h2 className="admin-user-name">{user.name}</h2>
-            {user.is_admin && (
-              <span className="admin-badge admin-badge-purple">Admin</span>
-            )}
-            <span className={`admin-badge ${user.is_active ? 'admin-badge-green' : 'admin-badge-red'}`}>
-              {user.is_active ? 'Active' : 'Suspended'}
-            </span>
-          </div>
-          <p className="admin-user-email">{user.email}</p>
-        </div>
-        <button
-          onClick={fetchUserDetail}
-          className="admin-refresh-btn"
-          title="Refresh"
-        >
-          <RefreshCw size={16} />
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="admin-tabs">
-        {TABS.map(tab => (
+        {/* Breadcrumb — same style as Projects page */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => navigate('/admin')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, padding: 0 }}
           >
-            {tab === 'Overview' && <User size={13} />}
-            {tab === 'Projects' && <LayoutGrid size={13} />}
-            {tab === 'Activity' && <Activity size={13} />}
-            {tab === 'Settings' && <Settings size={13} />}
-            <span>{tab}</span>
+            Admin
           </button>
-        ))}
-      </div>
+          <span>/</span>
+          <button
+            onClick={() => navigate('/admin/users')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, padding: 0 }}
+          >
+            Users
+          </button>
+          <span>/</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{user.name}</span>
+        </div>
 
-      {/* Tab Content */}
-      {activeTab === 'Overview' && <OverviewTab user={user} />}
-      {activeTab === 'Projects' && (
-        <ProjectsTab
-          projects={projects}
-          currentPage={projectsPage}
-          lastPage={projectsLastPage}
-          total={projectsTotal}
-          perPage={10}
-          onPage={fetchProjectsPage}
-          onViewReview={(reviewId) => openAdminReview(navigate, reviewId)}
-        />
-      )}
-      {activeTab === 'Activity' && (
-        <ActivityTab
-          activities={activities}
-          currentPage={activitiesPage}
-          lastPage={activitiesLastPage}
-          total={activitiesTotal}
-          perPage={10}
-          onPage={fetchActivitiesPage}
-        />
-      )}
-      {activeTab === 'Settings' && <SettingsTab user={user} settings={settings} token={token} userId={id} isSelf={currentAuthUser?.id === user?.id} onUpdateSettings={setSettings} onUpdateUser={setUser} />}
+        {/* Page Header — mirrors Projects page structure */}
+        <div className="admin-header">
+          {/* Left: identity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {/* Avatar */}
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'var(--primary-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, fontWeight: 700, color: 'var(--primary)',
+              flexShrink: 0,
+            }}>
+              {avatarInitial}
+            </div>
+            {/* Name + email + meta */}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <h1 className="admin-page-title" style={{ margin: 0 }}>{user.name}</h1>
+                {user.is_admin && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    padding: '1px 7px', borderRadius: 9999,
+                    fontSize: 10, fontWeight: 700,
+                    background: 'var(--primary-light)', color: 'var(--primary)',
+                  }}>
+                    Admin
+                  </span>
+                )}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                  padding: '1px 7px', borderRadius: 9999,
+                  fontSize: 10, fontWeight: 700,
+                  background: user.is_active ? 'var(--success-light)' : 'var(--error-light)',
+                  color: user.is_active ? 'var(--success)' : 'var(--error)',
+                }}>
+                  {user.is_active ? 'Active' : 'Suspended'}
+                </span>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                  padding: '1px 7px', borderRadius: 9999,
+                  fontSize: 10, fontWeight: 700,
+                  background: (user.settings?.allow_login === '0' || user.settings?.allow_login === false)
+                    ? 'var(--hover)' : 'var(--success-light)',
+                  color: (user.settings?.allow_login === '0' || user.settings?.allow_login === false)
+                    ? 'var(--text-secondary)' : 'var(--success)',
+                }}>
+                  {(user.settings?.allow_login === '0' || user.settings?.allow_login === false) ? 'Login Blocked' : 'Login Allowed'}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                {user.email}
+                {user.last_activity ? ` · Last active ${formatRelative(user.last_activity)}` : ''}
+                {user.created_at ? ` · Joined ${formatDate(user.created_at)}` : ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Quick Actions + Refresh */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            {!isSelf && (
+              <>
+                <button
+                  onClick={() => { setActiveTab('Projects'); window.scrollTo({ top: 0, behavior: 'instant' }); }}
+                  className="btn-secondary"
+                  style={{ fontSize: 11, padding: '5px 10px', height: 32, gap: 4 }}
+                  title="View Projects"
+                  aria-label="View Projects"
+                >
+                  <FolderOpen size={12} />
+                  <span>Projects</span>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('Activity'); window.scrollTo({ top: 0, behavior: 'instant' }); }}
+                  className="btn-secondary"
+                  style={{ fontSize: 11, padding: '5px 10px', height: 32, gap: 4 }}
+                  title="View Activity"
+                  aria-label="View Activity"
+                >
+                  <Activity size={12} />
+                  <span>Activity</span>
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => fetchUserDetail(1, 1)}
+              className="btn-icon"
+              title="Refresh"
+              aria-label="Refresh user data"
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs — same style as other pages */}
+        {isMobile ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: '6px 10px', cursor: 'pointer',
+            }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>Section</span>
+              <select
+                value={activeTab}
+                onChange={e => { setActiveTab(e.target.value); window.scrollTo({ top: 0, behavior: 'instant' }); }}
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 13, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', padding: '2px 0',
+                }}
+                aria-label="Select tab"
+              >
+                {TABS.map(tab => <option key={tab} value={tab}>{tab}</option>)}
+              </select>
+              <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            </div>
+          </div>
+        ) : (
+          <div className="admin-tabs">
+            {TABS.map(tab => (
+              <button
+                key={tab}
+                onClick={() => handleTabChange(tab)}
+                className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+              >
+                {tab === 'Overview' && <User size={13} />}
+                {tab === 'Projects' && <LayoutGrid size={13} />}
+                {tab === 'Activity' && <Activity size={13} />}
+                {tab === 'Settings' && <Settings size={13} />}
+                <span>{tab}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Tab Content */}
+        {activeTab === 'Overview' && (
+          <OverviewTab user={user} onTabChange={handleTabChange} />
+        )}
+        {activeTab === 'Projects' && (
+          <ProjectsTab
+            projects={projects}
+            currentPage={projectsPage}
+            lastPage={projectsLastPage}
+            total={projectsTotal}
+            perPage={10}
+            onPage={fetchProjectsPage}
+            onViewReview={(reviewId) => openAdminReview(navigate, reviewId)}
+          />
+        )}
+        {activeTab === 'Activity' && (
+          <ActivityTab
+            activities={activities}
+            currentPage={activitiesPage}
+            lastPage={activitiesLastPage}
+            total={activitiesTotal}
+            perPage={10}
+            onPage={fetchActivitiesPage}
+          />
+        )}
+        {activeTab === 'Settings' && (
+          <SettingsTab
+            user={user}
+            settings={settings}
+            token={token}
+            userId={id}
+            isSelf={isSelf}
+            onUpdateSettings={setSettings}
+            onUpdateUser={setUser}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-function OverviewTab({ user }) {
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+/* ─────────────────────────────────────────────────────── */
+/* Overview Tab                                            */
+/* ─────────────────────────────────────────────────────── */
 
-  const statCards = [
-    { label: 'Projects', value: user.projects_count ?? 0, color: 'var(--primary)' },
-    { label: 'Reviews', value: user.reviews_count ?? 0, color: 'var(--primary)' },
-    { label: 'Status', value: user.is_active ? 'Active' : 'Suspended', color: user.is_active ? 'var(--success)' : 'var(--error)' },
-  ];
+function OverviewTab({ user, onTabChange }) {
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  function formatRelative(d) {
+    if (!d) return '—';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDate(d);
+  }
 
   const infoRows = [
-    { label: 'User ID', value: `#${user.id}` },
+    { label: 'User ID', value: '#' + user.id },
     { label: 'Email', value: user.email },
     { label: 'Role', value: user.is_admin ? 'Administrator' : 'User' },
     { label: 'Account Status', value: user.is_active ? 'Active' : 'Suspended' },
@@ -217,26 +367,86 @@ function OverviewTab({ user }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Stats */}
-      <div className="admin-user-detail-stats">
-        {statCards.map(({ label, value, color }) => (
-          <div key={label} className="card" style={{ padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+
+      {/* Quick Stats — compact row like Projects page */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+      }}>
+        {[
+          {
+            label: 'Projects',
+            value: user.projects_count ?? 0,
+            icon: <LayoutGrid size={13} style={{ color: 'var(--primary)' }} />,
+            action: () => onTabChange('Projects'),
+          },
+          {
+            label: 'Reviews',
+            value: user.reviews_count ?? 0,
+            icon: <Star size={13} style={{ color: 'var(--warning)' }} />,
+            action: () => onTabChange('Projects'),
+          },
+          {
+            label: 'Last Active',
+            value: formatRelative(user.last_activity),
+            icon: <Activity size={13} style={{ color: 'var(--text-muted)' }} />,
+            action: () => onTabChange('Activity'),
+          },
+        ].map(({ label, value, icon, action }) => (
+          <div
+            key={label}
+            onClick={action}
+            className="card"
+            style={{
+              padding: '12px 14px',
+              cursor: 'pointer',
+              transition: 'box-shadow 0.15s, transform 0.1s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = '';
+              e.currentTarget.style.transform = '';
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); action(); } }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+              {icon}
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {label}
+              </span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
+              {value}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Info card */}
+      {/* User Information — same card style as Projects info rows */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--background)' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>User Information</p>
+        <div style={{
+          padding: '10px 16px',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--background)',
+        }}>
+          <p style={{
+            fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0,
+          }}>
+            User Information
+          </p>
         </div>
         <div style={{ padding: '4px 0' }}>
           {infoRows.map(({ label, value }, i, arr) => (
             <div key={label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '10px 16px',
+              padding: '9px 16px',
               borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
             }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
@@ -249,6 +459,10 @@ function OverviewTab({ user }) {
   );
 }
 
+/* ─────────────────────────────────────────────────────── */
+/* Projects Tab                                            */
+/* ─────────────────────────────────────────────────────── */
+
 function Pagination({ currentPage, lastPage, total, perPage, onPage }) {
   if (lastPage <= 1) return null;
   const range = 2;
@@ -256,6 +470,15 @@ function Pagination({ currentPage, lastPage, total, perPage, onPage }) {
   for (let i = Math.max(1, currentPage - range); i <= Math.min(lastPage, currentPage + range); i++) {
     pages.push(i);
   }
+  const pageBtnStyle = {
+    width: 28, height: 28, borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--surface)',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 11, fontWeight: 600,
+  };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 0', gap: 8, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -265,18 +488,9 @@ function Pagination({ currentPage, lastPage, total, perPage, onPage }) {
         <button
           onClick={() => onPage(currentPage - 1)}
           disabled={currentPage <= 1}
-          style={{
-            width: 28, height: 28, borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'var(--surface)',
-            color: currentPage <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-            cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 600,
-            opacity: currentPage <= 1 ? 0.4 : 1,
-          }}
+          style={{ ...pageBtnStyle, opacity: currentPage <= 1 ? 0.4 : 1 }}
         >‹</button>
-        {pages[0] > 1 && <><button onClick={() => onPage(1)} style={{ ...pageBtnStyle, opacity: 1 }}>1</button>{pages[0] > 2 && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>…</span>}</>}
+        {pages[0] > 1 && <><button onClick={() => onPage(1)} style={pageBtnStyle}>1</button>{pages[0] > 2 && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>…</span>}</>}
         {pages.map(p => (
           <button
             key={p}
@@ -292,38 +506,21 @@ function Pagination({ currentPage, lastPage, total, perPage, onPage }) {
             {p}
           </button>
         ))}
-        {pages[pages.length - 1] < lastPage && <><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>…</span><button onClick={() => onPage(lastPage)} style={{ ...pageBtnStyle, opacity: 1 }}>{lastPage}</button></>}
+        {pages[pages.length - 1] < lastPage && <><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>…</span><button onClick={() => onPage(lastPage)} style={pageBtnStyle}>{lastPage}</button></>}
         <button
           onClick={() => onPage(currentPage + 1)}
           disabled={currentPage >= lastPage}
-          style={{
-            width: 28, height: 28, borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'var(--surface)',
-            color: currentPage >= lastPage ? 'var(--text-muted)' : 'var(--text-primary)',
-            cursor: currentPage >= lastPage ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 600,
-            opacity: currentPage >= lastPage ? 0.4 : 1,
-          }}
+          style={{ ...pageBtnStyle, opacity: currentPage >= lastPage ? 0.4 : 1 }}
         >›</button>
       </div>
     </div>
   );
 }
 
-const pageBtnStyle = {
-  width: 28, height: 28, borderRadius: 6,
-  border: '1px solid var(--border)',
-  background: 'var(--surface)',
-  color: 'var(--text-primary)',
-  cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontSize: 11, fontWeight: 600,
-};
-
 function ProjectsTab({ projects, onViewReview, currentPage, lastPage, total, perPage, onPage }) {
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
 
   const statusColors = {
     pending: { bg: 'var(--warning-light)', color: 'var(--warning)' },
@@ -367,7 +564,7 @@ function ProjectsTab({ projects, onViewReview, currentPage, lastPage, total, per
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{project.description}</p>
           )}
 
-          {project.reviews.length > 0 && (
+          {project.reviews && project.reviews.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Reviews</p>
               {project.reviews.map(review => {
@@ -395,6 +592,7 @@ function ProjectsTab({ projects, onViewReview, currentPage, lastPage, total, per
                         className="btn-icon"
                         style={{ padding: 3 }}
                         title="View Review"
+                        aria-label={`View Review #${review.id}`}
                       >
                         <Eye size={12} />
                       </button>
@@ -411,8 +609,44 @@ function ProjectsTab({ projects, onViewReview, currentPage, lastPage, total, per
   );
 }
 
+/* ─────────────────────────────────────────────────────── */
+/* Activity Tab                                            */
+/* ─────────────────────────────────────────────────────── */
+
 function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage }) {
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  function getDateGroup(dateStr) {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const activityDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.floor((today - activityDate) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function getTime(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  const grouped = [];
+  let lastGroup = null;
+  for (const activity of activities) {
+    const group = getDateGroup(activity.created_at);
+    if (group !== lastGroup) {
+      grouped.push({ type: 'header', label: group, id: `header-${group}-${Math.random()}` });
+      lastGroup = group;
+    }
+    grouped.push({ type: 'activity', ...activity });
+  }
 
   const actionIcons = {
     login: <CheckCircle size={13} style={{ color: 'var(--success)' }} />,
@@ -422,9 +656,9 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
     screenshot_uploaded: <FileText size={13} style={{ color: 'var(--text-muted)' }} />,
     settings_changed: <Settings size={13} style={{ color: 'var(--accent)' }} />,
     admin_user_updated: <ShieldCheck size={13} style={{ color: 'var(--primary)' }} />,
-    admin_user_deleted: <UserX size={13} style={{ color: 'var(--error)' }} />,
+    admin_user_deleted: <FolderX size={13} style={{ color: 'var(--error)' }} />,
     admin_project_deleted: <FolderX size={13} style={{ color: 'var(--error)' }} />,
-    admin_user_suspended: <UserX size={13} style={{ color: 'var(--warning)' }} />,
+    admin_user_suspended: <FolderX size={13} style={{ color: 'var(--warning)' }} />,
     admin_user_activated: <UserCheck size={13} style={{ color: 'var(--success)' }} />,
   };
 
@@ -445,7 +679,6 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
     if (m.review_id) parts.push(`Review #${m.review_id}`);
     if (m.remaining_admins !== undefined) parts.push(`${m.remaining_admins} admin(s) remaining`);
     if (parts.length === 0) {
-      // fallback: show key non-empty values
       const filtered = Object.entries(m).filter(([, v]) => v !== null && v !== undefined).slice(0, 3);
       return filtered.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(' · ');
     }
@@ -467,56 +700,75 @@ function ActivityTab({ activities, currentPage, lastPage, total, perPage, onPage
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
       <div style={{ padding: '4px 0' }}>
-        {activities.map((activity, i, arr) => (
-          <div key={activity.id} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 12,
-            padding: '10px 16px',
-            borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-          }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}>
-              {actionIcons[activity.action] || <Activity size={13} style={{ color: 'var(--text-muted)' }} />}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginBottom: 2 }}>
-                {activity.description || activity.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              </p>
-              {formatMeta(activity) && (
-                <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic' }}>
-                  {formatMeta(activity)}
+        {grouped.map((item) => {
+          if (item.type === 'header') {
+            return (
+              <div key={item.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 16px 6px',
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--background)',
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0 }} />
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  {item.label}
+                </span>
+              </div>
+            );
+          }
+          const activity = item;
+          return (
+            <div key={activity.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              padding: '10px 16px',
+              borderBottom: '1px solid var(--border)',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ marginTop: 2, flexShrink: 0 }}>
+                {actionIcons[activity.action] || <Activity size={13} style={{ color: 'var(--text-muted)' }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginBottom: 2 }}>
+                  {activity.description || activity.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                 </p>
-              )}
+                {formatMeta(activity) && (
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>
+                    {formatMeta(activity)}
+                  </p>
+                )}
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {getTime(activity.created_at)}
+              </span>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {formatDate(activity.created_at)}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <Pagination currentPage={currentPage} lastPage={lastPage} total={total} perPage={perPage} onPage={onPage} />
     </div>
   );
 }
 
-// Modal state shape
+/* ─────────────────────────────────────────────────────── */
+/* Settings Tab                                            */
+/* ─────────────────────────────────────────────────────── */
+
 const MODAL_TYPES = {
   NONE: null,
-  // UPDATE setting
   CONFIRM_UPDATE: 'CONFIRM_UPDATE',
-  // DELETE setting
   DELETE_SETTING: 'DELETE_SETTING',
-  // CREATE setting
   ADD_SETTING: 'ADD_SETTING',
-  // Account status
   SUSPEND_USER: 'SUSPEND_USER',
   ACTIVATE_USER: 'ACTIVATE_USER',
-  // Allow Login
   DISABLE_LOGIN: 'DISABLE_LOGIN',
   ENABLE_LOGIN: 'ENABLE_LOGIN',
-  // Role change
   CHANGE_ROLE: 'CHANGE_ROLE',
-  // Password reset
   RESET_PASSWORD: 'RESET_PASSWORD',
-  // Reset preferences
   RESET_PREFERENCES: 'RESET_PREFERENCES',
 };
 
@@ -526,8 +778,6 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
   const [tempPassword, setTempPassword] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
   const [copied, setCopied] = useState(false);
-
-  // Confirmation modal state
   const [modalType, setModalType] = useState(null);
   const [modalData, setModalData] = useState(null);
 
@@ -540,7 +790,7 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
 
   async function copyToClipboard(text) {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
         const el = document.createElement('textarea');
@@ -559,20 +809,16 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
     }
   }
 
-  // ---- Modal helpers ----
-
   function openModal(type, data = null) {
     setModalType(type);
     setModalData(data);
   }
 
   function closeModal() {
-    if (actionLoading) return; // prevent closing while processing
+    if (actionLoading) return;
     setModalType(null);
     setModalData(null);
   }
-
-  // ---- API handlers (called only after confirmation) ----
 
   async function saveSetting(key, value) {
     setSaving(true);
@@ -595,9 +841,9 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
   }
 
   async function handleSelectConfirm() {
-    const { key, value, currentValue, label } = modalData;
+    const { key, newActualValue } = modalData;
     closeModal();
-    await saveSetting(key, value);
+    await saveSetting(key, newActualValue);
   }
 
   async function handleAddSettingConfirm() {
@@ -722,8 +968,6 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
     }
   }
 
-  // ---- User-facing action triggerers (open modals, don't call APIs) ----
-
   function handleToggle(key, currentValue) {
     const newVal = currentValue === '1' || currentValue === 'true' ? '0' : '1';
     const label = SETTING_LABELS[key] || key;
@@ -794,7 +1038,6 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
     'Australia/Sydney', 'Pacific/Auckland',
   ];
 
-  // ---- Setting metadata: labels + descriptions ----
   const SETTING_LABELS = {
     theme: 'Theme',
     language: 'Language',
@@ -828,91 +1071,25 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
     reviewer_persona: Object.fromEntries(PERSONAS.map(p => [p.value, p.label])),
   };
 
-  const boolLabel = (v) => v === '1' || v === 'true' ? 'Enabled' : 'Disabled';
-  const boolIcon = (v) => v === '1' || v === 'true' ? <CheckCircle size={11} style={{ color: 'var(--success)' }} /> : <XCircle size={11} style={{ color: 'var(--text-muted)' }} />;
-
-  // Modern attractive setting item
-  function SettingItem({ label, description, children, borderBottom = true, className = '' }) {
+  function SettingItem({ label, description, children, borderBottom = true }) {
     return (
       <div
-        className={`settings-item ${className}`}
         style={{
-          padding: '14px 20px',
+          padding: '13px 20px',
           borderBottom: borderBottom ? '1px solid var(--border)' : 'none',
           transition: 'background 0.15s ease',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover, #f8f9fa)'}
-        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--hover)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="settings-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{label}</div>
-            {description && <div className="settings-desc" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>{description}</div>}
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{label}</div>
+            {description && <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>{description}</div>}
           </div>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>{children}</div>
         </div>
       </div>
-    );
-  }
-
-  function SelectBtn({ value, options, onChange, disabled }) {
-    return (
-      <select
-        value={value || ''}
-        onChange={e => {
-          // Don't call onChange directly — trigger confirmation modal
-        }}
-        onBlur={e => {
-          // Get the value that was selected before blur
-        }}
-        className="select"
-        style={{ fontSize: 11, padding: '3px 22px 3px 6px' }}
-      >
-        {options.map(o => (
-          <option key={o.value} value={o.value || ''}>{o.label}</option>
-        ))}
-      </select>
-    );
-  }
-
-  // Wrapped select that triggers confirmation modal on change
-  function ConfirmSelect({ value, options, onChange, disabled, settingKey, currentValue }) {
-    function handleChange(e) {
-      const newVal = e.target.value;
-      if (newVal !== currentValue) {
-        onChange(newVal);
-      }
-    }
-    return (
-      <select
-        value={value || ''}
-        onChange={handleChange}
-        disabled={disabled || saving}
-        className="select"
-        style={{ fontSize: 11, padding: '3px 22px 3px 6px' }}
-      >
-        {options.map(o => (
-          <option key={o.value} value={o.value || ''}>{o.label}</option>
-        ))}
-      </select>
-    );
-  }
-
-  // Wrapped toggle that triggers confirmation modal on click
-  function ConfirmToggle({ value, onToggle, disabled }) {
-    return (
-      <button
-        onClick={() => onToggle()}
-        disabled={disabled || saving}
-        className={`btn-icon ${value === '1' || value === 'true' ? '' : 'disabled'}`}
-        title={value === '1' || value === 'true' ? 'Click to disable' : 'Click to enable'}
-        style={{
-          color: value === '1' || value === 'true' ? 'var(--success)' : 'var(--text-muted)',
-          opacity: (disabled || saving) ? 0.5 : 1,
-        }}
-      >
-        {value === '1' || value === 'true' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-      </button>
     );
   }
 
@@ -923,7 +1100,7 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
         borderBottom: '1px solid var(--border)',
         background: 'var(--background)',
       }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
           {title}
         </p>
       </div>
@@ -932,9 +1109,6 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
 
   const userIsActive = user?.is_active;
   const userIsAdmin = user?.is_admin;
-  const emailVerified = !!user?.email_verified_at;
-
-  // ---- Render confirmation modals ----
 
   function renderModal() {
     if (!modalType) return null;
@@ -1036,13 +1210,13 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
       case MODAL_TYPES.DISABLE_LOGIN:
         return (
           <ConfirmModal
-            title="Disable Login"
-            message={`Are you sure you want to disable login access for ${user?.name}? The user will not be able to log in while login access is disabled.`}
+            title="Block Login"
+            message={`Are you sure you want to block login access for "${user?.name}"? The user will not be able to sign in until you unblock them.`}
             details={[
               { label: 'User', value: user?.name },
               { label: 'Email', value: user?.email },
             ]}
-            confirmLabel="Disable Login"
+            confirmLabel="Block Login"
             variant="warning"
             onConfirm={handleDisableLoginConfirm}
             onCancel={closeModal}
@@ -1053,13 +1227,13 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
       case MODAL_TYPES.ENABLE_LOGIN:
         return (
           <ConfirmModal
-            title="Enable Login"
-            message={`Are you sure you want to enable login access for ${user?.name}?`}
+            title="Allow Login"
+            message={`Are you sure you want to allow login access for "${user?.name}"? The user will be able to sign in again.`}
             details={[
               { label: 'User', value: user?.name },
               { label: 'Email', value: user?.email },
             ]}
-            confirmLabel="Enable Login"
+            confirmLabel="Allow Login"
             variant="primary"
             onConfirm={handleEnableLoginConfirm}
             onCancel={closeModal}
@@ -1105,14 +1279,13 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
         );
 
       case MODAL_TYPES.RESET_PREFERENCES: {
-        const affectedSettings = ['Theme', 'Language', 'Timezone', 'Email Notifications', 'Review Completion', 'AI Review', 'Reviewer Persona', 'Daily Review Limit', 'Allow Retry'];
         return (
           <ConfirmModal
             title="Reset User Preferences"
             message={`This will reset all of this user's preferences to application defaults. This action cannot be undone.`}
             details={[
               { label: 'User', value: user?.name },
-              { label: 'Affected settings', value: `${affectedSettings.length} preferences` },
+              { label: 'Affected settings', value: '9 preferences' },
             ]}
             confirmLabel="Reset Preferences"
             variant="danger"
@@ -1164,24 +1337,22 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
       )}
 
       {/* ACCOUNT */}
-      <div className="settings-section" style={{
-        background: 'white',
-        borderRadius: 16,
+      <div style={{
+        background: 'var(--surface)',
+        borderRadius: 'var(--radius)',
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border)',
       }}>
         <div style={{
           padding: '14px 20px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+          background: 'color-mix(in srgb, var(--primary) 15%, var(--surface))',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={16} color="white" />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>ACCOUNT</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.03em' }}>ACCOUNT</span>
         </div>
 
         {/* Self-protection banner */}
@@ -1213,12 +1384,8 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
 
         <div>
           {/* Account Status */}
-          <SettingItem
-            label="Account Status"
-            description="Controls whether this account is active or suspended. An active account can be enabled or disabled by an admin at any time."
-          >
+          <SettingItem label="Account Status" description="Controls whether this account is active or suspended.">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Status dot */}
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
                 background: userIsActive ? 'var(--success)' : 'var(--error)',
@@ -1253,12 +1420,8 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
           </SettingItem>
 
           {/* Allow Login */}
-          <SettingItem
-            label="Allow Login"
-            description="Controls whether this user is allowed to sign in. This is independent of Account Status — a suspended account can still be allowed to log in (for testing) and vice versa."
-          >
+          <SettingItem label="Allow Login" description="Controls whether this user is allowed to sign in. Independent of Account Status.">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Status dot */}
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
                 background: (s.allow_login === '1' || s.allow_login === true) ? 'var(--success)' : 'var(--text-muted)',
@@ -1269,93 +1432,98 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
               </span>
               <button
                 onClick={() => openModal((s.allow_login === '1' || s.allow_login === true) ? MODAL_TYPES.DISABLE_LOGIN : MODAL_TYPES.ENABLE_LOGIN)}
-                disabled={saving || isSelf}
+                disabled={saving}
                 className="btn-secondary"
-                title={isSelf ? 'Cannot modify your own login settings' : ((s.allow_login === '1' || s.allow_login === true) ? 'Block login' : 'Allow login')}
-                style={{ fontSize: 11, padding: '4px 10px', opacity: isSelf ? 0.5 : 1 }}
+                style={{ fontSize: 11, padding: '4px 10px' }}
               >
                 {(s.allow_login === '1' || s.allow_login === true) ? 'Block' : 'Allow'}
               </button>
             </div>
           </SettingItem>
 
-          {/* Email Verified - Read Only */}
-          <SettingItem label="Email Verified" description="Shows whether the user's email address has been verified.">
-            <span style={{ fontSize: 12, color: emailVerified ? 'var(--success)' : 'var(--text-muted)' }}>
-              {emailVerified ? 'Verified' : 'Not Verified'}
-            </span>
-          </SettingItem>
-
           {/* Role */}
-          <SettingItem label="Role" description="Controls the user's permission level. Admins have full access to the Admin Panel." borderBottom={false}>
+          <SettingItem label="Role" description="Controls whether this user has admin privileges." borderBottom={false}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: userIsAdmin ? 'var(--accent)' : 'var(--text-secondary)' }}>
-                {userIsAdmin ? 'Admin' : 'User'}
+              <span style={{ fontSize: 12, fontWeight: 600, color: userIsAdmin ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                {userIsAdmin ? 'Administrator' : 'User'}
               </span>
-              <button
-                onClick={() => openModal(MODAL_TYPES.CHANGE_ROLE)}
-                disabled={actionLoading === 'role' || saving || isSelf}
-                className="btn-secondary"
-                title={isSelf ? 'Cannot change your own role' : 'Change role'}
-                style={{ fontSize: 11, padding: '4px 10px', opacity: isSelf ? 0.5 : 1 }}
-              >
-                {actionLoading === 'role' ? <Loader2 size={11} className="animate-spin" /> : <Pencil size={11} />}
-                Edit
-              </button>
+              {!isSelf && (
+                <button
+                  onClick={() => openModal(MODAL_TYPES.CHANGE_ROLE)}
+                  disabled={actionLoading === 'role'}
+                  className="btn-secondary"
+                  style={{ fontSize: 11, padding: '4px 10px' }}
+                >
+                  {actionLoading === 'role' ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />}
+                  {userIsAdmin ? 'Remove Admin' : 'Make Admin'}
+                </button>
+              )}
             </div>
           </SettingItem>
         </div>
       </div>
 
       {/* PREFERENCES */}
-      <div className="settings-section" style={{
-        background: 'white',
-        borderRadius: 16,
+      <div style={{
+        background: 'var(--surface)',
+        borderRadius: 'var(--radius)',
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border)',
       }}>
         <div style={{
           padding: '14px 20px',
-          background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+          background: 'color-mix(in srgb, var(--accent) 15%, var(--surface))',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Settings size={16} color="white" />
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Palette size={16} color="white" />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>PREFERENCES</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.03em' }}>PREFERENCES</span>
         </div>
         <div>
           {/* Theme */}
-          <SettingItem label="Theme" description="Controls the appearance of the user's application.">
+          <SettingItem label={SETTING_LABELS.theme} description={SETTING_DESCRIPTIONS.theme}>
             <ConfirmSelect
               value={s.theme || 'system'}
-              currentValue={s.theme || 'system'}
               options={THEMES}
-              onChange={(val) => handleSelect('theme', val, s.theme || 'system')}
+              onChange={val => handleSelect('theme', val, s.theme || 'system')}
+              disabled={saving}
+              settingKey="theme"
+              currentValue={s.theme || 'system'}
             />
           </SettingItem>
 
-          {/* Language - Read Only (only English supported) */}
-          <SettingItem label="Language" description="Controls the language used by this user's application.">
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>English</span>
+          {/* Timezone */}
+          <SettingItem label={SETTING_LABELS.timezone} description={SETTING_DESCRIPTIONS.timezone}>
+            <ConfirmSelect
+              value={s.timezone || ''}
+              options={[{ value: '', label: 'Not set' }, ...TIMEZONES.map(tz => ({ value: tz, label: tz }))]}
+              onChange={val => handleSelect('timezone', val, s.timezone || '')}
+              disabled={saving}
+              settingKey="timezone"
+              currentValue={s.timezone || ''}
+            />
           </SettingItem>
 
-          {/* Timezone */}
-          <SettingItem label="Timezone" description="Controls how dates and times are displayed for this user.">
+          {/* Language */}
+          <SettingItem label={SETTING_LABELS.language} description={SETTING_DESCRIPTIONS.language}>
             <ConfirmSelect
-              value={s.timezone || 'UTC'}
-              currentValue={s.timezone || 'UTC'}
-              options={TIMEZONES.map(tz => ({ value: tz, label: tz }))}
-              onChange={(val) => handleSelect('timezone', val, s.timezone || 'UTC')}
+              value={s.language || ''}
+              options={[
+                { value: '', label: 'Not set' },
+                { value: 'en', label: 'English' },
+              ]}
+              onChange={val => handleSelect('language', val, s.language || '')}
+              disabled={saving}
+              settingKey="language"
+              currentValue={s.language || ''}
             />
           </SettingItem>
 
           {/* Email Notifications */}
-          <SettingItem label="Email Notifications" description="Controls whether the user receives application emails.">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SettingItem label={SETTING_LABELS.email_notifications} description={SETTING_DESCRIPTIONS.email_notifications}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: (s.email_notifications === '1' || s.email_notifications === true) ? 'var(--success)' : 'var(--text-muted)' }}>
                 {(s.email_notifications === '1' || s.email_notifications === true) ? 'Enabled' : 'Disabled'}
               </span>
@@ -1370,9 +1538,9 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
             </div>
           </SettingItem>
 
-          {/* Review Completion */}
-          <SettingItem label="Review Completion" description="Controls whether the user receives notifications when a review is completed." borderBottom={false}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Review Notifications */}
+          <SettingItem label={SETTING_LABELS.review_notifications} description={SETTING_DESCRIPTIONS.review_notifications}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: (s.review_notifications === '1' || s.review_notifications === true) ? 'var(--success)' : 'var(--text-muted)' }}>
                 {(s.review_notifications === '1' || s.review_notifications === true) ? 'Enabled' : 'Disabled'}
               </span>
@@ -1386,33 +1554,10 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
               </button>
             </div>
           </SettingItem>
-        </div>
-      </div>
 
-      {/* AI REVIEW */}
-      <div className="settings-section" style={{
-        background: 'white',
-        borderRadius: 16,
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        border: '1px solid #e5e7eb',
-      }}>
-        <div style={{
-          padding: '14px 20px',
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles size={16} color="white" />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>AI REVIEW</span>
-        </div>
-        <div>
           {/* AI Review */}
-          <SettingItem label="AI Review" description="Controls whether this user can use AI-powered UI review.">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SettingItem label={SETTING_LABELS.ai_review_enabled} description={SETTING_DESCRIPTIONS.ai_review_enabled}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: (s.ai_review_enabled === '1' || s.ai_review_enabled === true) ? 'var(--success)' : 'var(--text-muted)' }}>
                 {(s.ai_review_enabled === '1' || s.ai_review_enabled === true) ? 'Enabled' : 'Disabled'}
               </span>
@@ -1428,17 +1573,19 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
           </SettingItem>
 
           {/* Reviewer Persona */}
-          <SettingItem label="Reviewer Persona" description="Controls the default reviewer persona used during AI analysis.">
+          <SettingItem label={SETTING_LABELS.reviewer_persona} description={SETTING_DESCRIPTIONS.reviewer_persona}>
             <ConfirmSelect
-              value={s.reviewer_persona || 'first_time'}
-              currentValue={s.reviewer_persona || 'first_time'}
-              options={PERSONAS}
-              onChange={(val) => handleSelect('reviewer_persona', val, s.reviewer_persona || 'first_time')}
+              value={s.reviewer_persona || ''}
+              options={[{ value: '', label: 'Not set' }, ...PERSONAS]}
+              onChange={val => handleSelect('reviewer_persona', val, s.reviewer_persona || '')}
+              disabled={saving}
+              settingKey="reviewer_persona"
+              currentValue={s.reviewer_persona || ''}
             />
           </SettingItem>
 
           {/* Daily Review Limit */}
-          <SettingItem label="Daily Review Limit" description="Controls the maximum number of reviews this user can create per day.">
+          <SettingItem label={SETTING_LABELS.daily_review_limit} description={SETTING_DESCRIPTIONS.daily_review_limit}>
             <input
               type="number"
               value={s.daily_review_limit || ''}
@@ -1449,11 +1596,7 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
                   handleSelect('daily_review_limit', val, current);
                 }
               }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.target.blur();
-                }
-              }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } }}
               className="input"
               style={{ width: 70, fontSize: 12, padding: '4px 8px' }}
               min="1"
@@ -1463,8 +1606,8 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
           </SettingItem>
 
           {/* Allow Retry */}
-          <SettingItem label="Allow Retry" description="Controls whether this user can retry failed review uploads." borderBottom={false}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SettingItem label={SETTING_LABELS.allow_retry} description={SETTING_DESCRIPTIONS.allow_retry} borderBottom={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: (s.allow_retry === '1' || s.allow_retry === true) ? 'var(--success)' : 'var(--text-muted)' }}>
                 {(s.allow_retry === '1' || s.allow_retry === true) ? 'Enabled' : 'Disabled'}
               </span>
@@ -1482,24 +1625,22 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
       </div>
 
       {/* ADMIN ACTIONS */}
-      <div className="settings-section" style={{
-        background: 'white',
-        borderRadius: 16,
+      <div style={{
+        background: 'var(--surface)',
+        borderRadius: 'var(--radius)',
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border)',
       }}>
         <div style={{
           padding: '14px 20px',
-          background: 'linear-gradient(135deg, #fc466b 0%, #3f5efb 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+          background: 'color-mix(in srgb, var(--primary) 15%, var(--surface))',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ShieldCheck size={16} color="white" />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '0.03em' }}>ADMIN ACTIONS</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.03em' }}>ADMIN ACTIONS</span>
         </div>
         <div>
           <SettingItem label="Reset Password" description="Generate a new temporary password for this user.">
@@ -1528,9 +1669,28 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
         </div>
       </div>
 
-      {/* Render active confirmation modal */}
       {renderModal()}
-
     </div>
+  );
+}
+
+// ConfirmSelect component for settings that need confirmation
+function ConfirmSelect({ value, options, onChange, disabled, settingKey, currentValue }) {
+  function handleChange(e) {
+    const newVal = e.target.value;
+    if (newVal !== currentValue) {
+      onChange(newVal);
+    }
+  }
+  return (
+    <select
+      value={value || ''}
+      onChange={handleChange}
+      disabled={disabled}
+      className="select"
+      style={{ fontSize: 11, padding: '3px 22px 3px 6px' }}
+    >
+      {options.map(o => <option key={o.value} value={o.value || ''}>{o.label}</option>)}
+    </select>
   );
 }

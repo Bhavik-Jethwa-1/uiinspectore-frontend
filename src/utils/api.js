@@ -95,6 +95,7 @@ export const api = {
   adminGetProjects: (token, params = {}) => {
     const qs = new URLSearchParams();
     if (params.search) qs.set('search', params.search);
+    if (params.sort) qs.set('sort', params.sort);
     if (params.page) qs.set('page', params.page);
     qs.set('per_page', params.per_page || 20);
     const query = qs.toString();
@@ -103,6 +104,9 @@ export const api = {
 
   // Admin — Single Project
   adminGetProject: (id, token) => request('GET', `/admin/projects/${id}`, null, token),
+
+  // Admin — Single Review
+  adminGetReview: (id, token) => request('GET', `/admin/reviews/${id}`, null, token),
 
   // Admin — Users
   adminGetUsers: (token, params = {}) => {

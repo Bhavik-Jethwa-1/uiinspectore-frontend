@@ -20,6 +20,7 @@ export default function AdminReloadBtn({ onClick, title = 'Refresh', size = 16, 
       onClick={handleClick}
       disabled={disabled || spinning}
       title={title}
+      aria-label={title}
       style={{
         width: 36,
         height: 36,

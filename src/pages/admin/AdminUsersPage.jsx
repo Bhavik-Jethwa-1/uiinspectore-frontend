@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../utils/api';
@@ -7,7 +8,8 @@ import {
   Search, Loader2, AlertCircle, Eye,
   ChevronLeft, ChevronRight, Copy, Check,
   ShieldCheck, RefreshCw, X,
-  UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, Filter, User
+  UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, Filter, User,
+  MoreHorizontal, Ban, LogIn
 } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -63,6 +65,142 @@ function Badge({ children, variant = 'gray', dot = false }) {
   );
 }
 
+function OverflowMenu({ user, onAction, actionLoading, currentUserId }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const isSelf = currentUserId === user.id;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    // Defer listener so the click that opened the menu doesn't immediately close it
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handler);
+    }, 0);
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [open]);
+
+  const items = [
+    {
+      label: 'View Details',
+      icon: <Eye size={13} />,
+      onClick: () => { onAction('view'); setOpen(false); },
+      disabled: false,
+    },
+    { divider: true },
+    user.is_active ? {
+      label: 'Suspend Account',
+      icon: <Ban size={13} />,
+      onClick: () => { onAction('suspend'); setOpen(false); },
+      disabled: actionLoading || isSelf,
+      variant: 'danger',
+    } : {
+      label: 'Activate Account',
+      icon: <UserCheck size={13} />,
+      onClick: () => { onAction('activate'); setOpen(false); },
+      disabled: actionLoading,
+      variant: 'success',
+    },
+    {
+      label: user.is_admin ? 'Remove Admin' : 'Make Admin',
+      icon: <UserCog size={13} />,
+      onClick: () => { onAction('toggle_role'); setOpen(false); },
+      disabled: actionLoading || isSelf,
+      variant: 'default',
+    },
+    { divider: true },
+    user.allow_login === false ? {
+      label: 'Allow Login',
+      icon: <LogIn size={13} />,
+      onClick: () => { onAction('allow_login'); setOpen(false); },
+      disabled: actionLoading || isSelf,
+      variant: 'default',
+    } : {
+      label: 'Block Login',
+      icon: <Ban size={13} />,
+      onClick: () => { onAction('block_login'); setOpen(false); },
+      disabled: actionLoading || isSelf,
+      variant: 'warning',
+    },
+    { divider: true },
+    {
+      label: 'Delete User',
+      icon: <Trash2 size={13} />,
+      onClick: () => { onAction('delete'); setOpen(false); },
+      disabled: actionLoading || isSelf,
+      variant: 'danger',
+    },
+  ];
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        className="btn-icon"
+        title="More actions"
+        aria-label="More actions"
+        aria-expanded={open}
+        style={{ padding: 5 }}
+      >
+        <MoreHorizontal size={14} />
+      </button>
+      {open && createPortal((
+        <div
+          ref={node => {
+            // Position dropdown below the button
+            if (node && ref.current) {
+              const btn = ref.current.getBoundingClientRect();
+              node.style.top = `${btn.bottom + 4}px`;
+              node.style.right = `${window.innerWidth - btn.right}px`;
+              node.style.left = 'auto';
+            }
+          }}
+          style={{
+            position: 'fixed', zIndex: 9999,
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            minWidth: 180, padding: '4px',
+          }}
+        >
+          {items.map((item, i) =>
+            item.divider ? (
+              <div key={`div-${i}`} style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+            ) : (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                disabled={item.disabled}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  background: 'transparent', fontSize: 12, fontWeight: 600,
+                  color: item.disabled ? 'var(--text-muted)' :
+                    item.variant === 'danger' ? 'var(--error)' :
+    item.variant === 'success' ? 'var(--success)' :
+    item.variant === 'warning' ? 'var(--warning)' :
+    'var(--text-primary)',
+                  opacity: item.disabled ? 0.5 : 1,
+                  textAlign: 'left',
+                }}
+                onMouseEnter={e => { if (!item.disabled) e.currentTarget.style.background = 'var(--hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            )
+          )}
+        </div>
+      ), document.body)}
+    </div>
+  );
+}
+
 function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId }) {
   if (!user) return null;
   const isSelf = currentUserId === user.id;
@@ -92,16 +230,15 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
       backdropFilter: 'blur(4px)',
     }}>
       <div style={{
-        background: 'var(--surface)',
-        borderRadius: 16,
+        background: 'var(--surface)', borderRadius: 16,
         border: '1px solid var(--border)',
         width: '100%', maxWidth: 420,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08)',
         overflow: 'hidden',
       }}>
         {/* Gradient header */}
         <div style={{
-          background: 'linear-gradient(135deg, #5B5FEF 0%, #8B5CF6 100%)',
+          background: 'var(--primary)',
           padding: '24px 20px 20px',
           display: 'flex', alignItems: 'center', gap: 14,
         }}>
@@ -111,8 +248,7 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
               <p style={{ fontSize: 16, fontWeight: 700, color: 'white', margin: 0 }}>{user.name}</p>
               {user.is_admin && (
                 <div style={{
-                  background: 'rgba(255,255,255,0.25)',
-                  borderRadius: 9999, padding: '1px 7px',
+                  background: 'rgba(255,255,255,0.25)', borderRadius: 9999, padding: '1px 7px',
                   fontSize: 10, fontWeight: 700, color: 'white', letterSpacing: '0.04em',
                 }}>ADMIN</div>
               )}
@@ -124,7 +260,6 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
             background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', flexShrink: 0,
-            transition: 'background 0.15s',
           }}>
             <X size={14} />
           </button>
@@ -138,11 +273,7 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
           {[
             { label: 'Projects', value: user.projects_count ?? 0, color: 'var(--primary)' },
             { label: 'Reviews', value: user.reviews_count ?? 0, color: 'var(--primary)' },
-            {
-              label: 'Last Active',
-              value: formatRelative(user.last_activity),
-              color: 'var(--text-secondary)'
-            },
+            { label: 'Last Active', value: formatRelative(user.last_activity), color: 'var(--text-secondary)' },
           ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{
               padding: '14px 12px', textAlign: 'center',
@@ -157,8 +288,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
         {/* Info rows */}
         <div style={{ padding: '4px 20px 14px', display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
-            { label: 'User ID',     value: `#${user.id}` },
-            { label: 'Created',    value: formatDate(user.created_at) },
+            { label: 'User ID', value: `#${user.id}` },
+            { label: 'Created', value: formatDate(user.created_at) },
           ].map(({ label, value }, i, arr) => (
             <div key={label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -183,14 +314,12 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
         {/* Self-protection banner */}
         {isSelf && (
           <div style={{
-            margin: '0 16px 12px',
-            padding: '10px 12px',
-            borderRadius: 'var(--radius-sm)',
+            margin: '0 16px 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)',
             background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
             border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
           }}>
             <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 2 }}>
-              This is your current admin account
+              This is your current admin account.
             </p>
             <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>
               Self-destructive and privilege-changing actions are disabled.
@@ -200,15 +329,13 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
 
         {/* Actions */}
         <div style={{
-          padding: '14px 16px 16px',
-          display: 'flex', gap: 8, flexWrap: 'wrap',
+          padding: '14px 16px 16px', display: 'flex', gap: 8, flexWrap: 'wrap',
         }}>
           {user.is_active ? (
             <button onClick={() => onAction('suspend')} disabled={actionLoading || isSelf}
               title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
-                flex: 1, minWidth: 80, padding: '0.5rem',
-                borderRadius: 8, border: '1px solid var(--border)',
+                flex: 1, minWidth: 80, padding: '0.5rem', borderRadius: 8, border: '1px solid var(--border)',
                 background: 'var(--surface)', color: 'var(--text-secondary)',
                 fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -218,10 +345,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
             </button>
           ) : (
             <button onClick={() => onAction('activate')} disabled={actionLoading || isSelf}
-              title={isSelf ? 'You cannot change your own status' : undefined}
               style={{
-                flex: 1, minWidth: 80, padding: '0.5rem',
-                borderRadius: 8, border: '1px solid var(--success)',
+                flex: 1, minWidth: 80, padding: '0.5rem', borderRadius: 8, border: '1px solid var(--success)',
                 background: 'var(--success-light)', color: 'var(--success)',
                 fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -231,10 +356,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
             </button>
           )}
           <button onClick={() => onAction('toggle_role')} disabled={actionLoading || isSelf}
-            title={isSelf ? 'You cannot change your own role' : undefined}
             style={{
-              flex: 1, minWidth: 80, padding: '0.5rem',
-              borderRadius: 8, border: '1px solid var(--border)',
+              flex: 1, minWidth: 80, padding: '0.5rem', borderRadius: 8, border: '1px solid var(--border)',
               background: 'var(--surface)', color: 'var(--text-secondary)',
               fontSize: 12, fontWeight: 600, cursor: actionLoading || isSelf ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -245,8 +368,8 @@ function UserDetailModal({ user, onClose, onAction, actionLoading, currentUserId
           {!isSelf && (
             <button onClick={() => onAction('delete')} disabled={actionLoading}
               style={{
-                flex: 1, minWidth: 80, padding: '0.5rem',
-                borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                flex: 1, minWidth: 80, padding: '0.5rem', borderRadius: 8,
+                border: '1px solid rgba(239,68,68,0.3)',
                 background: 'var(--error-light)', color: 'var(--error)',
                 fontSize: 12, fontWeight: 600, cursor: actionLoading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -301,7 +424,6 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [role, setRole] = useState(searchParams.get('role') || 'all');
   const [status, setStatus] = useState(searchParams.get('status') || 'all');
-  const [login, setLogin] = useState(searchParams.get('login') || 'all');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [totalPages, setTotalPages] = useState(1);
@@ -321,17 +443,16 @@ export default function AdminUsersPage() {
     if (debouncedSearch) params.search = debouncedSearch;
     if (role !== 'all') params.role = role;
     if (status !== 'all') params.status = status;
-    if (login !== 'all') params.login = login;
     if (sort !== 'newest') params.sort = sort;
     if ((overrides.page || page) > 1) params.page = overrides.page || page;
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, role, status, login, sort, page]);
+  }, [debouncedSearch, role, status, sort, page]);
 
   // Sync state → URL on filter/sort/search changes
   useEffect(() => {
     setPage(1);
     syncToUrl({ page: 1 });
-  }, [debouncedSearch, role, status, login, sort]);
+  }, [debouncedSearch, role, status, sort]);
 
   const fetchUsers = useCallback(async (pageNum = 1) => {
     if (!token) return;
@@ -342,7 +463,6 @@ export default function AdminUsersPage() {
       if (debouncedSearch) params.search = debouncedSearch;
       if (role !== 'all') params.role = role;
       if (status !== 'all') params.status = status;
-      if (login !== 'all') params.login = login;
       if (sort !== 'newest') params.sort = sort;
       const data = await api.adminGetUsers(token, params);
       setUsers(data.users);
@@ -354,13 +474,13 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, debouncedSearch, role, status, login, sort]);
+  }, [token, debouncedSearch, role, status, sort]);
 
   useEffect(() => {
     const pageFromUrl = Number(searchParams.get('page')) || 1;
     setPage(pageFromUrl);
     fetchUsers(pageFromUrl);
-  }, [searchParams]); // Re-fetch when URL changes
+  }, [searchParams]);
 
   const fetchUserDetail = async (id) => {
     setDetailLoading(true);
@@ -379,6 +499,10 @@ export default function AdminUsersPage() {
       type: 'delete_user',
       title: 'Delete User',
       message: `Are you sure you want to delete "${user.name}"? This action cannot be undone.`,
+      details: [
+        { label: 'User', value: user.name },
+        { label: 'Email', value: user.email },
+      ],
       confirmLabel: 'Delete',
       variant: 'danger',
       userId: user.id,
@@ -388,52 +512,93 @@ export default function AdminUsersPage() {
 
   const handleUserAction = async (action) => {
     if (!selectedUser) return;
+
+    if (action === 'view') {
+      navigate(`/admin/users/${selectedUser.id}`);
+      return;
+    }
+
     if (action === 'delete') {
       setConfirmModal({
         type: 'delete',
         title: 'Delete User',
         message: `Are you sure you want to delete "${selectedUser.name}"? This will permanently remove this account and all associated data. This action cannot be undone.`,
+        details: [
+          { label: 'User', value: selectedUser.name },
+          { label: 'Email', value: selectedUser.email },
+        ],
         confirmLabel: 'Delete',
         variant: 'danger',
       });
       return;
     }
-    if (action === 'toggle_allow_login') {
-      const willBlock = selectedUser.allow_login !== false;
+
+    if (action === 'allow_login' || action === 'block_login') {
+      const willBlock = action === 'block_login';
       setConfirmModal({
         type: 'allow_login',
         title: willBlock ? 'Block Login?' : 'Allow Login?',
         message: willBlock
           ? `"${selectedUser.name}" will no longer be able to sign in. They can be unblocked at any time.`
           : `"${selectedUser.name}" will be able to sign in again.`,
+        details: [
+          { label: 'User', value: selectedUser.name },
+          { label: 'Email', value: selectedUser.email },
+        ],
         confirmLabel: willBlock ? 'Block Login' : 'Allow Login',
-        variant: 'danger',
+        variant: 'warning',
         action,
         userName: selectedUser.name,
       });
       return;
     }
-    setActionLoading(true);
-    try {
-      const payload = {};
-      if (action === 'suspend') payload.is_active = false;
-      else if (action === 'activate') payload.is_active = true;
-      else if (action === 'toggle_role') payload.is_admin = !selectedUser.is_admin;
-      const data = await api.adminUpdateUser(selectedUser.id, payload, token);
-      if (data.message?.includes('last administrator')) {
-        setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
-        setActionLoading(false);
-        return;
-      }
-      setSelectedUser(data.user);
-      setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
-      if (action === 'suspend') addToast({ type: 'success', message: `"${data.user.name}" suspended` });
-      else if (action === 'activate') addToast({ type: 'success', message: `"${data.user.name}" activated` });
-      else if (action === 'toggle_role') addToast({ type: 'success', message: data.user.is_admin ? `"${data.user.name}" promoted to admin` : `"${data.user.name}" demoted to user` });
-    } catch (e) {
-      setConfirmModal({ type: 'error', title: 'Action Failed', message: e.message || 'Something went wrong.', confirmLabel: 'OK', variant: 'danger' });
-    } finally {
-      setActionLoading(false);
+
+    if (action === 'suspend') {
+      setConfirmModal({
+        type: 'suspend',
+        title: 'Suspend User',
+        message: `Are you sure you want to suspend "${selectedUser.name}"? They will no longer be able to access the application.`,
+        details: [
+          { label: 'User', value: selectedUser.name },
+          { label: 'Email', value: selectedUser.email },
+        ],
+        confirmLabel: 'Suspend',
+        variant: 'danger',
+      });
+      return;
+    }
+
+    if (action === 'activate') {
+      setConfirmModal({
+        type: 'activate',
+        title: 'Activate User',
+        message: `Are you sure you want to activate "${selectedUser.name}"? They will regain access to the application.`,
+        details: [
+          { label: 'User', value: selectedUser.name },
+          { label: 'Email', value: selectedUser.email },
+        ],
+        confirmLabel: 'Activate',
+        variant: 'primary',
+      });
+      return;
+    }
+
+    if (action === 'toggle_role') {
+      setConfirmModal({
+        type: 'toggle_role',
+        title: 'Change User Role',
+        message: selectedUser.is_admin
+          ? `Are you sure you want to remove admin privileges from "${selectedUser.name}"? They will become a regular user.`
+          : `Are you sure you want to make "${selectedUser.name}" an administrator? They will have full access to the Admin Panel.`,
+        details: [
+          { label: 'User', value: selectedUser.name },
+          { label: 'Current Role', value: selectedUser.is_admin ? 'Admin' : 'User' },
+          { label: 'New Role', value: selectedUser.is_admin ? 'User' : 'Admin' },
+        ],
+        confirmLabel: 'Change Role',
+        variant: 'warning',
+      });
+      return;
     }
   };
 
@@ -444,12 +609,7 @@ export default function AdminUsersPage() {
     try {
       if (confirmModal.type === 'delete' || confirmModal.type === 'delete_user') {
         const userId = confirmModal.type === 'delete_user' ? confirmModal.userId : selectedUser?.id;
-        const data = await api.adminDeleteUser(userId, token);
-        if (data.message?.includes('last administrator')) {
-          setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
-          setActionLoading(false);
-          return;
-        }
+        await api.adminDeleteUser(userId, token);
         setConfirmModal(null);
         setSelectedUser(null);
         fetchUsers(page);
@@ -457,12 +617,41 @@ export default function AdminUsersPage() {
         return;
       }
       if (confirmModal.type === 'allow_login') {
-        const data = await api.adminUpdateUser(selectedUser.id, { allow_login: selectedUser.allow_login === false ? true : false }, token);
+        const newVal = confirmModal.action === 'block_login' ? false : true;
+        const data = await api.adminUpdateUser(selectedUser.id, { allow_login: newVal }, token);
         setSelectedUser(data.user);
         setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
         setConfirmModal(null);
-        const wasBlocked = selectedUser.allow_login === false;
-        addToast({ type: 'success', message: wasBlocked ? `"${selectedUser.name}" can now log in` : `"${selectedUser.name}" is now blocked from logging in` });
+        addToast({ type: 'success', message: newVal ? `"${selectedUser.name}" can now log in` : `"${selectedUser.name}" is now blocked from logging in` });
+        return;
+      }
+      if (confirmModal.type === 'suspend') {
+        const data = await api.adminSuspendUser(selectedUser.id, token);
+        setSelectedUser(prev => ({ ...prev, is_active: false }));
+        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: false } : u));
+        setConfirmModal(null);
+        addToast({ type: 'success', message: `"${selectedUser.name}" suspended successfully.` });
+        return;
+      }
+      if (confirmModal.type === 'activate') {
+        const data = await api.adminActivateUser(selectedUser.id, token);
+        setSelectedUser(prev => ({ ...prev, is_active: true }));
+        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: true } : u));
+        setConfirmModal(null);
+        addToast({ type: 'success', message: `"${selectedUser.name}" activated successfully.` });
+        return;
+      }
+      if (confirmModal.type === 'toggle_role') {
+        const data = await api.adminUpdateUser(selectedUser.id, { is_admin: !selectedUser.is_admin }, token);
+        if (data.message?.includes('last administrator')) {
+          setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
+          setActionLoading(false);
+          return;
+        }
+        setSelectedUser(data.user);
+        setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
+        setConfirmModal(null);
+        addToast({ type: 'success', message: data.user.is_admin ? `"${data.user.name}" promoted to admin` : `"${data.user.name}" demoted to user` });
         return;
       }
     } catch (e) {
@@ -483,6 +672,7 @@ export default function AdminUsersPage() {
   };
 
   const formatDate = (d) => {
+    if (!d) return '—';
     const date = new Date(d);
     return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
   };
@@ -500,29 +690,31 @@ export default function AdminUsersPage() {
     return formatDate(d);
   };
 
-  const activeFilterCount = [role !== 'all', status !== 'all', login !== 'all'].filter(Boolean).length;
-  const clearAllFilters = () => { setRole('all'); setStatus('all'); setLogin('all'); setSearch(''); };
-
-  const hasActiveFilters = debouncedSearch || activeFilterCount > 0;
+  const activeFilterCount = [role !== 'all', status !== 'all'].filter(Boolean).length;
+  const clearAllFilters = () => { setRole('all'); setStatus('all'); setSort('newest'); setSearch(''); };
+  const hasActiveFilters = debouncedSearch || activeFilterCount > 0 || sort !== 'newest';
 
   return (
-    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+    <div className="admin-page">
+      <div className="admin-page-content">
+
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+          <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, padding: 0 }}>Admin</button>
+          <span>/</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Users</span>
+        </div>
 
         {/* Header */}
-        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="admin-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ background: 'var(--primary)', padding: '8px 12px', borderRadius: 10 }}>
               <Users size={18} style={{ color: '#fff' }} />
             </div>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
-                All Users
-              </h1>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {loading ? (
-                  <span>Loading…</span>
-                ) : (
+              <h1 className="admin-page-title">All Users</h1>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                {loading ? 'Loading…' : (
                   <>
                     <span style={{ background: 'var(--primary)', color: '#fff', padding: '1px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
                       {total}
@@ -536,28 +728,23 @@ export default function AdminUsersPage() {
           <AdminReloadBtn onClick={() => fetchUsers(page)} title="Refresh users" />
         </div>
 
-        {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
-          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
-          <span>/</span>
-          <span>Users</span>
-        </div>
-
         {/* Search + Filters */}
         <div style={{ marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Search */}
           <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search users…"
-              style={{ paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13, width: '100%', padding: '0.45rem 0.75rem 0.45rem 32px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none' }}
+              placeholder="Search by name or email…"
+              style={{
+                paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13,
+                width: '100%', padding: '0.45rem 0.75rem 0.45rem 32px',
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--text-primary)', outline: 'none',
+              }}
             />
           </div>
-
-          {/* Filters */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Filter size={12} style={{ color: 'var(--text-muted)' }} />
             <SelectFilter label="Role" value={role}
@@ -566,23 +753,15 @@ export default function AdminUsersPage() {
             <SelectFilter label="Status" value={status}
               options={[{ value: 'all', label: 'All Status' }, { value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]}
               onChange={v => { setStatus(v); setPage(1); syncToUrl({ page: 1 }); }} />
-            <SelectFilter label="Login" value={login}
-              options={[{ value: 'all', label: 'All Login' }, { value: 'allowed', label: 'Allowed' }, { value: 'blocked', label: 'Blocked' }]}
-              onChange={v => { setLogin(v); setPage(1); syncToUrl({ page: 1 }); }} />
             <SelectFilter label="Sort" value={sort}
-              options={[{ value: 'newest', label: 'Newest' }, { value: 'oldest', label: 'Oldest' }, { value: 'name_asc', label: 'Name A–Z' }, { value: 'name_desc', label: 'Name Z–A' }]}
+              options={[{ value: 'newest', label: 'Newest' }, { value: 'oldest', label: 'Oldest' }, { value: 'name_asc', label: 'Name A–Z' }, { value: 'name_desc', label: 'Name Z–A' }, { value: 'last_active', label: 'Last Active' }]}
               onChange={v => { setSort(v); setPage(1); syncToUrl({ page: 1 }); }} />
           </div>
-
-          {/* Clear filters */}
           {hasActiveFilters && (
             <button onClick={clearAllFilters} style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '0.35rem 0.625rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border)',
-              background: 'var(--surface)',
-              color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: 4, padding: '0.35rem 0.625rem',
+              borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+              background: 'var(--surface)', color: 'var(--text-secondary)',
               fontSize: 11, fontWeight: 600, cursor: 'pointer',
             }}>
               <X size={11} /> Clear
@@ -603,12 +782,6 @@ export default function AdminUsersPage() {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: status === 'active' ? 'var(--success-light)' : 'var(--error-light)', color: status === 'active' ? 'var(--success)' : 'var(--error)' }}>
                 Status: {status === 'active' ? 'Active' : 'Suspended'}
                 <button onClick={() => { setStatus('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
-              </span>
-            )}
-            {login !== 'all' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: login === 'allowed' ? 'var(--success-light)' : 'color-mix(in srgb, var(--warning) 15%, transparent)', color: login === 'allowed' ? 'var(--success)' : 'var(--warning)' }}>
-                Login: {login === 'allowed' ? 'Allowed' : 'Blocked'}
-                <button onClick={() => { setLogin('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
               </span>
             )}
           </div>
@@ -637,45 +810,65 @@ export default function AdminUsersPage() {
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {search || activeFilterCount > 0 ? 'Try changing your search or filters' : 'Users will appear here once they register'}
             </p>
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} className="btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%' }}>
+          <div className="card admin-table-container" style={{ overflow: 'visible', width: '100%' }}>
             <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+              <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['User', 'Email', 'Role', 'Account', 'Login', 'Projects', 'Reviews', 'Last Active', 'Actions'].map(h => {
+                    {[
+                      { label: 'User', width: 200 },
+                      { label: 'Email', width: 220 },
+                      { label: 'Role' },
+                      { label: 'Status' },
+                      { label: 'Projects' },
+                      { label: 'Reviews' },
+                      { label: 'Created', width: 100 },
+                      { label: 'Last Active', width: 110 },
+                      { label: 'Actions', width: 60 },
+                    ].map(({ label, width }) => {
                       const centerCols = ['Projects', 'Reviews', 'Actions'];
                       return (
-                        <th key={h} style={{
+                        <th key={label} style={{
                           padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                          color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
+                          color: 'var(--text-muted)', textAlign: centerCols.includes(label) ? 'center' : 'left',
                           textTransform: 'uppercase', letterSpacing: '0.04em',
                           background: 'var(--background)', whiteSpace: 'nowrap',
-                        }}>{h}</th>
+                          ...(width ? { minWidth: width } : {}),
+                        }}>{label}</th>
                       );
                     })}
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u, i) => (
-                    <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'background 0.12s' }}
+                    <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', transition: 'background 0.12s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--hover)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       {/* User */}
-                      <td style={{ padding: '10px 12px' }}>
+                      <td style={{ padding: '10px 12px', minWidth: 200 }}>
                         <button
                           onClick={() => navigate(`/admin/users/${u.id}`)}
+                          aria-label={`View ${u.name}'s profile`}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
                         >
                           <Avatar name={u.name} size={30} />
-                          <span title={u.name} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140, display: 'block' }}>{u.name}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200, display: 'block', textAlign: 'left', textDecoration: 'none', transition: 'color 0.12s' }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                          >{u.name}</span>
                         </button>
                       </td>
                       {/* Email */}
-                      <td style={{ padding: '10px 12px' }}>
+                      <td style={{ padding: '10px 12px', minWidth: 220 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span title={u.email} style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                             {u.email}
                           </span>
                           <button onClick={e => { e.stopPropagation(); copyEmail(u.email); }} className="btn-icon" style={{ padding: 2, flexShrink: 0 }} title="Copy email">
@@ -695,12 +888,6 @@ export default function AdminUsersPage() {
                           ? <Badge variant="green" dot>Active</Badge>
                           : <Badge variant="red" dot>Suspended</Badge>}
                       </td>
-                      {/* Login Status */}
-                      <td style={{ padding: '10px 12px' }}>
-                        {u.allow_login === false
-                          ? <Badge variant="yellow" dot>Blocked</Badge>
-                          : <Badge variant="green" dot>Allowed</Badge>}
-                      </td>
                       {/* Projects */}
                       <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
                         {u.projects_count ?? 0}
@@ -709,21 +896,31 @@ export default function AdminUsersPage() {
                       <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', textAlign: 'center' }}>
                         {u.reviews_count ?? 0}
                       </td>
+                      {/* Created */}
+                      <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', minWidth: 100 }}>
+                        {formatDate(u.created_at)}
+                      </td>
                       {/* Last Active */}
-                      <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', minWidth: 110 }}>
                         {formatRelative(u.last_activity)}
                       </td>
-                      {/* Actions */}
-                      <td style={{ padding: '10px 12px', minWidth: 80, textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                          <button onClick={() => { setSelectedUser(u); setDetailLoading(false); }} className="btn-icon" title="Quick view" style={{ padding: 5 }}>
+                      {/* Actions — More menu */}
+                      <td style={{ padding: '10px 12px', minWidth: 60, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', position: 'relative' }}>
+                          <button
+                            onClick={() => { setSelectedUser(u); setDetailLoading(false); }}
+                            className="btn-icon"
+                            title="Quick view"
+                            style={{ padding: 5 }}
+                          >
                             <Eye size={13} />
                           </button>
-                          {currentUser?.id !== u.id && (
-                            <button onClick={() => handleDeleteFromTable(u)} className="btn-icon" title="Delete user" style={{ color: 'var(--error)', padding: 5 }}>
-                              <Trash2 size={13} />
-                            </button>
-                          )}
+                          <OverflowMenu
+                            user={u}
+                            onAction={handleUserAction}
+                            actionLoading={actionLoading}
+                            currentUserId={currentUser?.id}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -768,11 +965,12 @@ export default function AdminUsersPage() {
         />
       )}
 
-      {/* Confirm / Error Modal — uses shared ConfirmModal with ESC support */}
+      {/* Confirm / Error Modal */}
       {confirmModal && (
         <ConfirmModal
           title={confirmModal.title}
           message={confirmModal.message}
+          details={confirmModal.details}
           confirmLabel={confirmModal.confirmLabel}
           variant={confirmModal.variant || 'danger'}
           loading={actionLoading}

@@ -5,11 +5,37 @@ import { useToast } from '../../context/ToastContext';
 import { api } from '../../utils/api';
 import {
   Search, Loader2, AlertCircle, Eye, FolderOpen,
-  RefreshCw, ChevronLeft, ChevronRight, Trash2
+  RefreshCw, ChevronLeft, ChevronRight, Trash2, Filter, X, ChevronDown
 } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
 import ConfirmModal from '../../components/ConfirmModal';
 import { openAdminProject } from '../../utils/adminNav';
+
+function SelectFilter({ label, value, options, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {label && <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</span>}
+      <div style={{ position: 'relative' }}>
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            appearance: 'none', padding: '0.35rem 2rem 0.35rem 0.625rem',
+            borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+            background: 'var(--surface)', color: 'var(--text-primary)',
+            fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none',
+          }}
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={10} style={{
+          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--text-muted)', pointerEvents: 'none',
+        }} />
+      </div>
+    </div>
+  );
+}
 
 export default function AdminProjectsPage() {
   const { token } = useAuth();
@@ -18,32 +44,35 @@ export default function AdminProjectsPage() {
   const { addToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [error, setError] = useState('');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
 
   const syncToUrl = useCallback((overrides = {}) => {
     const params = {};
     if (search) params.search = search;
+    if (statusFilter !== 'all') params.status = statusFilter;
     if (sort !== 'newest') params.sort = sort;
     if ((overrides.page || page) > 1) params.page = overrides.page || page;
     setSearchParams(params, { replace: true });
-  }, [search, sort, page]);
+  }, [search, statusFilter, sort, page]);
 
-  useEffect(() => { setPage(1); syncToUrl({ page: 1 }); }, [search, sort]);
+  useEffect(() => { setPage(1); syncToUrl({ page: 1 }); }, [search, statusFilter, sort]);
 
   const loadProjects = useCallback(async (pageNum = 1) => {
     if (!token) return;
     setLoading(true);
     setError('');
     try {
-      const params = { page: pageNum, per_page: 10, sort };
+      const params = { page: pageNum, per_page: 20, sort };
       if (search) params.search = search;
+      if (statusFilter !== 'all') params.status = statusFilter;
       const data = await api.adminGetProjects(token, params);
       setProjects(data.projects);
       setTotal(data.total);
@@ -54,7 +83,7 @@ export default function AdminProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search, sort]);
+  }, [token, search, statusFilter, sort]);
 
   useEffect(() => {
     const pageFromUrl = Number(searchParams.get('page')) || 1;
@@ -68,16 +97,22 @@ export default function AdminProjectsPage() {
     return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
   };
 
+  const ucFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
   const handleDeleteProject = (project) => {
     setConfirmModal({
       type: 'delete_project',
       title: 'Delete Project',
       message: `Are you sure you want to delete "${project.name}"?${project.reviews_count ? ` This project has ${project.reviews_count} review${project.reviews_count !== 1 ? 's' : ''} that will become orphaned.` : ''} This action cannot be undone.`,
+      details: [
+        { label: 'Project', value: project.name },
+        { label: 'Reviews', value: `${project.reviews_count ?? 0}` },
+        { label: 'Owner', value: project.user?.name || '—' },
+      ],
       confirmLabel: 'Delete',
       variant: 'danger',
       projectId: project.id,
       projectName: project.name,
-      reviewsCount: project.reviews_count,
     });
   };
 
@@ -99,33 +134,35 @@ export default function AdminProjectsPage() {
     }
   };
 
+  const activeFilterCount = [statusFilter !== 'all', sort !== 'newest'].filter(Boolean).length;
+  const hasActiveFilters = search || activeFilterCount > 0;
+  const clearAllFilters = () => { setStatusFilter('all'); setSort('newest'); setSearch(''); };
+
   return (
-    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div className="admin-page-content" style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+    <div className="admin-page">
+      <div className="admin-page-content">
+
+        {/* Breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+          <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, padding: 0 }}>Admin</button>
+          <span>/</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Projects</span>
+        </div>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div className="admin-header">
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-              All Projects
-            </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <h1 className="admin-page-title">All Projects</h1>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               {loading ? '…' : `${total} project${total !== 1 ? 's' : ''} total`}
             </p>
           </div>
           <AdminReloadBtn onClick={() => loadProjects(page)} title="Refresh projects" />
         </div>
 
-        {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
-          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
-          <span>/</span>
-          <span>Projects</span>
-        </div>
-
-        {/* Search + Sort */}
-        <div style={{ marginBottom: 14, width: '100%', display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+        {/* Search + Filters */}
+        <div style={{ marginBottom: 12, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -140,31 +177,57 @@ export default function AdminProjectsPage() {
               }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sort:</span>
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value)}
-              style={{
-                appearance: 'none',
-                padding: '0.35rem 2rem 0.35rem 0.625rem',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                color: 'var(--text-primary)',
-                fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', outline: 'none',
-              }}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="name_asc">Name A–Z</option>
-              <option value="name_desc">Name Z–A</option>
-              <option value="reviews_desc">Most Reviews</option>
-              <option value="reviews_asc">Fewest Reviews</option>
-            </select>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Filter size={12} style={{ color: 'var(--text-muted)' }} />
+            <SelectFilter label="Status" value={statusFilter}
+              options={[
+                { value: 'all', label: 'All Status' },
+                { value: 'active', label: 'Active' },
+                { value: 'in-progress', label: 'In Progress' },
+                { value: 'failed', label: 'Failed' },
+                { value: 'no-reviews', label: 'No Reviews' },
+              ]}
+              onChange={v => { setStatusFilter(v); setPage(1); syncToUrl({ page: 1 }); }} />
+            <SelectFilter label="Sort" value={sort}
+              options={[
+                { value: 'newest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+                { value: 'name_asc', label: 'Name A–Z' },
+                { value: 'name_desc', label: 'Name Z–A' },
+                { value: 'reviews_desc', label: 'Most Reviews' },
+                { value: 'reviews_asc', label: 'Fewest Reviews' },
+              ]}
+              onChange={v => { setSort(v); setPage(1); syncToUrl({ page: 1 }); }} />
           </div>
+          {hasActiveFilters && (
+            <button onClick={clearAllFilters} style={{
+              display: 'flex', alignItems: 'center', gap: 4, padding: '0.35rem 0.625rem',
+              borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+              background: 'var(--surface)', color: 'var(--text-secondary)',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            }}>
+              <X size={11} /> Clear
+            </button>
+          )}
         </div>
+
+        {/* Active filter pills */}
+        {activeFilterCount > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {statusFilter !== 'all' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                Status: {statusFilter === 'no-reviews' ? 'No Reviews' : ucFirst(statusFilter.replace('-', ' '))}
+                <button onClick={() => { setStatusFilter('all'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
+              </span>
+            )}
+            {sort !== 'newest' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600, background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                Sort: {sort === 'oldest' ? 'Oldest' : sort === 'name_asc' ? 'Name A–Z' : sort === 'name_desc' ? 'Name Z–A' : sort === 'reviews_desc' ? 'Most Reviews' : 'Fewest Reviews'}
+                <button onClick={() => { setSort('newest'); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', alignItems: 'center' }}><X size={10} /></button>
+              </span>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="card" style={{ padding: '48px 0', textAlign: 'center' }}>
@@ -184,54 +247,82 @@ export default function AdminProjectsPage() {
               <FolderOpen size={20} />
             </div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-              {search ? 'No results found' : 'No projects yet'}
+              {search || activeFilterCount > 0 ? 'No results found' : 'No projects yet'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {search ? `No projects matching "${search}"` : 'Projects will appear here once created'}
+              {search || activeFilterCount > 0 ? 'Try changing your search or filters' : 'Projects will appear here once created'}
             </p>
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} className="btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="card admin-table-container" style={{ overflow: 'hidden', width: '100%' }}>
-            <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Name', 'Owner', 'Reviews', 'Created', 'Actions'].map(h => {
-                      const centerCols = ['Reviews', 'Actions'];
-                      return (
-                        <th key={h} style={{
-                          padding: '10px 12px', fontSize: 10, fontWeight: 600,
-                          color: 'var(--text-muted)', textAlign: centerCols.includes(h) ? 'center' : 'left',
-                          textTransform: 'uppercase', letterSpacing: '0.04em',
-                          background: 'var(--background)', whiteSpace: 'nowrap',
-                        }}>
-                          {h}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((p, i) => (
+          <div className="card admin-table-container" style={{ overflowX: 'auto', width: '100%' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 800 }}>
+              <colgroup>
+                <col style={{ width: 160 }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 70 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 80 }} />
+              </colgroup>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {[
+                    { label: 'Project', width: 160 },
+                    { label: 'Owner' },
+                    { label: 'Reviews', width: 70 },
+                    { label: 'Avg Score', width: 80 },
+                    { label: 'Last Review', width: 100 },
+                    { label: 'Status', width: 90 },
+                    { label: 'Created', width: 100 },
+                    { label: 'Actions', width: 80 },
+                  ].map(({ label, width }) => {
+                    const centerCols = ['Reviews', 'Avg Score', 'Status', 'Actions'];
+                    return (
+                      <th key={label} style={{
+                        padding: '8px 10px', fontSize: 10, fontWeight: 600,
+                        color: 'var(--text-muted)', textAlign: centerCols.includes(label) ? 'center' : 'left',
+                        textTransform: 'uppercase', letterSpacing: '0.04em',
+                        background: 'var(--background)', whiteSpace: 'nowrap',
+                        ...(width ? { width: width } : {}),
+                      }}>
+                        {label}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p, i) => {
+                  const scoreColor = p.avg_score != null
+                    ? (p.avg_score >= 80 ? 'var(--success)' : p.avg_score >= 60 ? 'var(--warning)' : 'var(--error)')
+                    : 'var(--text-muted)';
+                  const statusVariant = p.status === 'active' ? 'green' : p.status === 'failed' ? 'red' : p.status === 'in-progress' ? 'yellow' : 'gray';
+                  const statusLabel = p.status === 'no-reviews' ? 'No Reviews' : ucFirst(p.status ?? '');
+                  return (
                     <tr key={p.id} style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       {/* Name */}
-                      <td style={{ padding: '11px 12px' }}>
-                        <span
-                          title={p.name}
-                          style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                      <td style={{ padding: '8px 10px', width: 160 }}>
+                        <span title={p.name} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {p.name}
                         </span>
                       </td>
-                      {/* Owner — clickable to user detail */}
-                      <td style={{ padding: '11px 12px' }}>
+                      {/* Owner — clickable */}
+                      <td style={{ padding: '8px 10px', width: 130, overflow: 'hidden' }}>
                         {p.user ? (
                           <button
                             onClick={() => navigate(`/admin/users/${p.user.id}`)}
                             title={`View ${p.user.name}'s profile`}
                             style={{
                               background: 'none', border: 'none', cursor: 'pointer',
-                              padding: 0, font: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+                              padding: 0, font: 'inherit', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              maxWidth: '100%',
                             }}
                           >
                             <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>
@@ -243,17 +334,45 @@ export default function AdminProjectsPage() {
                         )}
                       </td>
                       {/* Reviews count */}
-                      <td style={{ padding: '11px 12px', textAlign: 'center' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'center', width: 70 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
                           {p.reviews_count ?? 0}
                         </span>
                       </td>
-                      {/* Created */}
-                      <td style={{ padding: '11px 12px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {/* Avg Score */}
+                      <td style={{ padding: '8px 10px', textAlign: 'center', width: 80 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor }}>
+                          {p.avg_score != null ? p.avg_score : '—'}
+                        </span>
+                      </td>
+                      {/* Last Review */}
+                      <td style={{ padding: '8px 10px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', width: 100 }}>
+                        {p.last_review_date ? formatDate(p.last_review_date) : '—'}
+                      </td>
+                      {/* Status */}
+                      <td style={{ padding: '8px 10px', textAlign: 'center', width: 90 }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '2px 8px', borderRadius: 9999,
+                          fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
+                          background: statusVariant === 'green' ? 'var(--success-light)' :
+                            statusVariant === 'red' ? 'var(--error-light)' :
+                            statusVariant === 'yellow' ? 'color-mix(in srgb, var(--warning) 15%, transparent)' :
+                            'var(--hover)',
+                          color: statusVariant === 'green' ? 'var(--success)' :
+                            statusVariant === 'red' ? 'var(--error)' :
+                            statusVariant === 'yellow' ? 'var(--warning)' :
+                            'var(--text-secondary)',
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </td>
+                      {/* Created Date */}
+                      <td style={{ padding: '8px 10px', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', width: 100 }}>
                         {formatDate(p.created_at)}
                       </td>
                       {/* Actions */}
-                      <td style={{ padding: '11px 12px', minWidth: 80, textAlign: 'center' }}>
+                      <td style={{ padding: '8px 10px', width: 80, textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                           <button
                             onClick={() => openAdminProject(navigate, p.id)}
@@ -274,20 +393,20 @@ export default function AdminProjectsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
 
             {/* Pagination */}
             {totalPages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Showing {((page - 1) * 10) + 1}–{Math.min(page * 10, total)} of {total} projects
+                  Showing {((page - 1) * 20) + 1}–{Math.min(page * 20, total)} of {total} projects
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
-                    onClick={() => { const p = Math.max(1, page - 1); setPage(p); syncToUrl({ page: p }); }}
+                    onClick={() => { const p = Math.max(1, page - 1); setPage(p); syncToUrl({ page: p }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     disabled={page <= 1}
                     className="btn-secondary"
                     style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
@@ -298,7 +417,7 @@ export default function AdminProjectsPage() {
                     Page {page} of {totalPages}
                   </span>
                   <button
-                    onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); syncToUrl({ page: p }); }}
+                    onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); syncToUrl({ page: p }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     disabled={page >= totalPages}
                     className="btn-secondary"
                     style={{ padding: '0.3rem 0.75rem', fontSize: 11 }}
@@ -312,11 +431,12 @@ export default function AdminProjectsPage() {
         )}
       </div>
 
-      {/* Confirm Modal — uses shared ConfirmModal with ESC support */}
+      {/* Confirm Modal */}
       {confirmModal && (
         <ConfirmModal
           title={confirmModal.title}
           message={confirmModal.message}
+          details={confirmModal.details}
           confirmLabel={confirmModal.confirmLabel}
           variant={confirmModal.variant || 'danger'}
           loading={actionLoading}

@@ -24,3 +24,12 @@ export function openAdminReview(navigate, reviewId) {
 export function openAdminProject(navigate, projectId) {
   navigate(`/admin/projects/${projectId}`);
 }
+
+/**
+ * Navigate to the admin user detail page.
+ * @param {import('react-router-dom').NavigateFunction} navigate
+ * @param {number|string} userId
+ */
+export function openAdminUser(navigate, userId) {
+  navigate(`/admin/users/${userId}`);
+}

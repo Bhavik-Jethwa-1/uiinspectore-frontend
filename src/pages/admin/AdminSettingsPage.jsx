@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const { token, user } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [openaiKey, setOpenaiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -54,27 +56,41 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="admin-page" style={{ background: 'var(--background)', minHeight: '100vh', padding: '24px 16px' }}>
-      <div className="admin-page-content" style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
+    <div className="admin-page">
+      <div className="admin-page-content">
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-              Settings
-            </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Configure system-wide settings for UI Review
-            </p>
-          </div>
-        </div>
+      {/* Page Header */}
+      <div className="admin-header">
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: '2px 4px', borderRadius: 4 }}
+          >
+            Admin
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12, padding: '2px 4px' }}>
+            Settings
+          </span>
+        </nav>
+        <button
+          onClick={() => navigate('/admin')}
+          className="btn-ghost"
+          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', color: 'var(--text-secondary)' }}
+          aria-label="Back to Dashboard"
+        >
+          <ArrowLeft size={12} />
+          <span>Back</span>
+        </button>
+      </div>
 
-        {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-muted)' }}>
-          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin</span>
-          <span>/</span>
-          <span>Settings</span>
-        </div>
+      {/* Settings Description */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 className="admin-page-title">Settings</h1>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+          Configure system-wide settings for UI Review
+        </p>
+      </div>
 
         {/* AI Configuration */}
         <div className="card" style={{ marginBottom: 16 }}>

@@ -5,8 +5,10 @@ import { api } from '../../utils/api';
 import {
   ArrowLeft, Loader2, AlertCircle, Star, Clock,
   MapPin, RefreshCw, Layout, MessageSquare, AlertTriangle,
-  CheckCircle2, BarChart3, Image, ChevronRight, Eye
+  CheckCircle2, BarChart3, Image, ChevronRight, Eye, User, FolderOpen
 } from 'lucide-react';
+import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
+import ReviewDetailSkeleton from '../../components/admin/ReviewDetailSkeleton';
 
 /* ─── Shared helpers ─────────────────────────────────────────── */
 
@@ -36,6 +38,8 @@ function getStatusConfig(status) {
   };
   return map[status] || map.pending;
 }
+
+/* ─── Loading Skeleton ───────────────────────────────────────── */
 
 /* ─── Score Ring ──────────────────────────────────────────────── */
 
@@ -75,59 +79,32 @@ function ScoreBar({ label, value, icon: Icon }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      {/* Label */}
       <div style={{ width: 96, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {Icon && <Icon size={11} style={{ color: 'var(--text-muted)' }} />}
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{label}</span>
         </div>
       </div>
-
-      {/* Track + Fill */}
       <div style={{ flex: 1, position: 'relative' }}>
-        {/* Track background */}
         <div style={{
-          height: 10,
-          background: 'var(--border)',
-          borderRadius: 9999,
-          overflow: 'hidden',
+          height: 10, background: 'var(--border)', borderRadius: 9999, overflow: 'hidden',
           position: 'relative',
         }}>
-          {/* Fill */}
           <div style={{
-            width: `${pct}%`,
-            height: '100%',
-            background: color,
-            borderRadius: 9999,
-            transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            position: 'relative',
-            overflow: 'hidden',
+            width: `${pct}%`, height: '100%', background: color,
+            borderRadius: 9999, transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            position: 'relative', overflow: 'hidden',
           }}>
-            {/* Shine overlay */}
             <div style={{
-              position: 'absolute',
-              inset: 0,
+              position: 'absolute', inset: 0,
               background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)',
               borderRadius: 9999,
             }} />
           </div>
         </div>
       </div>
-
-      {/* Score number */}
-      <div style={{
-        width: 32,
-        textAlign: 'right',
-        flexShrink: 0,
-      }}>
-        <span style={{
-          fontSize: 13,
-          fontWeight: 800,
-          color,
-          lineHeight: 1,
-        }}>
-          {value}
-        </span>
+      <div style={{ width: 32, textAlign: 'right', flexShrink: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color, lineHeight: 1 }}>{value}</span>
       </div>
     </div>
   );
@@ -158,12 +135,9 @@ function IssueCard({ issue, index, annotationCount }) {
   return (
     <div
       style={{
-        borderRadius: 'var(--radius)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${borderColor}`,
-        background: 'var(--surface)',
-        overflow: 'hidden',
-        transition: 'box-shadow 0.15s',
+        borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+        borderLeft: `3px solid ${borderColor}`, background: 'var(--surface)',
+        overflow: 'hidden', transition: 'box-shadow 0.15s',
       }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
@@ -224,6 +198,28 @@ function IssueCard({ issue, index, annotationCount }) {
   );
 }
 
+/* ─── Meta Link ───────────────────────────────────────────────── */
+
+function MetaLink({ label, value, onClick, title }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+      <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{label}:</span>
+      <button
+        onClick={onClick}
+        title={title || value}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          font: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+        }}
+      >
+        <span style={{ color: 'var(--primary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
+          {value}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 /* ─── Main Component ──────────────────────────────────────────── */
 
 const TABS = ['Overview', 'Screenshot', 'Issues'];
@@ -247,7 +243,8 @@ export default function AdminReviewDetailPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await api.getReview(id, token);
+      // Use admin endpoint — properly separates admin from user data
+      const data = await api.adminGetReview(id, token);
       setReview(data.review);
     } catch (e) {
       setError(e.message || 'Failed to load review');
@@ -259,7 +256,7 @@ export default function AdminReviewDetailPage() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      const data = await api.getReview(id, token);
+      const data = await api.adminGetReview(id, token);
       setReview(data.review);
     } catch {}
     setTimeout(() => setRefreshing(false), 500);
@@ -274,11 +271,8 @@ export default function AdminReviewDetailPage() {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="admin-page-content">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12 }}>
-          <Loader2 size={28} className="animate-spin" style={{ color: 'var(--primary)' }} />
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading review...</p>
-        </div>
+      <div className="admin-page">
+        <ReviewDetailSkeleton />
       </div>
     );
   }
@@ -286,21 +280,26 @@ export default function AdminReviewDetailPage() {
   /* ── Error ── */
   if (error || !review) {
     return (
-      <div className="admin-page-content">
-        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 16 }}>
-          <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0 }}>Admin</button>
-          <span style={{ color: 'var(--text-muted)' }}>/</span>
-          <button onClick={() => navigate('/admin/reviews')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0 }}>Reviews</button>
-          <span style={{ color: 'var(--text-muted)' }}>/</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>#{id}</span>
-        </nav>
-        <div className="card" style={{ padding: '32px 24px', textAlign: 'center' }}>
-          <AlertCircle size={28} style={{ color: 'var(--error)', margin: '0 auto 12px' }} />
-          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--error)', marginBottom: 6 }}>{error || 'Review not found'}</p>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>The review could not be loaded.</p>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button onClick={() => navigate('/admin/reviews')} className="btn-secondary" style={{ fontSize: 12 }}>Back to Reviews</button>
-            <button onClick={loadReview} className="btn-primary" style={{ fontSize: 12 }}>Retry</button>
+      <div className="admin-page">
+        <div className="admin-page-content">
+          <div className="admin-header">
+            <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+              <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: '2px 4px', borderRadius: 4 }}>Admin</button>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>
+              <button onClick={() => navigate('/admin/reviews')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: '2px 4px', borderRadius: 4 }}>Reviews</button>
+            </nav>
+            <button onClick={() => navigate('/admin/reviews')} className="btn-ghost" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', color: 'var(--text-secondary)' }}>
+              <ArrowLeft size={12} /><span>Back</span>
+            </button>
+          </div>
+          <div className="card" style={{ padding: '32px 24px', textAlign: 'center' }}>
+            <AlertCircle size={28} style={{ color: 'var(--error)', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--error)', marginBottom: 6 }}>{error || 'Review not found'}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>The review could not be loaded.</p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button onClick={() => navigate('/admin/reviews')} className="btn-secondary" style={{ fontSize: 12 }}>Back to Reviews</button>
+              <button onClick={loadReview} className="btn-primary" style={{ fontSize: 12 }}>Retry</button>
+            </div>
           </div>
         </div>
       </div>
@@ -313,55 +312,115 @@ export default function AdminReviewDetailPage() {
   const st = getStatusConfig(review.status);
 
   return (
-    <div className="admin-page-content">
-
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 16 }}>
-        <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-          Admin
-        </button>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <button onClick={() => navigate('/admin/reviews')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-          Reviews
-        </button>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>#{review.id}</span>
-      </nav>
+    <div className="admin-page">
+      <div className="admin-page-content">
 
       {/* Page Header */}
+      <div className="admin-header">
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: '2px 4px', borderRadius: 4 }}
+          >
+            Admin
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>
+          <button
+            onClick={() => navigate('/admin/reviews')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, padding: '2px 4px', borderRadius: 4 }}
+          >
+            Reviews
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12, padding: '2px 4px' }}>
+            #{review.id}
+          </span>
+        </nav>
+        <button
+          onClick={() => navigate('/admin/reviews')}
+          className="btn-ghost"
+          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', color: 'var(--text-secondary)' }}
+          aria-label="Back to Reviews"
+        >
+          <ArrowLeft size={12} />
+          <span>Back</span>
+        </button>
+      </div>
+
+      {/* Review Info Card */}
       <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Title row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Review #{review.id}</h1>
               <span className={st.cls}>{st.label}</span>
+              {overall != null && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: getScoreColor(overall), display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Star size={12} />{overall}/100
+                </span>
+              )}
             </div>
 
-            {/* Meta row */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 16px', fontSize: 12 }}>
-              <MetaItem label="Project" value={review.project_name || '—'} />
-              {review.persona && <MetaItem label="Persona" value={review.persona.replace(/_/g, ' ')} />}
-              {review.page_goal && <MetaItem label="Goal" value={review.page_goal} title={review.page_goal} />}
-              <MetaItem label="Date" value={formatDate(review.created_at)} icon={<Clock size={11} />} />
+            {/* Meta row — project + user are now clickable */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 20px', fontSize: 12 }}>
+              {review.project_id && (
+                <MetaLink
+                  label="Project"
+                  value={review.project_name || `Project #${review.project_id}`}
+                  onClick={() => navigate(`/admin/projects/${review.project_id}`)}
+                  title={`View ${review.project_name || `Project #${review.project_id}`}`}
+                />
+              )}
+              {review.user_id && (
+                <MetaLink
+                  label="User"
+                  value={review.user_name || `User #${review.user_id}`}
+                  onClick={() => navigate(`/admin/users/${review.user_id}`)}
+                  title={`View ${review.user_name || `User #${review.user_id}`}'s profile`}
+                />
+              )}
+              {review.persona && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Persona:</span>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'capitalize' }}>
+                    {review.persona.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              )}
+              {review.page_goal && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Goal:</span>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }} title={review.page_goal}>
+                    {review.page_goal}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <Clock size={11} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{formatDate(review.created_at)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Refresh */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="btn-ghost"
-            title="Refresh review data"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 12px', flexShrink: 0 }}
-          >
-            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button onClick={handleRefresh} disabled={refreshing} className="btn-ghost"
+              title="Refresh review data"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 12px' }}>
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button onClick={() => navigate('/admin/reviews')} className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px' }}
+              title="Back to Reviews">
+              <ArrowLeft size={13} /> Back to Reviews
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="admin-tabs">
+        <div className="admin-tabs" style={{ marginTop: 16 }}>
           {TABS.map(tab => (
             <button
               key={tab}
@@ -376,8 +435,7 @@ export default function AdminReviewDetailPage() {
                 <span style={{
                   background: activeTab === tab ? 'rgba(255,255,255,0.2)' : 'var(--border)',
                   color: activeTab === tab ? '#fff' : 'var(--text-muted)',
-                  borderRadius: 9999, padding: '1px 6px',
-                  fontSize: 10, fontWeight: 700,
+                  borderRadius: 9999, padding: '1px 6px', fontSize: 10, fontWeight: 700,
                 }}>
                   {issues.length}
                 </span>
@@ -402,10 +460,10 @@ export default function AdminReviewDetailPage() {
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{getScoreLabel(overall)}</p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Overall Score — {getScoreLabel(overall)} ({overall}/100)</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <ScoreBar label="Visual" value={review.scores.visualHierarchy} icon={Layout} />
-                        <ScoreBar label="Clarity" value={review.scores.clarity} icon={Eye} />
-                        <ScoreBar label="Accessibility" value={review.scores.accessibility} icon={CheckCircle2} />
-                        <ScoreBar label="Consistency" value={review.scores.consistency} icon={BarChart3} />
+                        <ScoreBar label="Visual Hierarchy" value={review.scores.visual_hierarchy} icon={Layout} />
+                        <ScoreBar label="Clarity" value={review.scores.clarity} icon={MessageSquare} />
+                        <ScoreBar label="Accessibility" value={review.scores.accessibility} icon={AlertTriangle} />
+                        <ScoreBar label="Consistency" value={review.scores.consistency} icon={CheckCircle2} />
                         <ScoreBar label="Layout" value={review.scores.layout} icon={Layout} />
                         <ScoreBar label="Typography" value={review.scores.typography} icon={MessageSquare} />
                         <ScoreBar label="UX" value={review.scores.ux} icon={Star} />
@@ -420,7 +478,7 @@ export default function AdminReviewDetailPage() {
                 )}
 
                 {review.scores?.summary && (
-                  <div style={{ marginTop: 16, padding: '14px 16px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                  <div style={{ marginTop: 16, padding: '14px 16px, background: var(--background), border: 1px solid var(--border), borderRadius: var(--radius)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: 9, fontWeight: 900, color: '#fff' }}>AI</span>
@@ -436,13 +494,33 @@ export default function AdminReviewDetailPage() {
               {issues.length > 0 && (
                 <div className="card" style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Issues ({issues.length})</h2>
+                    <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      Issue Summary
+                    </h2>
                     <button
                       onClick={() => setActiveTab('Issues')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}
                     >
                       View all <ChevronRight size={13} />
                     </button>
+                  </div>
+                  {/* Severity counts */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {[
+                      { sev: 'critical', label: 'Critical', color: 'var(--error)' },
+                      { sev: 'high', label: 'High', color: 'var(--warning)' },
+                      { sev: 'medium', label: 'Medium', color: 'var(--accent)' },
+                      { sev: 'low', label: 'Low', color: 'var(--text-muted)' },
+                    ].map(({ sev, label, color }) => {
+                      const count = issues.filter(i => i.severity === sev).length;
+                      if (count === 0) return null;
+                      return (
+                        <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 9999, background: color + '18', border: `1px solid ${color}30` }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color }}>{count}</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color }}>{label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {issues.slice(0, 3).map((iss, i) => {
@@ -451,9 +529,12 @@ export default function AdminReviewDetailPage() {
                     })}
                   </div>
                   {issues.length > 3 && (
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 12 }}>
-                      +{issues.length - 3} more issues — see the Issues tab for the full list
-                    </p>
+                    <button
+                      onClick={() => setActiveTab('Issues')}
+                      style={{ width: '100%', marginTop: 12, padding: '8px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}
+                    >
+                      +{issues.length - 3} more issues — view in Issues tab
+                    </button>
                   )}
                 </div>
               )}
@@ -517,7 +598,7 @@ export default function AdminReviewDetailPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
               <Image size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
-              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No screenshot available.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No screenshot available for this review.</p>
             </div>
           )}
         </div>
@@ -554,19 +635,7 @@ export default function AdminReviewDetailPage() {
           )}
         </div>
       )}
-
-    </div>
-  );
-}
-
-function MetaItem({ label, value, icon, title }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }} title={title || value}>
-      <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{label}:</span>
-      {icon && <span style={{ color: 'var(--text-muted)' }}>{icon}</span>}
-      <span style={{ color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
-        {value}
-      </span>
+      </div>
     </div>
   );
 }
