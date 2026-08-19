@@ -111,7 +111,7 @@ export default function AdminReviewsPage() {
 
   const activeFilterCount = [status !== 'all', sort !== 'newest'].filter(Boolean).length;
   const hasActiveFilters = search || activeFilterCount > 0;
-  const clearAllFilters = () => { setStatus('all'); setSort('newest'); setSearch(''); };
+  const clearAllFilters = () => { setStatus('all'); setSort('newest'); setSearch(''); syncToUrl({ page: 1 }); };
 
   return (
     <div className="admin-page">
@@ -138,19 +138,38 @@ export default function AdminReviewsPage() {
         {/* Search + Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by project or goal…"
               style={{
-                paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13,
-                width: '100%', padding: '0.45rem 0.75rem 0.45rem 32px',
+                width: '100%', padding: '0.45rem 2.5rem 0.45rem 32px',
                 border: '1px solid var(--border)', background: 'var(--surface)',
                 color: 'var(--text-primary)', outline: 'none',
+                borderRadius: 'var(--radius-sm)', fontSize: 13,
+                transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--primary-light)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                  display: 'flex', alignItems: 'center', color: 'var(--text-muted)',
+                  borderRadius: 4,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Filter size={12} style={{ color: 'var(--text-muted)' }} />

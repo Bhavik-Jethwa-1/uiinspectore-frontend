@@ -136,7 +136,7 @@ export default function AdminProjectsPage() {
 
   const activeFilterCount = [statusFilter !== 'all', sort !== 'newest'].filter(Boolean).length;
   const hasActiveFilters = search || activeFilterCount > 0;
-  const clearAllFilters = () => { setStatusFilter('all'); setSort('newest'); setSearch(''); };
+  const clearAllFilters = () => { setStatusFilter('all'); setSort('newest'); setSearch(''); syncToUrl({ page: 1 }); };
 
   return (
     <div className="admin-page">

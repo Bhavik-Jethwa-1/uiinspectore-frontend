@@ -655,7 +655,9 @@ export default function AdminUsersPage() {
         return;
       }
     } catch (e) {
-      setConfirmModal({ type: 'error', title: 'Action Failed', message: e.message || 'Something went wrong.', confirmLabel: 'OK', variant: 'danger' });
+      setConfirmModal(null);
+      setActionLoading(false);
+      addToast({ type: 'error', message: e.message || 'Something went wrong.' });
     } finally {
       setActionLoading(false);
     }
@@ -691,7 +693,7 @@ export default function AdminUsersPage() {
   };
 
   const activeFilterCount = [role !== 'all', status !== 'all'].filter(Boolean).length;
-  const clearAllFilters = () => { setRole('all'); setStatus('all'); setSort('newest'); setSearch(''); };
+  const clearAllFilters = () => { setRole('all'); setStatus('all'); setSort('newest'); setSearch(''); syncToUrl({ page: 1 }); };
   const hasActiveFilters = debouncedSearch || activeFilterCount > 0 || sort !== 'newest';
 
   return (
