@@ -836,134 +836,150 @@ function SettingsTab({ user, settings, token, userId, isSelf, onUpdateSettings, 
   async function handleToggleConfirm() {
     const { key, currentValue } = modalData;
     const newVal = currentValue === '1' || currentValue === 'true' ? '0' : '1';
-    closeModal();
-    await saveSetting(key, newVal);
+    setSaving(true);
+    try {
+      const data = await api.adminUpdateUserSetting(userId, key, String(newVal), token);
+      closeModal();
+      onUpdateSettings(data.settings);
+      showMsg('Setting saved.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to save setting.', 'error');
+      setSaving(false);
+    }
   }
 
   async function handleSelectConfirm() {
     const { key, newActualValue } = modalData;
-    closeModal();
-    await saveSetting(key, newActualValue);
+    setSaving(true);
+    try {
+      const data = await api.adminUpdateUserSetting(userId, key, String(newActualValue), token);
+      closeModal();
+      onUpdateSettings(data.settings);
+      showMsg('Setting saved.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to save setting.', 'error');
+      setSaving(false);
+    }
   }
 
   async function handleAddSettingConfirm() {
     const { key, value } = modalData;
-    closeModal();
-    await saveSetting(key, value);
+    setSaving(true);
+    try {
+      const data = await api.adminUpdateUserSetting(userId, key, String(value ?? ''), token);
+      closeModal();
+      onUpdateSettings(data.settings);
+      showMsg('Setting saved.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Failed to save setting.', 'error');
+      setSaving(false);
+    }
   }
 
   async function handleDeleteSettingConfirm() {
     const { key, label } = modalData;
-    closeModal();
     setActionLoading('delete_' + key);
     try {
       await api.adminDeleteUserSetting(userId, key, token);
       const data = await api.adminGetUser(userId, token, {});
+      closeModal();
       onUpdateSettings(data.settings || {});
       showMsg(`"${label}" setting deleted.`, 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to delete setting.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
 
   async function handleSuspendConfirm() {
-    closeModal();
     setActionLoading('suspend');
     try {
       await api.adminSuspendUser(userId, token);
+      closeModal();
       onUpdateUser({ ...user, is_active: false });
       showMsg('User suspended.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to suspend user.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
 
   async function handleActivateConfirm() {
-    closeModal();
     setActionLoading('activate');
     try {
       await api.adminActivateUser(userId, token);
+      closeModal();
       onUpdateUser({ ...user, is_active: true });
       showMsg('User activated.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to activate user.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
 
   async function handleDisableLoginConfirm() {
-    closeModal();
     setSaving(true);
     try {
       const data = await api.adminUpdateUserSetting(userId, 'allow_login', '0', token);
+      closeModal();
       onUpdateSettings(data.settings);
       showMsg('Login access disabled.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to disable login access.', 'error');
-    } finally {
       setSaving(false);
     }
   }
 
   async function handleEnableLoginConfirm() {
-    closeModal();
     setSaving(true);
     try {
       const data = await api.adminUpdateUserSetting(userId, 'allow_login', '1', token);
+      closeModal();
       onUpdateSettings(data.settings);
       showMsg('Login access enabled.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to enable login access.', 'error');
-    } finally {
       setSaving(false);
     }
   }
 
   async function handleRoleToggleConfirm() {
-    closeModal();
     setActionLoading('role');
     try {
       const newVal = !user.is_admin;
       await api.adminUpdateUser(userId, { is_admin: newVal }, token);
+      closeModal();
       onUpdateUser({ ...user, is_admin: newVal });
       showMsg(newVal ? 'User promoted to admin.' : 'User demoted to regular user.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to update role.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
 
   async function handleResetPasswordConfirm() {
-    closeModal();
     setActionLoading('reset_password');
     setTempPassword(null);
     try {
       const data = await api.adminResetPassword(userId, token);
+      closeModal();
       setTempPassword(data.temp_password);
       showMsg('Password reset. Temporary password shown below.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to reset password.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
 
   async function handleResetPreferencesConfirm() {
-    closeModal();
     setActionLoading('reset_prefs');
     try {
       await api.adminResetPreferences(userId, token);
+      closeModal();
       onUpdateSettings({});
       showMsg('User preferences reset to defaults.', 'success');
     } catch (err) {
       showMsg(err.message || 'Failed to reset preferences.', 'error');
-    } finally {
       setActionLoading(null);
     }
   }
