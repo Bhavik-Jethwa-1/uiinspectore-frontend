@@ -1122,6 +1122,12 @@ body {
 }
 
 /* Tablet */
+@media (max-width: 1400px) {
+  .stat-cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1024px) {
   .stat-cards-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
