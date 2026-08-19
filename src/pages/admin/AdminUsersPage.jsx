@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 import {
-  Search, Loader2, AlertCircle,
+  Search, Loader2, AlertCircle, Eye,
   ChevronLeft, ChevronRight, Copy, Check,
   ShieldCheck, RefreshCw, X,
   UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, User,
