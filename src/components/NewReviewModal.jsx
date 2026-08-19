@@ -46,11 +46,11 @@ export default function NewReviewModal({ open, onClose, project }) {
 
   // User-friendly personas
   const PERSONAS = [
-    { value: 'first_time',    label: 'First-time user',         desc: 'New to your interface' },
-    { value: 'regular',      label: 'Regular user',            desc: 'Familiar with similar interfaces' },
-    { value: 'experienced',  label: 'Experienced user',        desc: 'Power user with technical knowledge' },
-    { value: 'designer',     label: 'Designer',                desc: 'Focuses on visual and UX details' },
-    { value: 'accessibility', label: 'Accessibility-focused',  desc: 'Prioritizes usability for all abilities' },
+    { value: 'first_time',    label: 'First-time user',        desc: 'New to your interface' },
+    { value: 'non_technical', label: 'Regular user',           desc: 'Familiar with similar interfaces' },
+    { value: 'developer',     label: 'Experienced user',       desc: 'Power user with technical knowledge' },
+    { value: 'designer',      label: 'Designer',               desc: 'Focuses on visual and UX details' },
+    { value: 'custom',        label: 'Accessibility-focused', desc: 'Prioritizes usability for all abilities' },
   ];
 
   // Goal examples

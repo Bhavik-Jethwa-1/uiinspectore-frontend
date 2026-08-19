@@ -10,10 +10,10 @@ import ConfirmModal from '../components/ConfirmModal';
 
 const PERSONAS = [
   { value: 'first_time', label: 'First-time user' },
-  { value: 'regular', label: 'Regular user' },
-  { value: 'experienced', label: 'Experienced user' },
+  { value: 'non_technical', label: 'Regular user' },
+  { value: 'developer', label: 'Experienced user' },
   { value: 'designer', label: 'Designer' },
-  { value: 'accessibility', label: 'Accessibility-focused' },
+  { value: 'custom', label: 'Accessibility-focused' },
 ];
 
 function NewReviewModal({ open, onClose, project, onSuccess }) {

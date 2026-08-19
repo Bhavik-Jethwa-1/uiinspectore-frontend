@@ -334,13 +334,20 @@ export default function LandingPage() {
         `}</style>
       </section>
 
-      {/* ── Trusted by bar ─────────────────────────────────────────────── */}
+      {/* ── Built for UI teams ─────────────────────────────────────────── */}
       <Reveal>
-        <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '24px', textAlign: 'center' }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>Used by designers and teams at</p>
-          <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {['StartupCo', 'DesignLab', 'ProductStudio', 'TechFlow', 'BuildRight'].map(name => (
-              <span key={name} style={{ fontSize: 14, fontWeight: 700, color: 'var(--border)', letterSpacing: '-0.01em' }}>{name}</span>
+        <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '32px 24px', textAlign: 'center' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Built for modern UI teams</p>
+          <div style={{ display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap', maxWidth: 700, margin: '0 auto' }}>
+            {[
+              { icon: <Zap size={16} />, text: 'Analyze screenshots instantly' },
+              { icon: <Eye size={16} />, text: 'Identify visual issues' },
+              { icon: <Lightbulb size={16} />, text: 'Get actionable suggestions' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: 'var(--primary)' }}>{icon}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{text}</span>
+              </div>
             ))}
           </div>
         </div>

@@ -5,10 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 import {
-  Search, Loader2, AlertCircle, Eye,
+  Search, Loader2, AlertCircle,
   ChevronLeft, ChevronRight, Copy, Check,
   ShieldCheck, RefreshCw, X,
-  UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, Filter, User,
+  UserX, UserCheck, UserCog, Trash2, Users, ChevronDown, User,
   MoreHorizontal, Ban, LogIn
 } from 'lucide-react';
 import AdminReloadBtn from '../../components/admin/AdminReloadBtn';
@@ -731,29 +731,49 @@ export default function AdminUsersPage() {
         {/* Search + Filters */}
         <div style={{ marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or email…"
               style={{
-                paddingLeft: 32, borderRadius: 'var(--radius-sm)', fontSize: 13,
-                width: '100%', padding: '0.45rem 0.75rem 0.45rem 32px',
+                width: '100%', padding: '0.45rem 2.5rem 0.45rem 32px',
                 border: '1px solid var(--border)', background: 'var(--surface)',
                 color: 'var(--text-primary)', outline: 'none',
+                borderRadius: 'var(--radius-sm)', fontSize: 13,
+                transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--primary-light)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                  display: 'flex', alignItems: 'center', color: 'var(--text-muted)',
+                  borderRadius: 4,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Filter size={12} style={{ color: 'var(--text-muted)' }} />
-            <SelectFilter label="Role" value={role}
+            <SelectFilter label="" value={role}
               options={[{ value: 'all', label: 'All Roles' }, { value: 'admin', label: 'Admin' }, { value: 'user', label: 'User' }]}
               onChange={v => { setRole(v); setPage(1); syncToUrl({ page: 1 }); }} />
-            <SelectFilter label="Status" value={status}
+            <span style={{ width: 1, height: 16, background: 'var(--border)', flexShrink: 0 }} />
+            <SelectFilter label="" value={status}
               options={[{ value: 'all', label: 'All Status' }, { value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]}
               onChange={v => { setStatus(v); setPage(1); syncToUrl({ page: 1 }); }} />
-            <SelectFilter label="Sort" value={sort}
+            <span style={{ width: 1, height: 16, background: 'var(--border)', flexShrink: 0 }} />
+            <SelectFilter label="" value={sort}
               options={[{ value: 'newest', label: 'Newest' }, { value: 'oldest', label: 'Oldest' }, { value: 'name_asc', label: 'Name A–Z' }, { value: 'name_desc', label: 'Name Z–A' }, { value: 'last_active', label: 'Last Active' }]}
               onChange={v => { setSort(v); setPage(1); syncToUrl({ page: 1 }); }} />
           </div>
@@ -839,7 +859,9 @@ export default function AdminUsersPage() {
                           padding: '10px 12px', fontSize: 10, fontWeight: 600,
                           color: 'var(--text-muted)', textAlign: centerCols.includes(label) ? 'center' : 'left',
                           textTransform: 'uppercase', letterSpacing: '0.04em',
-                          background: 'var(--background)', whiteSpace: 'nowrap',
+                          background: 'var(--surface)', whiteSpace: 'nowrap',
+                          borderBottom: '2px solid var(--border)',
+                          position: 'sticky', top: 0, zIndex: 2,
                           ...(width ? { minWidth: width } : {}),
                         }}>{label}</th>
                       );
@@ -905,23 +927,13 @@ export default function AdminUsersPage() {
                         {formatRelative(u.last_activity)}
                       </td>
                       {/* Actions — More menu */}
-                      <td style={{ padding: '10px 12px', minWidth: 60, textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', position: 'relative' }}>
-                          <button
-                            onClick={() => { setSelectedUser(u); setDetailLoading(false); }}
-                            className="btn-icon"
-                            title="Quick view"
-                            style={{ padding: 5 }}
-                          >
-                            <Eye size={13} />
-                          </button>
-                          <OverflowMenu
-                            user={u}
-                            onAction={handleUserAction}
-                            actionLoading={actionLoading}
-                            currentUserId={currentUser?.id}
-                          />
-                        </div>
+                      <td style={{ padding: '10px 12px', minWidth: 48, textAlign: 'center' }}>
+                        <OverflowMenu
+                          user={u}
+                          onAction={handleUserAction}
+                          actionLoading={actionLoading}
+                          currentUserId={currentUser?.id}
+                        />
                       </td>
                     </tr>
                   ))}
