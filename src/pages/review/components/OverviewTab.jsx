@@ -115,7 +115,7 @@ export function OverviewTab({
           <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
             Score Breakdown
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, overflowX: 'auto' }}>
             {scoreEntries.map(([key, info]) => {
               const val = scores[key];
               const status = val >= 80 ? 'good' : val >= 60 ? 'improvement' : 'attention';

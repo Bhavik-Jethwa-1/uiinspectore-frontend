@@ -139,8 +139,8 @@ export default function AdminDashboard() {
         ) : (
           <div className="stat-cards-grid" style={{ marginBottom: 20 }}>
             <div className="stat-card" onClick={() => navigate('/admin/users')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Users</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Users</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={12} style={{ color: 'var(--primary)' }} />
                 </div>
@@ -150,8 +150,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stat-card" onClick={() => navigate('/admin/projects')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projects</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Projects</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--success) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FolderOpen size={12} style={{ color: 'var(--success)' }} />
                 </div>
@@ -161,8 +161,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stat-card" onClick={() => navigate('/admin/reviews')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reviews</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Reviews</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--warning) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Star size={12} style={{ color: 'var(--warning)' }} />
                 </div>
@@ -172,8 +172,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stat-card" onClick={() => navigate('/admin/reviews?status=completed')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Score</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Avg Score</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <TrendingUp size={12} style={{ color: 'var(--accent)' }} />
                 </div>
@@ -185,8 +185,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stat-card" onClick={() => navigate('/admin/reviews?status=analyzing')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analyzing</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Analyzing</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--warning) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Clock size={12} style={{ color: 'var(--warning)' }} />
                 </div>
@@ -198,8 +198,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stat-card" onClick={() => navigate('/admin/reviews?status=failed')} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failed</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minWidth: 0, gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>Failed</span>
                 <div style={{ width: 24, height: 24, borderRadius: 6, background: 'color-mix(in srgb, var(--error) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <XCircle size={12} style={{ color: 'var(--error)' }} />
                 </div>

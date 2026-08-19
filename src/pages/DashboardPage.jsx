@@ -162,25 +162,25 @@ export default function DashboardPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
           <div className="card" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <FolderOpen size={13} style={{ color: 'var(--primary)' }} />
-              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Projects</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, minWidth: 0 }}>
+              <FolderOpen size={13} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Total Projects</p>
             </div>
             <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, marginBottom: 4 }}>{totalProjects}</p>
             <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>All your UI projects</p>
           </div>
           <div className="card" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <CheckCircle2 size={13} style={{ color: 'var(--success)' }} />
-              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Reviews</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, minWidth: 0 }}>
+              <CheckCircle2 size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Total Reviews</p>
             </div>
             <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, marginBottom: 4 }}>{totalReviews}</p>
             <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>AI reviews completed</p>
           </div>
           <div className="card" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <BarChart3 size={13} style={{ color: avg ? getScoreColor(avg) : 'var(--text-muted)' }} />
-              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Avg Score</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, minWidth: 0 }}>
+              <BarChart3 size={13} style={{ color: avg ? getScoreColor(avg) : 'var(--text-muted)', flexShrink: 0 }} />
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Avg Score</p>
             </div>
             <p style={{ fontSize: 22, fontWeight: 700, color: avg ? getScoreColor(avg) : 'var(--text-muted)', lineHeight: 1, marginBottom: 4 }}>{avg !== null ? avg : '—'}</p>
             <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{scoreContext.sub}</p>
