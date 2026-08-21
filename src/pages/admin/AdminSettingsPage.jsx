@@ -9,6 +9,7 @@ export default function AdminSettingsPage() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [openaiKey, setOpenaiKey] = useState('');
+  const [keyEdited, setKeyEdited] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,7 +27,10 @@ export default function AdminSettingsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.openai_key) setOpenaiKey(data.openai_key);
+        if (data.openai_key) {
+          setOpenaiKey(data.openai_key);
+          setKeyEdited(false);
+        }
       }
     } catch {}
   }
@@ -36,6 +40,9 @@ export default function AdminSettingsPage() {
     setSaving(true);
     setError('');
     try {
+      // Only send openai_key if user explicitly edited it
+      // Otherwise omit it so backend keeps the existing key
+      const body = keyEdited ? { openai_key: openaiKey } : {};
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: {
@@ -43,11 +50,14 @@ export default function AdminSettingsPage() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ openai_key: openaiKey }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed to save settings');
       addToast({ type: 'success', message: 'Settings saved successfully.' });
       setError('');
+      setKeyEdited(false);
+      // Reload config to get fresh masked value
+      await loadConfig();
     } catch (e) {
       addToast({ type: 'error', message: e.message || 'Failed to save settings.' });
     } finally {
@@ -112,10 +122,11 @@ export default function AdminSettingsPage() {
                 <input
                   type="password"
                   value={openaiKey}
-                  onChange={e => setOpenaiKey(e.target.value)}
-                  placeholder="sk-..."
+                  onChange={e => { setOpenaiKey(e.target.value); setKeyEdited(true); }}
+                  placeholder="Enter new API key to update, or leave blank to keep current"
                   className="input"
                   style={{ width: '100%' }}
+                  autoComplete="off"
                 />
                 <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
                   Get your API key from{' '}

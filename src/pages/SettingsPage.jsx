@@ -132,7 +132,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Password</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last changed: Unknown</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Last changed: Never</p>
                 </div>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 12px', background: 'var(--hover)', borderRadius: 6, marginTop: 8 }}>
