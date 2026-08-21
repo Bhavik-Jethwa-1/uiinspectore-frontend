@@ -15,14 +15,14 @@ export function getScoreColor(v) {
 }
 
 export function getScoreBg(v) {
-  if (!v && v !== 0) return 'var(--hover)';
+  if (v == null) return 'var(--hover)';
   if (v >= 80) return 'var(--success-light)';
   if (v >= 60) return 'var(--warning-light)';
   return 'var(--error-light)';
 }
 
 export function getScoreLabel(v) {
-  if (!v && v !== 0) return 'No data';
+  if (v == null) return 'No data';
   if (v >= 90) return 'Excellent';
   if (v >= 80) return 'Good';
   if (v >= 65) return 'Average';
@@ -31,7 +31,7 @@ export function getScoreLabel(v) {
 }
 
 export function getScoreSummary(v) {
-  if (!v && v !== 0) return 'No score data available yet.';
+  if (v == null) return 'No score data available yet.';
   if (v >= 90) return 'Outstanding UI quality. Your interface is among the best-designed.';
   if (v >= 80) return 'Your interface is well-designed with minor opportunities for improvement.';
   if (v >= 65) return 'Your interface is usable but has several areas that could be improved for a better user experience.';

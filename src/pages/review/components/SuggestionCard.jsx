@@ -15,7 +15,7 @@ export function SuggestionCard({ suggestion, index, isSelected, onSelect }) {
   const sevBg = pStyle.bg;
 
   const hasFix       = suggestion.recommendation || suggestion.fix || (suggestion.steps && suggestion.steps.length > 0);
-  const hasDetails   = suggestion.problem || suggestion.why_matters || suggestion.user_impact || suggestion.expected_impact;
+  const hasDetails   = suggestion.problem || suggestion.why_matters || suggestion.user_impact || suggestion.expectedImpact;
   const title        = suggestion.title || suggestion.category || 'Suggestion';
   const description  = suggestion.description || suggestion.suggestion || '';
 
@@ -81,8 +81,8 @@ export function SuggestionCard({ suggestion, index, isSelected, onSelect }) {
             {suggestion.user_impact && (
               <AICard icon="👤" label="User impact" text={suggestion.user_impact} color="var(--primary)" bg="var(--primary-light)" />
             )}
-            {suggestion.expected_impact && (
-              <AICard icon="✅" label="Expected impact" text={suggestion.expected_impact} color="var(--success)" bg="var(--success-light)" />
+            {suggestion.expectedImpact && (
+              <AICard icon="✅" label="Expected impact" text={suggestion.expectedImpact} color="var(--success)" bg="var(--success-light)" />
             )}
           </div>
         )}
