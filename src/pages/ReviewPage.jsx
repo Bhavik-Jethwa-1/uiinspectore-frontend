@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, RefreshCw, Plus, AlertCircle,
-  Loader2, CheckCircle2,
+  Loader2, CheckCircle2, Lightbulb,
 } from 'lucide-react';
 
 // Components
@@ -37,6 +37,13 @@ function RightPanel({
   getAnnotationDisplayNum,
   handleIssueViewAnnotation,
   handleIssueHighlight,
+  review,
+  suggestions,
+  handleRetry,
+  retrying,
+  onNavigateNew,
+  rightTab,
+  setRightTab,
 }) {
   const sevCounts = issues.reduce((acc, iss) => {
     const s = (iss.severity || 'low').toLowerCase();
@@ -51,19 +58,20 @@ function RightPanel({
         <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Review Actions</p>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={() => {}}
-            disabled={true}
+            onClick={() => { if (handleRetry) handleRetry(); }}
+            disabled={!review || retrying || review?.status === 'completed' || review?.status === 'analyzing'}
             className="btn-secondary"
-            style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34, opacity: 0.5 }}
+            style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34, opacity: (!review || retrying || review?.status === 'completed' || review?.status === 'analyzing') ? 0.5 : 1 }}
+            title={!review || retrying || review?.status === 'analyzing' ? 'Please wait...' : review?.status === 'completed' ? 'Cannot retry completed review' : 'Retry this review'}
           >
-            <RefreshCw size={12} /> Retry
+            <span style={{ fontFamily: 'monospace', fontSize: 14, lineHeight: 1 }}>↻</span> {retrying ? 'Retrying...' : 'Retry'}
           </button>
           <button
-            onClick={() => {}}
+            onClick={() => { if (onNavigateNew) onNavigateNew(); }}
             className="btn-primary"
             style={{ flex: 1, justifyContent: 'center', fontSize: 12, height: 34 }}
           >
-            <Plus size={12} /> New
+            <span style={{ fontFamily: 'monospace', fontSize: 16, lineHeight: 1, fontWeight: 700 }}>+</span> New
           </button>
         </div>
       </div>
@@ -73,12 +81,12 @@ function RightPanel({
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
           {[
             { key: 'issues', label: `Issues (${severityFilter !== 'all' ? `${filteredIssues.length}/${issues.length}` : issues.length})` },
-            { key: 'tips',  label: `Tips (${issues.length})` },
+            { key: 'tips',  label: `Tips (${suggestions.length})` },
           ].map(t => (
             <button
               key={t.key}
-              onClick={() => {}}
-              className={`tab-btn ${t.key === 'issues' ? 'active' : ''}`}
+              onClick={() => setRightTab(t.key)}
+              className={`tab-btn ${rightTab === t.key ? 'active' : ''}`}
               style={{ flex: 1, textAlign: 'center', padding: '10px 0' }}
             >
               {t.label}
@@ -87,118 +95,175 @@ function RightPanel({
         </div>
 
         {/* Issues Tab */}
-        <div style={{ paddingBottom: 16 }}>
-          {/* Filter bar */}
-          {issues.length > 0 && (
-            <div style={{ marginBottom: 10 }}>
-              {/* Severity filters */}
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
-                {[
-                  { key: 'all',      label: `All (${issues.length})` },
-                  { key: 'critical', label: `Critical${sevCounts.critical ? ` (${sevCounts.critical})` : ''}`,  color: 'var(--error)' },
-                  { key: 'high',     label: `High${sevCounts.high ? ` (${sevCounts.high})` : ''}`,         color: 'var(--warning)' },
-                  { key: 'medium',   label: `Medium${sevCounts.medium ? ` (${sevCounts.medium})` : ''}`,     color: 'var(--secondary)' },
-                  { key: 'low',      label: `Low${sevCounts.low ? ` (${sevCounts.low})` : ''}`,            color: 'var(--text-muted)' },
-                ].map(({ key, label, color }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSeverityFilter(key)}
-                    style={{
-                      padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontSize: 10, fontWeight: 600,
-                      background: severityFilter === key
-                        ? (color || 'var(--primary)')
-                        : 'var(--hover)',
-                      color: severityFilter === key
-                        ? '#fff'
-                        : (color || 'var(--text-secondary)'),
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
+        {rightTab === 'issues' && (
+          <div style={{ paddingBottom: 16 }}>
+            {/* Filter bar */}
+            {issues.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                {/* Severity filters */}
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                  {[
+                    { key: 'all',      label: `All (${issues.length})` },
+                    { key: 'critical', label: `Critical${sevCounts.critical ? ` (${sevCounts.critical})` : ''}`,  color: 'var(--error)' },
+                    { key: 'high',     label: `High${sevCounts.high ? ` (${sevCounts.high})` : ''}`,         color: 'var(--warning)' },
+                    { key: 'medium',   label: `Medium${sevCounts.medium ? ` (${sevCounts.medium})` : ''}`,     color: 'var(--secondary)' },
+                    { key: 'low',      label: `Low${sevCounts.low ? ` (${sevCounts.low})` : ''}`,            color: 'var(--text-muted)' },
+                  ].map(({ key, label, color }) => (
+                    <button
+                      key={key}
+                      onClick={() => setSeverityFilter(key)}
+                      style={{
+                        padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        fontSize: 10, fontWeight: 600,
+                        background: severityFilter === key
+                          ? (color || 'var(--primary)')
+                          : 'var(--hover)',
+                        color: severityFilter === key
+                          ? '#fff'
+                          : (color || 'var(--text-secondary)'),
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {/* Sort control */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Sort:</span>
+                  {[
+                    { key: 'severity', label: 'Most severe' },
+                    { key: 'newest',   label: 'Newest first' },
+                    { key: 'oldest',   label: 'Oldest first' },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setSortOrder(key)}
+                      style={{
+                        padding: '2px 7px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                        fontSize: 10, fontWeight: 500,
+                        background: sortOrder === key ? 'var(--primary-light)' : 'transparent',
+                        color: sortOrder === key ? 'var(--primary)' : 'var(--text-muted)',
+                        textDecoration: sortOrder === key ? 'underline' : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              {/* Sort control */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Sort:</span>
-                {[
-                  { key: 'severity', label: 'Most severe' },
-                  { key: 'newest',   label: 'Newest first' },
-                  { key: 'oldest',   label: 'Oldest first' },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSortOrder(key)}
-                    style={{
-                      padding: '2px 7px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                      fontSize: 10, fontWeight: 500,
-                      background: sortOrder === key ? 'var(--primary-light)' : 'transparent',
-                      color: sortOrder === key ? 'var(--primary)' : 'var(--text-muted)',
-                      textDecoration: sortOrder === key ? 'underline' : 'none',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {filteredIssues.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 12px' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: 'var(--success-light)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 8px',
-              }}>
-                <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
-              </div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', marginBottom: 4 }}>
-                {severityFilter === 'all' ? 'All clear!' : 'None found'}
-              </p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                {severityFilter === 'all'
-                  ? 'No issues detected in this review.'
-                  : `No ${severityFilter} issues found.`}
-              </p>
-              {severityFilter !== 'all' && (
-                <button
-                  onClick={() => setSeverityFilter('all')}
-                  style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}
-                >
-                  Show all issues
-                </button>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filteredIssues.map((iss) => {
-                const matchingAnn = findAnnotationByIssueId(iss.id);
-                const displayNum = matchingAnn ? getAnnotationDisplayNum(matchingAnn.id) : null;
-                const isSelected = selectedIssueId === iss.id;
-
-                return (
-                  <div
-                    key={iss.id}
-                    ref={el => { if (el) issueRefs.current[iss.id] = el; }}
+            {filteredIssues.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'var(--success-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 8px',
+                }}>
+                  <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', marginBottom: 4 }}>
+                  {severityFilter === 'all' ? 'All clear!' : 'None found'}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {severityFilter === 'all'
+                    ? 'No issues detected in this review.'
+                    : `No ${severityFilter} issues found.`}
+                </p>
+                {severityFilter !== 'all' && (
+                  <button
+                    onClick={() => setSeverityFilter('all')}
+                    style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}
                   >
-                    <IssueCard
-                      issue={iss}
-                      issueId={iss.id}
-                      annotationId={matchingAnn?.id || null}
-                      displayNum={displayNum}
-                      isSelected={isSelected}
-                      onViewAnnotation={() => handleIssueViewAnnotation(iss.id)}
-                      onHighlight={() => handleIssueHighlight(iss.id)}
-                    />
+                    Show all issues
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {filteredIssues.map((iss) => {
+                  const matchingAnn = findAnnotationByIssueId(iss.id);
+                  const displayNum = matchingAnn ? getAnnotationDisplayNum(matchingAnn.id) : null;
+                  const isSelected = selectedIssueId === iss.id;
+
+                  return (
+                    <div
+                      key={iss.id}
+                      ref={el => { if (el) issueRefs.current[iss.id] = el; }}
+                    >
+                      <IssueCard
+                        issue={iss}
+                        issueId={iss.id}
+                        annotationId={matchingAnn?.id || null}
+                        displayNum={displayNum}
+                        isSelected={isSelected}
+                        onViewAnnotation={() => handleIssueViewAnnotation(iss.id)}
+                        onHighlight={() => handleIssueHighlight(iss.id)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tips Tab */}
+        {rightTab === 'tips' && (
+          <div style={{ paddingBottom: 16 }}>
+            {suggestions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'var(--primary-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 8px',
+                }}>
+                  <Lightbulb size={16} style={{ color: 'var(--primary)' }} />
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  No tips yet
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  AI recommendations will appear after analysis is completed.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {suggestions.map((sug, i) => (
+                  <div key={sug.id || i} style={{
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
+                        {sug.priority || ' tip'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                      {sug.title || 'Suggestion'}
+                    </p>
+                    {sug.problem && (
+                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        {sug.problem}
+                      </p>
+                    )}
+                    {sug.recommendation && (
+                      <p style={{ fontSize: 10, color: 'var(--primary)', marginTop: 4, fontWeight: 500 }}>
+                        Fix: {sug.recommendation}
+                      </p>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -435,7 +500,7 @@ export default function ReviewPage() {
             {/* ── SUGGESTIONS TAB ────────────────────────────────────── */}
             {activeTab === 'suggestions' && (
               <SuggestionsTab
-                issues={issues}
+                issues={review?.suggestions || []}
                 selectedIssueId={selectedIssueId}
                 onIssueSelect={onIssueSelect}
               />
@@ -458,6 +523,13 @@ export default function ReviewPage() {
           getAnnotationDisplayNum={getAnnotationDisplayNum}
           handleIssueViewAnnotation={onIssueViewAnnotation}
           handleIssueHighlight={onIssueHighlight}
+          review={review}
+          suggestions={review?.suggestions || []}
+          handleRetry={handleRetry}
+          retrying={retrying}
+          onNavigateNew={() => navigate('/dashboard')}
+          rightTab={rightTab}
+          setRightTab={setRightTab}
         />
       </div>
     </div>
