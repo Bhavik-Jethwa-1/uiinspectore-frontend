@@ -58,7 +58,9 @@ export function useReviewData(id, token) {
       const code = err?.code || '';
       setErrorMsg(msg);
       setErrorCode(code);
-      setReview(prev => prev ? { ...prev, status: 'failed' } : null);
+      if (code !== 'ALREADY_COMPLETED') {
+        setReview(prev => prev ? { ...prev, status: 'failed' } : null);
+      }
     } finally {
       setRetrying(false);
     }

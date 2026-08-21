@@ -1,10 +1,11 @@
 const API_BASE = '/api';
 
 class ApiError extends Error {
-  constructor(message, status, fieldErrors = {}) {
+  constructor(message, status, fieldErrors = {}, code = null) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.code = code;
   }
 }
 
@@ -25,7 +26,8 @@ async function request(method, path, body = null, token = null) {
     throw new ApiError(
       data.message || data.error || 'Request failed',
       res.status,
-      data.errors || {}
+      data.errors || {},
+      data.code || null
     );
   }
 
