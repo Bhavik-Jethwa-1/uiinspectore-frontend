@@ -494,27 +494,16 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleDeleteFromTable = (user) => {
-    setConfirmModal({
-      type: 'delete_user',
-      title: 'Delete User',
-      message: `Are you sure you want to delete "${user.name}"? This action cannot be undone.`,
-      details: [
-        { label: 'User', value: user.name },
-        { label: 'Email', value: user.email },
-      ],
-      confirmLabel: 'Delete',
-      variant: 'danger',
-      userId: user.id,
-      userName: user.name,
-    });
-  };
-
-  const handleUserAction = async (action) => {
-    if (!selectedUser) return;
+  const handleUserAction = async (action, user) => {
+    const targetUser = user ?? selectedUser;
+    if (!targetUser) return;
 
     if (action === 'view') {
-      navigate(`/admin/users/${selectedUser.id}`);
+      if (user) {
+        await fetchUserDetail(user.id);
+      } else {
+        navigate(`/admin/users/${selectedUser.id}`);
+      }
       return;
     }
 
@@ -522,13 +511,14 @@ export default function AdminUsersPage() {
       setConfirmModal({
         type: 'delete',
         title: 'Delete User',
-        message: `Are you sure you want to delete "${selectedUser.name}"? This will permanently remove this account and all associated data. This action cannot be undone.`,
+        message: `Are you sure you want to delete "${targetUser.name}"? This will permanently remove this account and all associated data. This action cannot be undone.`,
         details: [
-          { label: 'User', value: selectedUser.name },
-          { label: 'Email', value: selectedUser.email },
+          { label: 'User', value: targetUser.name },
+          { label: 'Email', value: targetUser.email },
         ],
         confirmLabel: 'Delete',
         variant: 'danger',
+        targetUser,
       });
       return;
     }
@@ -539,16 +529,15 @@ export default function AdminUsersPage() {
         type: 'allow_login',
         title: willBlock ? 'Block Login?' : 'Allow Login?',
         message: willBlock
-          ? `"${selectedUser.name}" will no longer be able to sign in. They can be unblocked at any time.`
-          : `"${selectedUser.name}" will be able to sign in again.`,
+          ? `"${targetUser.name}" will no longer be able to sign in. They can be unblocked at any time.`
+          : `"${targetUser.name}" will be able to sign in again.`,
         details: [
-          { label: 'User', value: selectedUser.name },
-          { label: 'Email', value: selectedUser.email },
+          { label: 'User', value: targetUser.name },
+          { label: 'Email', value: targetUser.email },
         ],
         confirmLabel: willBlock ? 'Block Login' : 'Allow Login',
         variant: 'warning',
-        action,
-        userName: selectedUser.name,
+        targetUser,
       });
       return;
     }
@@ -557,13 +546,14 @@ export default function AdminUsersPage() {
       setConfirmModal({
         type: 'suspend',
         title: 'Suspend User',
-        message: `Are you sure you want to suspend "${selectedUser.name}"? They will no longer be able to access the application.`,
+        message: `Are you sure you want to suspend "${targetUser.name}"? They will no longer be able to access the application.`,
         details: [
-          { label: 'User', value: selectedUser.name },
-          { label: 'Email', value: selectedUser.email },
+          { label: 'User', value: targetUser.name },
+          { label: 'Email', value: targetUser.email },
         ],
         confirmLabel: 'Suspend',
         variant: 'danger',
+        targetUser,
       });
       return;
     }
@@ -572,13 +562,14 @@ export default function AdminUsersPage() {
       setConfirmModal({
         type: 'activate',
         title: 'Activate User',
-        message: `Are you sure you want to activate "${selectedUser.name}"? They will regain access to the application.`,
+        message: `Are you sure you want to activate "${targetUser.name}"? They will regain access to the application.`,
         details: [
-          { label: 'User', value: selectedUser.name },
-          { label: 'Email', value: selectedUser.email },
+          { label: 'User', value: targetUser.name },
+          { label: 'Email', value: targetUser.email },
         ],
         confirmLabel: 'Activate',
         variant: 'primary',
+        targetUser,
       });
       return;
     }
@@ -587,16 +578,17 @@ export default function AdminUsersPage() {
       setConfirmModal({
         type: 'toggle_role',
         title: 'Change User Role',
-        message: selectedUser.is_admin
-          ? `Are you sure you want to remove admin privileges from "${selectedUser.name}"? They will become a regular user.`
-          : `Are you sure you want to make "${selectedUser.name}" an administrator? They will have full access to the Admin Panel.`,
+        message: targetUser.is_admin
+          ? `Are you sure you want to remove admin privileges from "${targetUser.name}"? They will become a regular user.`
+          : `Are you sure you want to make "${targetUser.name}" an administrator? They will have full access to the Admin Panel.`,
         details: [
-          { label: 'User', value: selectedUser.name },
-          { label: 'Current Role', value: selectedUser.is_admin ? 'Admin' : 'User' },
-          { label: 'New Role', value: selectedUser.is_admin ? 'User' : 'Admin' },
+          { label: 'User', value: targetUser.name },
+          { label: 'Current Role', value: targetUser.is_admin ? 'Admin' : 'User' },
+          { label: 'New Role', value: targetUser.is_admin ? 'User' : 'Admin' },
         ],
         confirmLabel: 'Change Role',
         variant: 'warning',
+        targetUser,
       });
       return;
     }
@@ -617,39 +609,43 @@ export default function AdminUsersPage() {
         return;
       }
       if (confirmModal.type === 'allow_login') {
+        const u = confirmModal.targetUser ?? selectedUser;
         const newVal = confirmModal.action === 'block_login' ? false : true;
-        const data = await api.adminUpdateUser(selectedUser.id, { allow_login: newVal }, token);
+        const data = await api.adminUpdateUser(u.id, { allow_login: newVal }, token);
         setSelectedUser(data.user);
-        setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
+        setUsers(prev => prev.map(x => x.id === data.user.id ? { ...x, ...data.user } : x));
         setConfirmModal(null);
-        addToast({ type: 'success', message: newVal ? `"${selectedUser.name}" can now log in` : `"${selectedUser.name}" is now blocked from logging in` });
+        addToast({ type: 'success', message: newVal ? `"${u.name}" can now log in` : `"${u.name}" is now blocked from logging in` });
         return;
       }
       if (confirmModal.type === 'suspend') {
-        const data = await api.adminSuspendUser(selectedUser.id, token);
+        const u = confirmModal.targetUser ?? selectedUser;
+        const data = await api.adminSuspendUser(u.id, token);
         setSelectedUser(prev => ({ ...prev, is_active: false }));
-        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: false } : u));
+        setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_active: false } : x));
         setConfirmModal(null);
-        addToast({ type: 'success', message: `"${selectedUser.name}" suspended successfully.` });
+        addToast({ type: 'success', message: `"${u.name}" suspended successfully.` });
         return;
       }
       if (confirmModal.type === 'activate') {
-        const data = await api.adminActivateUser(selectedUser.id, token);
+        const u = confirmModal.targetUser ?? selectedUser;
+        const data = await api.adminActivateUser(u.id, token);
         setSelectedUser(prev => ({ ...prev, is_active: true }));
-        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: true } : u));
+        setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_active: true } : x));
         setConfirmModal(null);
-        addToast({ type: 'success', message: `"${selectedUser.name}" activated successfully.` });
+        addToast({ type: 'success', message: `"${u.name}" activated successfully.` });
         return;
       }
       if (confirmModal.type === 'toggle_role') {
-        const data = await api.adminUpdateUser(selectedUser.id, { is_admin: !selectedUser.is_admin }, token);
+        const u = confirmModal.targetUser ?? selectedUser;
+        const data = await api.adminUpdateUser(u.id, { is_admin: !u.is_admin }, token);
         if (data.message?.includes('last administrator')) {
           setConfirmModal({ type: 'error', title: 'Action Blocked', message: data.message, confirmLabel: 'OK', variant: 'danger' });
           setActionLoading(false);
           return;
         }
         setSelectedUser(data.user);
-        setUsers(prev => prev.map(u => u.id === data.user.id ? { ...u, ...data.user } : u));
+        setUsers(prev => prev.map(x => x.id === data.user.id ? { ...x, ...data.user } : x));
         setConfirmModal(null);
         addToast({ type: 'success', message: data.user.is_admin ? `"${data.user.name}" promoted to admin` : `"${data.user.name}" demoted to user` });
         return;

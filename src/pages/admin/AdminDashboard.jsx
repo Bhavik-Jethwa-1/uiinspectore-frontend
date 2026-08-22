@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
@@ -12,6 +13,7 @@ import { openAdminReview, openAdminProject } from '../../utils/adminNav';
 
 export default function AdminDashboard() {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentUsers, setRecentUsers] = useState([]);
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
       setFailedReviews(data.failed_reviews_list || []);
       const analyzing = await api.adminGetReviews(token, { status: 'analyzing', per_page: 5 });
       setAnalyzingReviews(analyzing.reviews || []);
-    } catch {} finally { setLoading(false); }
+    } catch (e) { addToast({ type: 'error', message: e?.message || 'Failed to load dashboard.' }); } finally { setLoading(false); }
   }
 
   useEffect(() => { if (token) loadDashboard(); }, [token]);
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
         setSearchResults(data.reviews || []);
         setSearchTotal(data.total || 0);
         setSearchTotalPages(data.last_page || 1);
-      } catch {} finally { setSearchLoading(false); }
+      } catch (e) { addToast({ type: 'error', message: e?.message || 'Search failed.' }); } finally { setSearchLoading(false); }
     }, 300);
     return () => clearTimeout(t);
   }, [token, search, searchPage]);
